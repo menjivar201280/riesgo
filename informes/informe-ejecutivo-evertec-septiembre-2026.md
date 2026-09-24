@@ -21,18 +21,27 @@ El presente informe consolida los resultados de la Encuesta de Evaluación del S
 
 ## 2. MÉTRICAS CLAVE
 
-- **Colaboradores evaluados:** 17.
-- **Encuestas completadas:** 17 de 17 formularios registrados (100 % de formularios recibidos completados, sin registros incompletos).
-- **Puntos de atención representados:** 10 unidades distintas (9 agencias más la jefatura de la Agencia Móvil): San Miguel, Colonia Médica, Sonsonate, Santa Ana, Plaza Mundo, Plaza Merliot, Colegio Médico, Usulután, Central y Jefe Móvil.
-- **Distribución temporal:** 7 encuestas el 16/09/2026 y 10 encuestas el 17/09/2026.
-- **Calificación general del servicio (columna "En términos generales…"):** promedio 3.82; 14 respuestas con calificación 4 (82.4 %) y 3 respuestas con calificación 3 (17.6 %).
-- **Facilidad de resolución (columna "¿Qué tan fácil resulta…"):** Muy fácil 1 (5.9 %), Fácil 7 (41.2 %), Regular 8 (47.1 %), Difícil 1 (5.9 %). El 52.9 % no percibe la resolución como fácil.
-- **Oportunidad de atención (columna "Cuando se presenta…"):** Muy oportunamente 2 (11.8 %), Oportunamente 13 (76.5 %), Regular 2 (11.8 %).
-- **Frecuencia de incidencias (columna I, "¿Con qué frecuencia…"):** Frecuentemente 7 (41.2 %), Algunas veces 5 (29.4 %), Rara vez 5 (29.4 %).
-- **Frecuencia de uso/contacto (columna G, "¿Con qué frecuencia…"):** Frecuentemente 6 (35.3 %), Algunas veces 9 (52.9 %), Rara vez 2 (11.8 %).
-- **Tiempo de llenado de la encuesta:** mediana de 5 min 58 s; promedio de 8 min 01 s (influido por un registro de 41 min 57 s).
+### ¿Quiénes participaron?
 
-> Nota metodológica: los encabezados de las columnas G a L aparecen truncados en la captura de pantalla; las etiquetas se citan según el texto visible.
+- **17 colaboradores** de Comedica respondieron la encuesta.
+- Participaron **9 agencias y la Agencia Móvil**: San Miguel, Colonia Médica, Sonsonate, Santa Ana, Plaza Mundo, Plaza Merliot, Colegio Médico, Usulután y Central.
+- Las respuestas se recibieron el **16 y 17 de septiembre de 2026**.
+- **Todas las encuestas recibidas se contestaron completas.**
+
+### ¿Qué opina el personal del servicio de Evertec?
+
+| Aspecto evaluado | Resultado | ¿Qué significa para Comedica? |
+|---|---|---|
+| **Nota general del servicio** | 14 de 17 colaboradores le dieron nota de 4; los otros 3 le dieron nota de 3. Nadie le dio una nota menor. | El personal está conforme con el servicio, pero todavía hay aspectos por mejorar. |
+| **Rapidez de la atención** | 15 de 17 dicen que Evertec los atiende a tiempo; solo 2 dicen que la atención es regular. | Cuando se reporta un problema, Evertec responde a tiempo. |
+| **Facilidad para resolver los problemas** | 8 de 17 dicen que es fácil o muy fácil; 8 dicen que es regular y 1 dice que es difícil. | Evertec atiende rápido, pero a más de la mitad del personal le cuesta que el problema quede resuelto. **Es el punto más débil.** |
+| **Qué tan seguido se presentan problemas** | 7 de 17 dicen que pasa con frecuencia; 5 dicen que a veces y 5 que casi nunca. | Casi la mitad del personal enfrenta problemas con frecuencia, lo que afecta la atención a los asociados en ventanilla. |
+
+### En pocas palabras
+
+- **Lo bueno:** el servicio funciona y Evertec atiende a tiempo cuando se le reporta un problema.
+- **Lo que hay que mejorar:** que los problemas se resuelvan a la primera y que se presenten con menos frecuencia.
+- **Los problemas más mencionados:** caídas y lentitud del sistema, reversas que no se aplican, tarjetas (plásticos) que fallan, y la atención de reclamos y fraudes.
 
 ---
 
