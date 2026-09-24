@@ -15,33 +15,18 @@
 
 ## 1. RESUMEN EJECUTIVO
 
-El presente informe presenta los resultados de la Encuesta de Evaluación del Servicio de Procesamiento de Tarjetas de Crédito (Evertec), contestada el 16 y 17 de septiembre de 2026 por 17 colaboradores de Comedica de las agencias San Miguel, Colonia Médica, Sonsonate, Santa Ana, Plaza Mundo, Plaza Merliot, Colegio Médico, Usulután, Central y Jefe Móvil. En la calificación general del servicio, 14 colaboradores asignaron nota de 4 y 3 colaboradores nota de 3. Sin embargo, 9 de los 17 colaboradores consideran que resolver los casos es "Regular" o "Difícil", y 14 de los 17 reportaron problemas que deben corregirse: fallas y lentitud del sistema, reversas no aceptadas, plásticos que no funcionan, abonos registrados como "Nota de Crédito" sin detalle, y la atención de fraudes, contracargos y promociones.
+El presente informe muestra los resultados de la Encuesta de Evaluación del Servicio de Procesamiento de Tarjetas de Crédito (Evertec), contestada por el personal de agencias de Comedica. Su propósito es conocer la opinión del personal sobre la atención, la solución de casos y la calidad general del servicio de Evertec, e identificar los problemas que enfrentan en el día a día.
 
 ---
 
 ## 2. MÉTRICAS CLAVE
 
-### ¿Quiénes participaron?
-
-- **17 colaboradores** de Comedica respondieron la encuesta.
-- Participaron **9 agencias y Jefe Móvil**: San Miguel, Colonia Médica, Sonsonate, Santa Ana, Plaza Mundo, Plaza Merliot, Colegio Médico, Usulután, Central y Jefe Móvil.
-- Las respuestas se recibieron el **16 y 17 de septiembre de 2026**.
-- **Todas las encuestas recibidas se contestaron completas.**
-
-### ¿Qué opina el personal del servicio de Evertec?
-
-| Aspecto evaluado | Resultado | ¿Qué significa para Comedica? |
-|---|---|---|
-| **Nota general del servicio** | 14 de 17 colaboradores le dieron nota de 4; los otros 3 le dieron nota de 3. Nadie le dio una nota menor. | El personal está conforme con el servicio, pero todavía hay aspectos por mejorar. |
-| **Rapidez de la atención** | 15 de 17 dicen que Evertec los atiende a tiempo; solo 2 dicen que la atención es regular. | Cuando se reporta un problema, Evertec responde a tiempo. |
-| **Facilidad para resolver los problemas** | 8 de 17 dicen que es fácil o muy fácil; 8 dicen que es regular y 1 dice que es difícil. | Evertec atiende rápido, pero a más de la mitad del personal le cuesta que el problema quede resuelto. **Es el punto más débil.** |
-| **Qué tan seguido se presentan problemas** | 7 de 17 dicen que pasa con frecuencia; 5 dicen que a veces y 5 que casi nunca. | Casi la mitad del personal enfrenta problemas con frecuencia, lo que afecta la atención a los asociados en ventanilla. |
-
-### En pocas palabras
-
-- **Lo bueno:** el servicio funciona y Evertec atiende a tiempo cuando se le reporta un problema.
-- **Lo que hay que mejorar:** que los problemas se resuelvan a la primera y que se presenten con menos frecuencia.
-- **Los problemas más mencionados:** caídas y lentitud del sistema, reversas que no se aplican, tarjetas (plásticos) que fallan, y la atención de reclamos y fraudes.
+| Aspecto evaluado | Resultado |
+|---|---|
+| **Nota general del servicio** | 14 colaboradores le dieron nota de 4 y 3 le dieron nota de 3. |
+| **Rapidez de la atención** | 15 dicen que Evertec los atiende a tiempo y 2 que la atención es regular. |
+| **Facilidad para resolver los problemas** | 8 dicen que es fácil o muy fácil, 8 que es regular y 1 que es difícil. |
+| **Qué tan seguido se presentan problemas** | 7 dicen que con frecuencia, 5 que a veces y 5 que casi nunca. |
 
 ---
 
@@ -89,7 +74,7 @@ El presente informe presenta los resultados de la Encuesta de Evaluación del Se
 
 ## 4. PROBLEMAS REPORTADOS POR LOS COLABORADORES
 
-De los 17 colaboradores, 14 reportaron problemas y 3 indicaron no tener inconvenientes ("Todo bien", "sin inconvenientes" y "siempre recibo ayuda"). A continuación se presentan los problemas reportados, agrupados por tema y citando lo que escribieron los colaboradores.
+De los 17 colaboradores, 14 reportaron problemas y 3 indicaron no tener inconvenientes ("Todo bien", "sin inconvenientes" y "siempre recibo ayuda"). Sus comentarios se agrupan por tema y se citan tal como fueron escritos.
 
 ### 4.1 Estabilidad y rendimiento de la plataforma
 
@@ -123,7 +108,7 @@ De los 17 colaboradores, 14 reportaron problemas y 3 indicaron no tener inconven
 
 ## 5. OTRAS SUGERENCIAS DE LOS COLABORADORES
 
-Los colaboradores también hicieron las siguientes sugerencias:
+Además de los problemas, los colaboradores propusieron:
 
 1. "Los reclamos por contracargos deberían ser solo atendidos por depto. de T/C" y "Depto. de tarjeta debería atender todo tipo de consultas y no delegarlo a otra área".
 2. "Los cajeros tenga acceso a ver saldo de T/C adicionales".
@@ -133,7 +118,4 @@ Los colaboradores también hicieron las siguientes sugerencias:
 
 ## 6. CONCLUSIONES
 
-1. El personal está conforme con el servicio de Evertec en términos generales: 14 de 17 colaboradores le dieron nota de 4 y ninguno le dio una nota menor a 3.
-2. Evertec atiende a tiempo: 15 de 17 colaboradores así lo indican.
-3. El punto más débil es la solución de los problemas: 9 de 17 colaboradores consideran que resolverlos es "Regular" o "Difícil".
-4. Los problemas más reportados son la estabilidad y lentitud del sistema, las reversas, los plásticos, la falta de detalle en las notas de crédito, y la atención de fraudes, contracargos y promociones.
+La atención de Evertec llega a tiempo y el servicio recibe una buena nota general; sin embargo, la solución de los casos no avanza al mismo ritmo. La mayor parte de los problemas reportados tiene que ver con el funcionamiento del sistema y el procesamiento de transacciones, lo que afecta directamente la atención a los asociados.
