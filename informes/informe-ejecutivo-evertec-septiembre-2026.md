@@ -24,7 +24,7 @@ El presente informe consolida los resultados de la Encuesta de Evaluación del S
 ### ¿Quiénes participaron?
 
 - **17 colaboradores** de Comedica respondieron la encuesta.
-- Participaron **9 agencias y la Agencia Móvil**: San Miguel, Colonia Médica, Sonsonate, Santa Ana, Plaza Mundo, Plaza Merliot, Colegio Médico, Usulután y Central.
+- Participaron **9 agencias y Jefe Móvil**: San Miguel, Colonia Médica, Sonsonate, Santa Ana, Plaza Mundo, Plaza Merliot, Colegio Médico, Usulután, Central y Jefe Móvil.
 - Las respuestas se recibieron el **16 y 17 de septiembre de 2026**.
 - **Todas las encuestas recibidas se contestaron completas.**
 
