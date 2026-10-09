@@ -19,7 +19,9 @@ import datetime as dt
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side, Protection
-from openpyxl.formatting.rule import FormulaRule, DataBarRule, CellIsRule
+from openpyxl.formatting.rule import FormulaRule, DataBarRule, CellIsRule, Rule
+from openpyxl.styles.differential import DifferentialStyle
+from openpyxl.styles.numbers import NumberFormat
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.table import Table, TableStyleInfo, TableFormula
 from openpyxl.workbook.defined_name import DefinedName
@@ -93,19 +95,22 @@ N_VISTA_ROWS = 100   # filas de la hoja Actividades (actividades del mes mostrad
 LAST_RNG = 1000      # límite de los rangos con nombre que leen el Dashboard
 
 COLS_ACT = [
-    "N°", "Macro Actividad", "Subactividad", "Responsable",
+    "N°", "Tipo", "Actividad",
     "Fecha de inicio", "Fecha límite", "Peso de actividad (%)",
     "Avance Semana 1 (%)", "Avance Semana 2 (%)", "Avance Semana 3 (%)",
-    "Avance Semana 4 (%)", "% de Avance Total Actual", "Estado",
+    "Avance Semana 4 (%)", "% de Avance Total Actual", "Estado", "Alerta de plazo",
     "Observaciones", "Revisión automática (alertas)", "Mes",
     # auxiliares ocultas
     "Orden en el mes (aux)", "Grupo (aux)", "Tipo (aux)", "N subactividades (aux)",
     "Propio S1 (aux)", "Propio S2 (aux)", "Propio S3 (aux)", "Propio S4 (aux)",
     "Efectivo S1 (aux)", "Efectivo S2 (aux)", "Efectivo S3 (aux)", "Efectivo S4 (aux)",
+    "Ponderado S1 (aux)", "Ponderado S2 (aux)", "Ponderado S3 (aux)", "Ponderado S4 (aux)",
+    "Suma pesos subactividades (aux)",
 ]
 COLS_VISTA = [
-    "N°", "Macro Actividad / Subactividad", "Responsable", "Fecha de inicio", "Fecha límite", "Semana de entrega",
-    "Semana 1", "Semana 2", "Semana 3", "Semana 4", "% Avance actual", "Estado", "Observaciones",
+    "N°", "Actividad", "Fecha de inicio", "Fecha límite", "Semana de entrega",
+    "Semana 1", "Semana 2", "Semana 3", "Semana 4", "% Avance actual", "Estado", "Alerta de plazo",
+    "Observaciones",
 ]
 
 # --------------------------------------------------------------------------
@@ -138,13 +143,16 @@ def add_name(wb, name, ref):
 
 # --------------------------------------------------------------------------
 # Fórmulas de la hoja Cronograma (fila r)
-# Columnas visibles: A N° · B Macro Actividad · C Subactividad · D Responsable · E Inicio · F Límite
-#   G Peso · H–K Avance S1–S4 · L % Avance · M Estado · N Observaciones · O Revisión · P Mes
-# Columnas auxiliares ocultas: Q Orden en el mes · R Grupo (fila de su macroactividad) · S Tipo
+# Visibles: A N° · B Tipo (lista) · C Actividad · D Inicio · E Límite · F Peso
+#   G–J Avance S1–S4 · K % Avance · L Estado · M Alerta de plazo · N Observaciones · O Revisión · P Mes
+# Auxiliares ocultas: Q Orden en el mes · R Grupo (fila de su macroactividad) · S Tipo normalizado
 #   T N° de subactividades · U–X Avance propio arrastrado S1–S4 · Y–AB Avance efectivo S1–S4
-#   (macro con subactividades = promedio de sus subactividades; resto = propio)
+#   AC–AF Avance ponderado por el peso de la subactividad · AG Suma de pesos de sus subactividades
+#   Macroactividad con subactividades: si las subactividades tienen peso, avance = Σ(peso × avance) / Σ pesos
+#   (los pesos de las subactividades deben sumar el peso de la macroactividad); si no, promedio simple.
 # --------------------------------------------------------------------------
 LR = LAST_RNG
+TIPOS = ["Macroactividad", "Subactividad"]
 
 
 def col_abs(c):
@@ -157,15 +165,15 @@ def col_upto(c, r):
 
 def reg(r):
     """Fila registrada: hay algún dato de entrada."""
-    return f"(COUNTA($B{r}:$K{r})+COUNTA($N{r}))>0"
+    return f"(COUNTA($B{r}:$J{r})+COUNTA($N{r}))>0"
 
 
 def f_tipo(r):
-    return f'=IF(NOT({reg(r)}),"",IF($B{r}<>"","Macro",IF($C{r}<>"","Sub","Macro")))'
+    return f'=IF(NOT({reg(r)}),"",IF($B{r}="Subactividad","Sub","Macro"))'
 
 
 def f_grupo(r):
-    """Fila de la macroactividad a la que pertenece (0 = subactividad sin macro arriba)."""
+    """Fila de la macroactividad a la que pertenece (0 = subactividad sin macroactividad arriba)."""
     return (f'=IF($S{r}="","",IF($S{r}="Macro",ROW(),'
             f'IFERROR(LOOKUP(2,1/({col_upto("S", r)}="Macro"),ROW({col_upto("S", r)})),0)))')
 
@@ -174,9 +182,10 @@ def f_nsubs(r):
     return f'=IF($S{r}="Macro",COUNTIFS({col_abs("R")},ROW(),{col_abs("S")},"Sub"),"")'
 
 
+WK = ["G", "H", "I", "J"]
 OWN = ["U", "V", "W", "X"]
 EFF = ["Y", "Z", "AA", "AB"]
-WK = ["H", "I", "J", "K"]
+POND = ["AC", "AD", "AE", "AF"]
 
 
 def f_own(r, w):
@@ -185,22 +194,37 @@ def f_own(r, w):
     return f'=IF($S{r}="","",IF(ISNUMBER(${c}{r}),${c}{r},{prev}))'
 
 
+def f_pond(r, w):
+    return f'=IF($S{r}="Sub",N($F{r})*N(${OWN[w]}{r}),"")'
+
+
+def f_sumpesos(r):
+    return f'=IF(N($T{r})>0,SUMIFS({col_abs("F")},{col_abs("R")},ROW(),{col_abs("S")},"Sub"),"")'
+
+
 def f_eff(r, w):
-    return (f'=IF($S{r}="","",IF(N($T{r})>0,AVERAGEIFS({col_abs(OWN[w])},{col_abs("R")},ROW(),'
-            f'{col_abs("S")},"Sub"),${OWN[w]}{r}))')
-
-
-AUX_FUNCS = []   # se completa más abajo
+    grp = f'{col_abs("R")},ROW(),{col_abs("S")},"Sub"'
+    return (f'=IF($S{r}="","",IF(N($T{r})>0,IF(N($AG{r})>0,SUMIFS({col_abs(POND[w])},{grp})/$AG{r},'
+            f'AVERAGEIFS({col_abs(OWN[w])},{grp})),${OWN[w]}{r}))')
 
 
 def f_avance(r):
     return (f'=IF(NOT({reg(r)}),"",IF(N($T{r})>0,$AB{r},'
-            f'IFERROR(LOOKUP(2,1/(H{r}:K{r}<>""),H{r}:K{r}),0)))')
+            f'IFERROR(LOOKUP(2,1/(G{r}:J{r}<>""),G{r}:J{r}),0)))')
 
 
 def f_estado(r):
-    return (f'=IF(L{r}="","",IF(L{r}>=1,"Completado",'
-            f'IF(L{r}>0,"En curso","Pendiente")))')
+    return (f'=IF(K{r}="","",IF(K{r}>=1,"Completado",'
+            f'IF(K{r}>0,"En curso","Pendiente")))')
+
+
+def f_alerta(r):
+    """Alerta de plazo visible: vencida / vence hoy / por vencer / en plazo / cumplida."""
+    K, E = f"$K{r}", f"$E{r}"
+    return (f'=IF(NOT({reg(r)}),"",IF(N({K})>=1,"Cumplida",IF(NOT(ISNUMBER({E})),"Sin fecha límite",'
+            f'IF({E}<FechaRef,"Vencida hace "&(FechaRef-{E})&IF(FechaRef-{E}=1," día"," días"),'
+            f'IF({E}=FechaRef,"Vence hoy",IF({E}-FechaRef<=DiasAlerta,"Vence en "&({E}-FechaRef)&'
+            f'IF({E}-FechaRef=1," día"," días"),"En plazo"))))))')
 
 
 def _mes_de(ini, lim):
@@ -210,10 +234,10 @@ def _mes_de(ini, lim):
 
 def f_mes(r):
     """Mes de la actividad (fecha de inicio o límite). Las subactividades usan el mes de su macroactividad."""
-    m_ini = f"INDEX({col_abs('E')},$R{r}-{FIRST - 1})"
-    m_lim = f"INDEX({col_abs('F')},$R{r}-{FIRST - 1})"
+    m_ini = f"INDEX({col_abs('D')},$R{r}-{FIRST - 1})"
+    m_lim = f"INDEX({col_abs('E')},$R{r}-{FIRST - 1})"
     return (f'=IF(NOT({reg(r)}),"",IF(AND($S{r}="Sub",N($R{r})>0),{_mes_de(m_ini, m_lim)},'
-            f'{_mes_de(f"$E{r}", f"$F{r}")}))')
+            f'{_mes_de(f"$D{r}", f"$E{r}")}))')
 
 
 def f_orden(r):
@@ -230,39 +254,35 @@ def f_id(r):
             f'IF(N($R{r})=0,"?",{macro_num}&"."&COUNTIFS({col_upto("R", r)},$R{r},{col_upto("S", r)},"Sub"))))')
 
 
-AUX_FUNCS = [(17, f_orden), (18, f_grupo), (19, f_tipo), (20, f_nsubs)] + \
-    [(21 + w, (lambda w: (lambda r: f_own(r, w)))(w)) for w in range(4)] + \
-    [(25 + w, (lambda w: (lambda r: f_eff(r, w)))(w)) for w in range(4)]
-
-
 def checks(r):
-    B, C, D, E, F, G = (f"${c}{r}" for c in "BCDEFG")
-    H, I, J, K, L, N = (f"${c}{r}" for c in "HIJKLN")
+    C, D, E, F = (f"${c}{r}" for c in "CDEF")
+    G, H, I, J, K, N = (f"${c}{r}" for c in "GHIJKN")
     S, R, T = f"$S{r}", f"$R{r}", f"$T{r}"
     macro = f'{S}="Macro"'
     sub = f'{S}="Sub"'
-    sum_w = f'SUMIFS({col_abs("G")},{col_abs("P")},$P{r},{col_abs("S")},"Macro")'
+    sum_w = f'SUMIFS({col_abs("F")},{col_abs("P")},$P{r},{col_abs("S")},"Macro")'
     return [
-        (f'AND({macro},{B}="")', "Macroactividad vacía"),
-        (f'AND({B}<>"",{C}<>"")', "Escriba la subactividad en otra fila, debajo de su macroactividad"),
+        (f'{C}=""', "Falta el nombre de la actividad"),
         (f'AND({sub},N({R})=0)', "Subactividad sin macroactividad arriba"),
-        (f'{D}=""', "Sin responsable"),
-        (f'{E}=""', "Sin fecha de inicio"),
-        (f'{F}=""', "Sin fecha límite"),
-        (f'OR(AND({E}<>"",NOT(ISNUMBER({E}))),AND({F}<>"",NOT(ISNUMBER({F}))))', "Fecha no válida"),
-        (f'AND(ISNUMBER({E}),ISNUMBER({F}),{E}>{F})', "Inicio posterior a fecha límite"),
-        (f'AND({macro},{G}="")', "Peso vacío"),
-        (f'AND({macro},{G}<>"",OR(NOT(ISNUMBER({G})),{G}<=0,{G}>1))', "Peso fuera de rango"),
-        (f'AND({sub},{G}<>"")', "Las subactividades no llevan peso"),
+        (f'{D}=""', "Sin fecha de inicio"),
+        (f'{E}=""', "Sin fecha límite"),
+        (f'OR(AND({D}<>"",NOT(ISNUMBER({D}))),AND({E}<>"",NOT(ISNUMBER({E}))))', "Fecha no válida"),
+        (f'AND(ISNUMBER({D}),ISNUMBER({E}),{D}>{E})', "Inicio posterior a fecha límite"),
+        (f'AND({macro},{F}="")', "Peso vacío"),
+        (f'AND({macro},{F}<>"",OR(NOT(ISNUMBER({F})),{F}<=0,{F}>1))', "Peso fuera de rango"),
+        (f'AND({sub},{F}<>"",OR(NOT(ISNUMBER({F})),{F}<0,{F}>1))', "Peso fuera de rango"),
+        (f'AND({sub},{F}="",N({R})>0,N(INDEX({col_abs("AG")},{R}-{FIRST - 1}))>0)', "Falta el peso de la subactividad"),
+        (f'AND(N({T})>0,N($AG{r})>0,ABS(N($AG{r})-N({F}))>0.0001)',
+         f'"Pesos de sus subactividades suman "&TEXT(N($AG{r}),"0%")&" (deben sumar "&TEXT(N({F}),"0%")&")"'),
         (f'AND({macro},ABS({sum_w}-1)>0.0001)',
          f'"Pesos del mes suman "&TEXT({sum_w},"0%")'),
-        (f'AND(N({T})>0,COUNT({H}:{K})>0)', "Con subactividades: deje vacías las semanas (se calculan solas)"),
-        (f'(COUNTIF({H}:{K},">1")+COUNTIF({H}:{K},"<0")+COUNTA({H}:{K})-COUNT({H}:{K}))>0',
+        (f'AND(N({T})>0,COUNT({G}:{J})>0)', "Con subactividades: deje vacías las semanas (se calculan solas)"),
+        (f'(COUNTIF({G}:{J},">1")+COUNTIF({G}:{J},"<0")+COUNTA({G}:{J})-COUNT({G}:{J}))>0',
          "Avance fuera de rango 0-100%"),
-        (f'OR(AND({I}<>"",{I}<{H}),AND({J}<>"",{J}<MAX({H}:{I})),AND({K}<>"",{K}<MAX({H}:{J})))',
+        (f'OR(AND({H}<>"",{H}<{G}),AND({I}<>"",{I}<MAX({G}:{H})),AND({J}<>"",{J}<MAX({G}:{I})))',
          "Avance semanal decreciente"),
-        (f'AND(ISNUMBER({F}),{F}<FechaRef,N({L})<1)', "Vencida"),
-        (f'AND(ObsObligatoria="Sí",ISNUMBER({F}),{F}<FechaRef,N({L})<1,{N}="")',
+        (f'AND(ISNUMBER({E}),{E}<FechaRef,N({K})<1)', "Vencida"),
+        (f'AND(ObsObligatoria="Sí",ISNUMBER({E}),{E}<FechaRef,N({K})<1,{N}="")',
          "Vencida sin observación"),
     ]
 
@@ -275,6 +295,12 @@ def f_validacion(r):
     s = "&".join(parts)
     return (f'=IF(NOT({reg(r)}),"",IF(({s})="","✔ OK",'
             f'"⚠ "&LEFT({s},LEN({s})-3)))')
+
+
+AUX_FUNCS = [(17, f_orden), (18, f_grupo), (19, f_tipo), (20, f_nsubs)] + \
+    [(21 + w, (lambda w: (lambda r: f_own(r, w)))(w)) for w in range(4)] + \
+    [(25 + w, (lambda w: (lambda r: f_eff(r, w)))(w)) for w in range(4)] + \
+    [(29 + w, (lambda w: (lambda r: f_pond(r, w)))(w)) for w in range(4)] + [(33, f_sumpesos)]
 
 
 # Traducción a referencias estructuradas para la definición de columna calculada de la
@@ -290,13 +316,10 @@ def to_structured(formula, table, r=FIRST):
     f = formula.lstrip("=")
     name = lambda c: COLS_ACT[_col_index(c)]
     L = "[A-Z]{1,2}"
-    # Rangos acumulados $X$5:$Xr  →  INDEX(tbl[X],1):tbl[[#This Row],[X]]
     f = re.sub(rf"\$({L})\${FIRST}:\$?({L}){r}(?!\d)",
                lambda m: f"INDEX({table}[{name(m.group(1))}],1):{table}[[#This Row],[{name(m.group(2))}]]", f)
-    # Rangos de la misma fila  $B5:$K5
     f = re.sub(rf"(?<![A-Za-z0-9_\]])\$?({L}){r}:\$?({L}){r}(?!\d)",
                lambda m: f"{table}[[#This Row],[{name(m.group(1))}]:[{name(m.group(2))}]]", f)
-    # Celdas sueltas de la fila
     f = re.sub(rf"(?<![\$A-Za-z0-9_:\]])\$?({L}){r}(?!\d)",
                lambda m: f"{table}[[#This Row],[{name(m.group(1))}]]", f)
     return f
@@ -468,7 +491,7 @@ def build_config(wb, ws, semana, fecha_ref, inicio_ciclo, mes, obs):
         "2. Estado automático: 0% = Pendiente; >0% y <100% = En curso; 100% = Completado.",
         "3. Avance ponderado del puesto = Σ (peso de la actividad × avance actual) de las actividades del mes. Solo es válido si el puesto tiene ≥1 actividad en el mes, ningún peso vacío o fuera de 0–100% y los pesos del mes suman 100% (tolerancia ±0,01%).",
         "0. Cada actividad pertenece al mes de su fecha de inicio (columna «Mes» del Cronograma). Dashboard, hojas Actividades y cálculos usan solo el mes mostrado; los meses anteriores quedan en el Historial mensual.",
-        "0b. Subactividades: filas con «Subactividad» y sin «Macro Actividad» pertenecen a la macroactividad más cercana hacia arriba. Avance semanal de la macroactividad = promedio del avance (arrastrado) de sus subactividades; sólo las macroactividades llevan peso y se cuentan en el Dashboard y el Historial.",
+        "0b. Subactividades: filas con Tipo «Subactividad» pertenecen a la macroactividad más cercana hacia arriba. Avance semanal de la macroactividad = Σ(peso de la subactividad × su avance) / Σ pesos de sus subactividades (si no tienen peso: promedio simple). Los pesos de las subactividades deben sumar el peso de la macroactividad. Solo las macroactividades se cuentan en los indicadores del Dashboard y el Historial; las alertas de plazo incluyen subactividades.",
         "4. Avance general de las actividades = promedio simple de los 4 puestos (cada puesto pesa 25%, sin importar cuántas actividades tenga). Si algún puesto no es válido, el Dashboard muestra «No definitivo» y un valor provisional rotulado como tal.",
         "5. Avance semanal acumulado (Semana n) = Σ peso × último avance registrado hasta la Semana n. Incremento semanal = acumulado Semana n − acumulado Semana n−1.",
         "6. «¡Enhorabuena, completado anticipadamente!»: el puesto (o el total de actividades del mes) es válido, llega al 100% y la semana en que lo alcanzó (la menor entre la primera semana con 100% registrada y la Semana actual) es anterior a la Semana 4. Si lo alcanza en la Semana 4: «Completado». Si no: «En ejecución».",
@@ -516,13 +539,28 @@ def tint(hexcolor, k=0.8):
 
 AUX_FIRST = 17   # Q: primera columna auxiliar oculta
 N_COLS = len(COLS_ACT)
+SUB_NUMFMT = '"      ↳  "@'   # sangría visual de las subactividades (formato condicional)
+
+
+def alerta_cf(cf, rng, first_cell):
+    """Colores de la columna «Alerta de plazo»."""
+    cf.add(rng, FormulaRule(formula=[f'LEFT({first_cell},7)="Vencida"'], stopIfTrue=True,
+                            fill=fill("C00000"), font=Font(color="FFFFFF", bold=True)))
+    cf.add(rng, FormulaRule(formula=[f'LEFT({first_cell},5)="Vence"'], stopIfTrue=True,
+                            fill=fill("FFC000"), font=Font(color="3F2F00", bold=True)))
+    cf.add(rng, FormulaRule(formula=[f'{first_cell}="Cumplida"'], stopIfTrue=True,
+                            fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
+    cf.add(rng, FormulaRule(formula=[f'{first_cell}="En plazo"'], stopIfTrue=True,
+                            fill=fill("E2EFDA"), font=Font(color="375623")))
+    cf.add(rng, FormulaRule(formula=[f'{first_cell}="Sin fecha límite"'],
+                            fill=fill(RED_F), font=Font(color=RED_T)))
 
 
 def build_cronograma(wb, ws, idx, test_rows, extra_rows):
     puesto = PUESTOS[idx]
     sheet, _, code, color = AREAS[idx]
     light = tint(color)
-    widths = [8, 40, 36, 20, 12, 12, 11, 11, 11, 11, 11, 12, 13, 38, 50, 15]
+    widths = [7, 15, 50, 12, 12, 10, 10, 10, 10, 10, 12, 12, 20, 38, 46, 14]
     for i, w in enumerate(widths):
         ws.column_dimensions[get_column_letter(i + 1)].width = w
     for ci in range(AUX_FIRST, N_COLS + 1):
@@ -533,28 +571,40 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows):
     ws.row_dimensions[1].height = 28
     merge_set(ws, "A2:P2",
               "Llene solo las celdas GRIS SUAVE; las AZUL CLARO son automáticas y están bloqueadas. "
-              "MACROACTIVIDAD: escriba el nombre en «Macro Actividad» y su peso. SUBACTIVIDADES (todas las que necesite): en las filas de "
-              "abajo, escríbalas en «Subactividad» dejando vacía «Macro Actividad»; cada una lleva su propio avance semanal y el % de la "
-              "macroactividad se calcula solo (promedio de sus subactividades). Si no tiene subactividades, escriba su avance directamente. "
-              "En cada semana escriba el % TOTAL logrado hasta esa semana. Cada mes agregue sus actividades debajo de las anteriores "
-              "(no borre los meses pasados: quedan como historial).",
+              "En «Tipo» elija Macroactividad o Subactividad. Escriba cada macroactividad con su peso y, en las filas de ABAJO, "
+              "sus subactividades (todas las que necesite): se verán con sangría (↳) y el % de la macroactividad se calcula solo "
+              "con el promedio de sus subactividades. En cada semana escriba el % TOTAL logrado hasta esa semana. "
+              "Cada mes agregue sus actividades debajo de las anteriores (no borre los meses pasados: quedan como historial).",
               font=font(9, False, NAVY), fill=fill(LIGHT), alignment=LEFT)
-    ws.row_dimensions[2].height = 52
+    ws.row_dimensions[2].height = 44
     ws["A3"] = "Llenar"; ws["A3"].fill = fill(INPUT); ws["A3"].font = font(8); ws["A3"].border = BORDER
-    ws["B3"] = "Automático (bloqueado)"; ws["B3"].fill = fill(CALC); ws["B3"].font = font(8); ws["B3"].border = BORDER
-    ws["C3"] = "Macroactividad"; ws["C3"].fill = fill(light); ws["C3"].font = font(8, True); ws["C3"].border = BORDER
-    ws["D3"] = "Pesos del mes:"; ws["D3"].font = font(9, True, NAVY)
+    ws["B3"] = "Automático"; ws["B3"].fill = fill(CALC); ws["B3"].font = font(8); ws["B3"].border = BORDER
+    ws["C3"] = "Macroactividad (fila resaltada)"; ws["C3"].fill = fill(light); ws["C3"].font = font(8, True); ws["C3"].border = BORDER
+    ws["D3"] = "Pesos del mes:"; ws.merge_cells("D3:E3"); ws["D3"].font = font(9, True, NAVY)
     ws["D3"].alignment = Alignment(horizontal="right", vertical="center")
-    ws["E3"] = f'=SUMIFS({col_abs("G")},{col_abs("P")},MesCiclo,{col_abs("S")},"Macro")'
-    ws["E3"].number_format = "0.0%"; ws["E3"].font = font(10, True, NAVY); ws["E3"].alignment = CENTER; ws["E3"].border = BORDER
-    merge_set(ws, "F3:G3", f'=IF(COUNTIFS({col_abs("S")},"Macro",{col_abs("P")},MesCiclo)=0,"",'
-                           f'IF(ABS(E3-1)<=0.0001,"✔ 100%","⚠ Debe sumar 100%"))',
+    ws["F3"] = f'=SUMIFS({col_abs("F")},{col_abs("P")},MesCiclo,{col_abs("S")},"Macro")'
+    ws["F3"].number_format = "0.0%"; ws["F3"].font = font(10, True, NAVY); ws["F3"].alignment = CENTER; ws["F3"].border = BORDER
+    merge_set(ws, "G3:H3", f'=IF(COUNTIFS({col_abs("S")},"Macro",{col_abs("P")},MesCiclo)=0,"",'
+                           f'IF(ABS(F3-1)<=0.0001,"✔ 100%","⚠ Debe sumar 100%"))',
               font=font(9, True), alignment=CENTER)
-    ws.conditional_formatting.add("F3:G3", FormulaRule(formula=['LEFT($F$3,1)="⚠"'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
-    ws.conditional_formatting.add("F3:G3", FormulaRule(formula=['LEFT($F$3,1)="✔"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
+    ws.conditional_formatting.add("G3:H3", FormulaRule(formula=['LEFT($G$3,1)="⚠"'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
+    ws.conditional_formatting.add("G3:H3", FormulaRule(formula=['LEFT($G$3,1)="✔"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
+    # Resumen de alertas de plazo del mes mostrado
+    ws["I3"] = "Plazos del mes:"; ws.merge_cells("I3:J3"); ws["I3"].font = font(9, True, NAVY)
+    ws["I3"].alignment = Alignment(horizontal="right", vertical="center")
+    venc = f'COUNTIFS({col_abs("P")},MesCiclo,{col_abs("M")},"Vencida*")'
+    porv = f'COUNTIFS({col_abs("P")},MesCiclo,{col_abs("M")},"Vence*")'
+    merge_set(ws, "K3:M3", f'={venc}&" vencida(s)  ·  "&{porv}&" por vencer"',
+              font=font(10, True), alignment=CENTER, border=BORDER)
+    ws.conditional_formatting.add("K3:M3", FormulaRule(formula=[f'{venc}>0'], stopIfTrue=True,
+                                                       fill=fill("C00000"), font=Font(color="FFFFFF", bold=True)))
+    ws.conditional_formatting.add("K3:M3", FormulaRule(formula=[f'{porv}>0'], stopIfTrue=True,
+                                                       fill=fill("FFC000"), font=Font(color="3F2F00", bold=True)))
+    ws.conditional_formatting.add("K3:M3", FormulaRule(formula=['TRUE'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
+    ws.row_dimensions[3].height = 20
 
     hr = FIRST - 1
-    calc_cols = {1, 12, 13, 15, 16} | set(range(AUX_FIRST, N_COLS + 1))
+    calc_cols = {1, 11, 12, 13, 15, 16} | set(range(AUX_FIRST, N_COLS + 1))
     for i, h in enumerate(COLS_ACT):
         c = ws.cell(row=hr, column=i + 1, value=h)
         c.font = font(10, True, "FFFFFF")
@@ -574,23 +624,22 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows):
             else:
                 c.fill = fill(INPUT)
                 c.protection = Protection(locked=False)
-            if col in (5, 6):
+            if col in (4, 5):
                 c.number_format = "dd/mm/yyyy"; c.alignment = CENTER
-            elif col == 7:
+            elif col == 6:
                 c.number_format = "0.0%"; c.alignment = CENTER
-            elif col in (8, 9, 10, 11, 12):
+            elif col in (7, 8, 9, 10, 11):
                 c.number_format = "0%"; c.alignment = CENTER
             elif col == 16:
                 c.number_format = MES_FMT; c.alignment = CENTER
-            elif col in (1, 13):
+            elif col in (1, 2, 12, 13):
                 c.alignment = CENTER
-            elif col == 3:
-                c.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True, indent=2)
             else:
                 c.alignment = LEFT
         ws.cell(row=r, column=1, value=f_id(r))
-        ws.cell(row=r, column=12, value=f_avance(r))
-        ws.cell(row=r, column=13, value=f_estado(r))
+        ws.cell(row=r, column=11, value=f_avance(r))
+        ws.cell(row=r, column=12, value=f_estado(r))
+        ws.cell(row=r, column=13, value=f_alerta(r))
         ws.cell(row=r, column=15, value=f_validacion(r)).font = font(9)
         ws.cell(row=r, column=16, value=f_mes(r))
         for col, fn in AUX_FUNCS:
@@ -599,8 +648,11 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows):
     # Datos de prueba (solo en ejecuciones de test)
     for i, row in enumerate(test_rows):
         r = row.get("_row", FIRST + i)
-        for key, col in [("macro", 2), ("sub", 3), ("resp", 4), ("ini", 5), ("fin", 6), ("peso", 7),
-                         ("s1", 8), ("s2", 9), ("s3", 10), ("s4", 11), ("obs", 14)]:
+        if "sub" in row:
+            ws.cell(row=r, column=2, value="Subactividad")
+            ws.cell(row=r, column=3, value=row["sub"])
+        for key, col in [("macro", 3), ("ini", 4), ("fin", 5), ("peso", 6),
+                         ("s1", 7), ("s2", 8), ("s3", 9), ("s4", 10), ("obs", 14)]:
             if key in row and row[key] is not None:
                 ws.cell(row=r, column=col, value=row[key])
 
@@ -611,41 +663,44 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows):
     tab._initialise_columns()
     for i, col in enumerate(tab.tableColumns):
         col.name = COLS_ACT[i]
-    for col, fn in [(1, f_id), (12, f_avance), (13, f_estado), (15, f_validacion), (16, f_mes)] + AUX_FUNCS:
+    for col, fn in [(1, f_id), (11, f_avance), (12, f_estado), (13, f_alerta), (15, f_validacion),
+                    (16, f_mes)] + AUX_FUNCS:
         tab.tableColumns[col - 1].calculatedColumnFormula = TableFormula(
             attr_text=to_structured(fn(FIRST), tname))
     ws.add_table(tab)
 
     # Nombres de rango por puesto para Dashboard / Cálculos
-    names = [("rFLim", "F"), ("rPeso", "G"), ("rS1", "H"), ("rS2", "I"), ("rS3", "J"), ("rS4", "K"),
-             ("rAvance", "L"), ("rEstado", "M"), ("rValid", "O"), ("rMes", "P"), ("rOrden", "Q"),
-             ("rTipo", "S"), ("rEf1", "Y"), ("rEf2", "Z"), ("rEf3", "AA"), ("rEf4", "AB")]
+    names = [("rFLim", "E"), ("rPeso", "F"), ("rS1", "G"), ("rS2", "H"), ("rS3", "I"), ("rS4", "J"),
+             ("rAvance", "K"), ("rEstado", "L"), ("rAlerta", "M"), ("rValid", "O"), ("rMes", "P"),
+             ("rOrden", "Q"), ("rTipo", "S"), ("rEf1", "Y"), ("rEf2", "Z"), ("rEf3", "AA"), ("rEf4", "AB")]
     for nm, col in names:
         add_name(wb, f"{nm}_{code}", f"{q(sheet)}!${col}${FIRST}:${col}${LAST_RNG}")
 
     # Validaciones de datos
+    dv_tipo = DataValidation(type="list", formula1='"Macroactividad,Subactividad"', allow_blank=True,
+                             showErrorMessage=True, errorTitle="Tipo no válido",
+                             error="Elija Macroactividad o Subactividad.",
+                             showInputMessage=True, promptTitle="Tipo",
+                             prompt="Macroactividad (lleva peso) o Subactividad (va debajo de su macroactividad, sin peso). Vacío = Macroactividad.")
+    dv_tipo.add(f"B{FIRST}:B{LAST_RNG}")
     dv_date = DataValidation(type="date", operator="greaterThan", formula1="36526", allow_blank=True,
                              showErrorMessage=True, errorTitle="Fecha no válida",
                              error="Ingrese una fecha válida (dd/mm/aaaa).")
-    for col in "EF":
+    for col in "DE":
         dv_date.add(f"{col}{FIRST}:{col}{LAST_RNG}")
     dv_peso = DataValidation(type="decimal", operator="between", formula1="0", formula2="1",
                              allow_blank=True, showErrorMessage=True, errorTitle="Peso no válido",
                              error="Ingrese un porcentaje entre 0% y 100% (por ejemplo 25%).",
-                             showInputMessage=True, promptTitle="Peso (solo macroactividades)",
-                             prompt="Qué tanto vale la macroactividad en el mes. Las subactividades no llevan peso.")
-    dv_peso.add(f"G{FIRST}:G{LAST_RNG}")
+                             showInputMessage=True, promptTitle="Peso",
+                             prompt="Macroactividad: cuánto vale en el mes (las macroactividades suman 100%). Subactividad: qué parte del peso de su macroactividad le toca (sus pesos suman el peso de la macroactividad). Si las subactividades quedan sin peso, se reparten en partes iguales.")
+    dv_peso.add(f"F{FIRST}:F{LAST_RNG}")
     dv_av = DataValidation(type="decimal", operator="between", formula1="0", formula2="1",
                            allow_blank=True, showErrorMessage=True, errorTitle="Avance no válido",
                            error="Ingrese un porcentaje entre 0% y 100%. Deje la celda vacía si la semana no ha llegado.",
                            showInputMessage=True, promptTitle="Avance acumulado",
                            prompt="% TOTAL logrado hasta esta semana. Si la macroactividad tiene subactividades, déjelo vacío: se calcula solo.")
-    dv_av.add(f"H{FIRST}:K{LAST_RNG}")
-    dv_sub = DataValidation(type="textLength", operator="greaterThan", formula1="0", allow_blank=True,
-                            showInputMessage=True, promptTitle="Subactividad",
-                            prompt="Escríbala en la fila de abajo de su macroactividad, dejando vacía «Macro Actividad». Puede agregar todas las que necesite.")
-    dv_sub.add(f"C{FIRST}:C{LAST_RNG}")
-    for d in (dv_date, dv_peso, dv_av, dv_sub):
+    dv_av.add(f"G{FIRST}:J{LAST_RNG}")
+    for d in (dv_tipo, dv_date, dv_peso, dv_av):
         ws.add_data_validation(d)
 
     # Formato condicional
@@ -656,33 +711,37 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows):
     amb = dict(fill=fill(AMBER_F), font=Font(color=AMBER_T))
     org = dict(fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True))
     cf = ws.conditional_formatting
-    cf.add(R("MM"), FormulaRule(formula=[f'$M{F_}="Completado"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
-    cf.add(R("MM"), FormulaRule(formula=[f'$M{F_}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
-    cf.add(R("MM"), FormulaRule(formula=[f'$M{F_}="Pendiente"'], fill=fill(RED_F), font=Font(color=RED_T)))
-    cf.add(R("LL"), FormulaRule(formula=[f'AND(ISNUMBER($L{F_}),$L{F_}>=1)'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
-    cf.add(R("LL"), DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color="5B9BD5", showValue=True))
-    cf.add(R("FF"), FormulaRule(formula=[f'AND(ISNUMBER($F{F_}),$F{F_}<FechaRef,N($L{F_})<1)'], stopIfTrue=True, **org))
-    cf.add(R("FF"), FormulaRule(formula=[f'AND(ISNUMBER($F{F_}),$F{F_}>=FechaRef,$F{F_}-FechaRef<=DiasAlerta,N($L{F_})<1)'], **amb))
-    cf.add(R("BB"), FormulaRule(formula=[f'AND($S{F_}="Macro",$B{F_}="")'], stopIfTrue=True, **red))
-    cf.add(R("BB"), FormulaRule(formula=[f'$S{F_}="Macro"'], fill=fill(light), font=Font(bold=True)))
-    cf.add(R("CC"), FormulaRule(formula=[f'AND($B{F_}<>"",$C{F_}<>"")'], **red))
-    cf.add(R("DD"), FormulaRule(formula=[f'AND({regf},D{F_}="")'], **red))
-    cf.add(R("EF"), FormulaRule(formula=[f'AND({regf},E{F_}="")'], stopIfTrue=True, **red))
-    cf.add(R("EF"), FormulaRule(formula=[f'AND(ISNUMBER($E{F_}),ISNUMBER($F{F_}),$E{F_}>$F{F_})'], **org))
-    cf.add(R("GG"), FormulaRule(formula=[f'$S{F_}="Sub"'], stopIfTrue=True, fill=fill(CALC), font=Font(color="808080")))
-    cf.add(R("GG"), FormulaRule(formula=[f'AND($S{F_}="Macro",G{F_}="")'], stopIfTrue=True, **red))
-    cf.add(R("GG"), FormulaRule(
-        formula=[f'AND($S{F_}="Macro",ABS(SUMIFS({col_abs("G")},{col_abs("P")},$P{F_},{col_abs("S")},"Macro")-1)>0.0001)'], **amb))
-    # Semanas de una macro con subactividades: se calculan solas (se muestran en azul claro)
-    cf.add(R("HK"), FormulaRule(formula=[f'AND(N($T{F_})>0,H{F_}<>"")'], stopIfTrue=True, **red))
-    cf.add(R("HK"), FormulaRule(formula=[f'N($T{F_})>0'], stopIfTrue=True, fill=fill(CALC)))
-    cf.add(R("HK"), FormulaRule(formula=[f'AND(H{F_}<>"",OR(NOT(ISNUMBER(H{F_})),H{F_}>1,H{F_}<0))'], stopIfTrue=True, **red))
-    cf.add(R("IK"), FormulaRule(formula=[f'AND(I{F_}<>"",I{F_}<MAX($H{F_}:H{F_}))'], **org))
-    cf.add(R("NN"), FormulaRule(formula=[f'AND(ObsObligatoria="Sí",ISNUMBER($F{F_}),$F{F_}<FechaRef,N($L{F_})<1,$N{F_}="")'], **red))
+    macro_line = Border(top=Side(style="medium", color=color))
+    # Macroactividad: línea superior del color del puesto; N°, Tipo y Actividad resaltados
+    cf.add(f"A{F_}:P{LAST_RNG}", FormulaRule(formula=[f'$S{F_}="Macro"'], border=macro_line))
+    cf.add(f"A{F_}:C{LAST_RNG}", FormulaRule(formula=[f'AND($S{F_}="Macro",$C{F_}="")'], stopIfTrue=True, **red))
+    cf.add(f"A{F_}:C{LAST_RNG}", FormulaRule(formula=[f'$S{F_}="Macro"'], fill=fill(light), font=Font(bold=True)))
+    # Subactividad: nombre con sangría y ↳ (formato de número condicional)
+    cf.add(R("CC"), Rule(type="expression", formula=[f'$S{F_}="Sub"'],
+                         dxf=DifferentialStyle(numFmt=NumberFormat(numFmtId=200, formatCode=SUB_NUMFMT),
+                                               font=Font(color="404040"))))
+    cf.add(R("LL"), FormulaRule(formula=[f'$L{F_}="Completado"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
+    cf.add(R("LL"), FormulaRule(formula=[f'$L{F_}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
+    cf.add(R("LL"), FormulaRule(formula=[f'$L{F_}="Pendiente"'], fill=fill(RED_F), font=Font(color=RED_T)))
+    alerta_cf(cf, R("MM"), f"$M{F_}")
+    cf.add(R("KK"), FormulaRule(formula=[f'AND(ISNUMBER($K{F_}),$K{F_}>=1)'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
+    cf.add(R("KK"), DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color="5B9BD5", showValue=True))
+    cf.add(R("EE"), FormulaRule(formula=[f'AND(ISNUMBER($E{F_}),$E{F_}<FechaRef,N($K{F_})<1)'], stopIfTrue=True, **org))
+    cf.add(R("EE"), FormulaRule(formula=[f'AND(ISNUMBER($E{F_}),$E{F_}>=FechaRef,$E{F_}-FechaRef<=DiasAlerta,N($K{F_})<1)'], **amb))
+    cf.add(R("DE"), FormulaRule(formula=[f'AND({regf},D{F_}="")'], stopIfTrue=True, **red))
+    cf.add(R("DE"), FormulaRule(formula=[f'AND(ISNUMBER($D{F_}),ISNUMBER($E{F_}),$D{F_}>$E{F_})'], **org))
+    cf.add(R("FF"), FormulaRule(formula=[f'$S{F_}="Sub"'], stopIfTrue=True, font=Font(color="404040", italic=True)))
+    cf.add(R("FF"), FormulaRule(formula=[f'AND($S{F_}="Macro",F{F_}="")'], stopIfTrue=True, **red))
+    cf.add(R("FF"), FormulaRule(
+        formula=[f'AND($S{F_}="Macro",ABS(SUMIFS({col_abs("F")},{col_abs("P")},$P{F_},{col_abs("S")},"Macro")-1)>0.0001)'], **amb))
+    cf.add(R("GJ"), FormulaRule(formula=[f'AND(N($T{F_})>0,G{F_}<>"")'], stopIfTrue=True, **red))
+    cf.add(R("GJ"), FormulaRule(formula=[f'N($T{F_})>0'], stopIfTrue=True, fill=fill(CALC)))
+    cf.add(R("GJ"), FormulaRule(formula=[f'AND(G{F_}<>"",OR(NOT(ISNUMBER(G{F_})),G{F_}>1,G{F_}<0))'], stopIfTrue=True, **red))
+    cf.add(R("HJ"), FormulaRule(formula=[f'AND(H{F_}<>"",H{F_}<MAX($G{F_}:G{F_}))'], **org))
+    cf.add(R("NN"), FormulaRule(formula=[f'AND(ObsObligatoria="Sí",ISNUMBER($E{F_}),$E{F_}<FechaRef,N($K{F_})<1,$N{F_}="")'], **red))
     cf.add(R("OO"), FormulaRule(formula=[f'LEFT($O{F_},1)="⚠"'], fill=fill(RED_F), font=Font(color=RED_T)))
     cf.add(R("OO"), FormulaRule(formula=[f'LEFT($O{F_},1)="✔"'], font=Font(color=GREEN_T, bold=True)))
     cf.add(R("PP"), FormulaRule(formula=[f'AND($P{F_}<>"",$P{F_}=MesCiclo)'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
-    cf.add(f"A{F_}:A{LAST_RNG}", FormulaRule(formula=[f'$S{F_}="Macro"'], fill=fill(light), font=Font(bold=True)))
 
     ws.freeze_panes = f"D{FIRST}"
     protect_and_print(ws, hr, "P", last)
@@ -693,7 +752,7 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows):
 # Hoja «Actividades» por puesto: vista semanal AUTOMÁTICA del Cronograma.
 # Muestra, en orden y sin huecos, las actividades del Cronograma cuyo Mes = mes mostrado
 # (columna auxiliar oculta N = fila de origen). No se escribe nada en esta hoja.
-# Columnas: A N° · B Macro Actividad · C Responsable · D Inicio · E Límite
+# (ver build_vista para las columnas de la hoja Actividades)
 #           F Semana de entrega · G–J Semana 1–4 (avance + barra) · K % Avance · L Estado · M Observaciones
 # --------------------------------------------------------------------------
 def week_start(w):
@@ -704,7 +763,9 @@ def build_vista(wb, ws, idx):
     puesto = PUESTOS[idx]
     sheet, vsheet, code, color = AREAS[idx]
     src = q(sheet) + "!"
-    widths = [7, 46, 22, 12, 12, 16, 11, 11, 11, 11, 12, 13, 46]
+    # Columnas: A N° · B Actividad · C Inicio · D Límite · E Semana de entrega · F–I Semana 1–4
+    #           J % Avance · K Estado · L Alerta de plazo · M Observaciones  (N–P auxiliares ocultas)
+    widths = [7, 50, 12, 12, 16, 11, 11, 11, 11, 12, 13, 20, 46]
     for i, w in enumerate(widths):
         ws.column_dimensions[get_column_letter(i + 1)].width = w
     merge_set(ws, "A1:M1", f"Actividades del mes por semana – {puesto}",
@@ -712,25 +773,25 @@ def build_vista(wb, ws, idx):
     ws.row_dimensions[1].height = 28
     merge_set(ws, "A2:M2",
               f"HOJA AUTOMÁTICA Y BLOQUEADA: muestra solo las actividades del mes indicado abajo, tomadas de «{sheet}». No hay que escribir nada aquí. "
-              "La barra de color marca las semanas en que cada actividad está programada (de la fecha de inicio a la fecha límite) "
-              "y dentro aparece el avance registrado en esa semana.",
+              "Cada macroactividad (resaltada) va seguida de sus subactividades (↳). La barra de color marca las semanas en que cada actividad "
+              "está programada y dentro aparece el avance de esa semana. La columna «Alerta de plazo» indica lo vencido y lo que está por vencer.",
               font=font(9, True, NAVY), fill=fill(LIGHT), alignment=LEFT)
-    ws.row_dimensions[2].height = 32
+    ws.row_dimensions[2].height = 34
     # Fila 3: mes mostrado y fechas de cada semana
     ws["A3"] = "Mes:"; ws["A3"].font = font(9, True, NAVY)
     ws["B3"] = "=MesCiclo"; ws["B3"].number_format = MES_FMT; ws["B3"].font = font(10, True, NAVY)
     ws["B3"].fill = fill(LIGHT); ws["B3"].alignment = LEFT
-    ws["F3"] = "Semana del:"; ws["F3"].font = font(8, True, NAVY)
-    ws["F3"].alignment = Alignment(horizontal="right", vertical="center")
+    ws["E3"] = "Semana del:"; ws["E3"].font = font(8, True, NAVY)
+    ws["E3"].alignment = Alignment(horizontal="right", vertical="center")
     for w in range(1, 5):
-        c = ws.cell(row=3, column=6 + w, value=f"={week_start(w)}")
+        c = ws.cell(row=3, column=5 + w, value=f"={week_start(w)}")
         c.number_format = "dd/mm"; c.font = font(8, True, NAVY); c.alignment = CENTER
         c.fill = fill(LIGHT); c.border = BORDER
 
     hr = FIRST - 1
     for i, h in enumerate(COLS_VISTA):
         c = ws.cell(row=hr, column=i + 1, value=h)
-        c.font = font(10, True, "FFFFFF"); c.fill = fill(color if 7 <= i + 1 <= 10 else NAVY)
+        c.font = font(10, True, "FFFFFF"); c.fill = fill(color if 6 <= i + 1 <= 9 else NAVY)
         c.alignment = CENTER; c.border = BORDER
     ws.row_dimensions[hr].height = 34
 
@@ -746,29 +807,29 @@ def build_vista(wb, ws, idx):
         ws[f"P{r}"] = f'=IF({on},"",N({g("T")}))'       # n° subactividades (aux)
         vals = {
             1: f'=IF({on},"",{g("A")})',
-            2: f'=IF({on},"",IF($O{r}="Sub","     ↳ "&{g("C")},{g("B")}&""))',
-            3: f'=IF({on},"",{g("D")}&"")',
+            2: f'=IF({on},"",IF($O{r}="Sub","      ↳  "&{g("C")},{g("C")}&""))',
+            3: f'=IF({on},"",IF({g("D")}="","",{g("D")}))',
             4: f'=IF({on},"",IF({g("E")}="","",{g("E")}))',
-            5: f'=IF({on},"",IF({g("F")}="","",{g("F")}))',
-            6: (f'=IF({on},"",IF(NOT(ISNUMBER($E{r})),"",IF($E{r}<InicioCiclo,"Antes del ciclo",'
-                f'IF($E{r}>=InicioCiclo+28,"Después del ciclo","Semana "&(INT(($E{r}-InicioCiclo)/7)+1)))))'),
-            11: f'=IF({on},"",{g("L")})',
-            12: (f'=IF({on},"",IF(N($K{r})>=1,"Completado",IF(AND(ISNUMBER($E{r}),$E{r}<FechaRef),"Vencida",'
-                 f'IF(N($K{r})>0,"En curso","Pendiente"))))'),
+            5: (f'=IF({on},"",IF(NOT(ISNUMBER($D{r})),"",IF($D{r}<InicioCiclo,"Antes del ciclo",'
+                f'IF($D{r}>=InicioCiclo+28,"Después del ciclo","Semana "&(INT(($D{r}-InicioCiclo)/7)+1)))))'),
+            10: f'=IF({on},"",{g("K")})',
+            11: (f'=IF({on},"",IF(N($J{r})>=1,"Completado",IF(AND(ISNUMBER($D{r}),$D{r}<FechaRef),"Vencida",'
+                 f'IF(N($J{r})>0,"En curso","Pendiente"))))'),
+            12: f'=IF({on},"",{g("M")}&"")',
             13: f'=IF({on},"",{g("N")}&"")',
         }
         for w in range(1, 5):
             sc = WK[w - 1]
             ef = EFF[w - 1]
-            vals[6 + w] = (f'=IF({on},"",IF($P{r}>0,IF({w}<=SemanaActual,{g(ef)},""),'
+            vals[5 + w] = (f'=IF({on},"",IF($P{r}>0,IF({w}<=SemanaActual,{g(ef)},""),'
                            f'IF({g(sc)}="","",{g(sc)})))')
         for col in range(1, 14):
             c = ws.cell(row=r, column=col, value=vals[col])
             c.border = BORDER; c.font = font(10); c.fill = fill(CALC)
-            c.alignment = LEFT if col in (2, 3, 13) else CENTER
-            if col in (4, 5):
+            c.alignment = LEFT if col in (2, 13) else CENTER
+            if col in (3, 4):
                 c.number_format = "dd/mm/yyyy"
-            elif col in (7, 8, 9, 10, 11):
+            elif col in (6, 7, 8, 9, 10):
                 c.number_format = "0%"
 
     tname = f"tblSem_{code}"
@@ -776,27 +837,29 @@ def build_vista(wb, ws, idx):
     tab.tableStyleInfo = TableStyleInfo(name="TableStyleLight1", showRowStripes=False)
     ws.add_table(tab)
 
-    for nm, col in [("hSemana", "F"), ("hEstado", "L"), ("hTipo", "O")]:
+    for nm, col in [("hSemana", "E"), ("hEstado", "K"), ("hTipo", "O")]:
         add_name(wb, f"{nm}_{code}", f"{q(vsheet)}!${col}${FIRST}:${col}${last}")
 
     cf = ws.conditional_formatting
     rngc = lambda c: f"{c}{FIRST}:{c}{last}"
     # Barra de semanas (Gantt): semana activa entre fecha de inicio y fecha límite
-    gantt = (f'AND(ISNUMBER($D{FIRST}),ISNUMBER($E{FIRST}),$D{FIRST}<=InicioCiclo+7*(COLUMN(G{FIRST})-7)+6,'
-             f'$E{FIRST}>=InicioCiclo+7*(COLUMN(G{FIRST})-7))')
-    cf.add(f"G{FIRST}:J{last}", FormulaRule(formula=[f'AND({gantt},$L{FIRST}="Vencida")'], stopIfTrue=True,
+    gantt = (f'AND(ISNUMBER($C{FIRST}),ISNUMBER($D{FIRST}),$C{FIRST}<=InicioCiclo+7*(COLUMN(F{FIRST})-6)+6,'
+             f'$D{FIRST}>=InicioCiclo+7*(COLUMN(F{FIRST})-6))')
+    cf.add(f"F{FIRST}:I{last}", FormulaRule(formula=[f'AND({gantt},$K{FIRST}="Vencida")'], stopIfTrue=True,
                                            fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
-    cf.add(f"G{FIRST}:J{last}", FormulaRule(formula=[gantt], fill=fill(color), font=Font(color="FFFFFF", bold=True)))
+    cf.add(f"F{FIRST}:I{last}", FormulaRule(formula=[gantt], fill=fill(color), font=Font(color="FFFFFF", bold=True)))
+    cf.add(f"A{FIRST}:M{last}", FormulaRule(formula=[f'$O{FIRST}="Macro"'], border=Border(top=Side(style="medium", color=color))))
     cf.add(f"A{FIRST}:B{last}", FormulaRule(formula=[f'$O{FIRST}="Macro"'], fill=fill(tint(color)), font=Font(bold=True)))
-    cf.add(rngc("L"), FormulaRule(formula=[f'$L{FIRST}="Completado"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
-    cf.add(rngc("L"), FormulaRule(formula=[f'$L{FIRST}="Vencida"'], fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
-    cf.add(rngc("L"), FormulaRule(formula=[f'$L{FIRST}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
-    cf.add(rngc("L"), FormulaRule(formula=[f'$L{FIRST}="Pendiente"'], fill=fill(RED_F), font=Font(color=RED_T)))
-    cf.add(rngc("F"), FormulaRule(formula=[f'$F{FIRST}="Semana "&SemanaActual'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
-    cf.add(rngc("K"), DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color="5B9BD5", showValue=True))
+    cf.add(rngc("K"), FormulaRule(formula=[f'$K{FIRST}="Completado"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
+    cf.add(rngc("K"), FormulaRule(formula=[f'$K{FIRST}="Vencida"'], fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
+    cf.add(rngc("K"), FormulaRule(formula=[f'$K{FIRST}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
+    cf.add(rngc("K"), FormulaRule(formula=[f'$K{FIRST}="Pendiente"'], fill=fill(RED_F), font=Font(color=RED_T)))
+    alerta_cf(cf, rngc("L"), f"$L{FIRST}")
+    cf.add(rngc("E"), FormulaRule(formula=[f'$E{FIRST}="Semana "&SemanaActual'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
+    cf.add(rngc("J"), DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color="5B9BD5", showValue=True))
     # Semana actual resaltada en el encabezado
-    cf.add("G4:J4", FormulaRule(formula=['COLUMN(G4)-6=SemanaActual'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
-    cf.add("G3:J3", FormulaRule(formula=['COLUMN(G3)-6=SemanaActual'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
+    cf.add("F4:I4", FormulaRule(formula=['COLUMN(F4)-5=SemanaActual'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
+    cf.add("F3:I3", FormulaRule(formula=['COLUMN(F3)-5=SemanaActual'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
 
     ws.freeze_panes = f"C{FIRST}"
     protect_and_print(ws, hr, "M", last)
@@ -1342,7 +1405,6 @@ def build_dashboard(wb, ws):
          "Ajustar los pesos del puesto hasta sumar 100%."),
         ("Actividades con peso vacío o fuera de rango", count_msgs("Peso vacío", "Peso fuera de rango"), "crit",
          "Ingresar un peso entre 0% y 100% (mayor que 0)."),
-        ("Actividades sin responsable", count_msgs("Sin responsable"), "crit", "Asignar responsable."),
         ("Actividades sin fecha límite", count_msgs("Sin fecha límite"), "crit", "Registrar la fecha límite."),
         ("Fechas incoherentes o no válidas (incluye sin fecha de inicio)",
          count_msgs("Inicio posterior", "Fecha no válida", "Sin fecha de inicio"), "crit",
@@ -1385,16 +1447,16 @@ def build_dashboard(wb, ws):
 
     # --- Hitos ---
     r = note + 2
-    merge_set(ws, f"B{r}:M{r}", "Entregas por semana según la fecha límite (completadas / programadas)",
+    merge_set(ws, f"B{r}:M{r}", "Entregas por semana y alertas de plazo (macroactividades completadas / programadas)",
               font=font(12, True, "FFFFFF"), fill=fill(NAVY), alignment=LEFT)
     ws.row_dimensions[r].height = 24
     hr = r + 1
     heads = {"B": "Puesto", "C": "Semana 1", "D": "Semana 2", "E": "Semana 3", "F": "Semana 4",
-             "G": "Total", "H": "Vencidas"}
+             "G": "Total", "H": "Vencidas", "I": "Por vencer"}
     for colh, t in heads.items():
         c = ws[f"{colh}{hr}"]; c.value = t; c.font = font(10, True, "FFFFFF"); c.fill = fill(MID)
         c.alignment = CENTER; c.border = BORDER
-    merge_set(ws, f"I{hr}:M{hr}", "Lectura", font=font(10, True, "FFFFFF"), fill=fill(MID), alignment=CENTER, border=BORDER)
+    merge_set(ws, f"J{hr}:M{hr}", "Alerta de plazo (actividades y subactividades del mes)", font=font(10, True, "FFFFFF"), fill=fill(MID), alignment=CENTER, border=BORDER)
     for i in range(4):
         rr = hr + 1 + i
         ws[f"B{rr}"] = f"={C}A{4 + i}"
@@ -1405,18 +1467,23 @@ def build_dashboard(wb, ws):
                                  f'&COUNTIFS(hSemana_{hc},"Semana {w + 1}",hTipo_{hc},"Macro")')
         ws[f"G{rr}"] = (f'=COUNTIFS(hEstado_{hc},"Completado",hTipo_{hc},"Macro")&" / "'
                         f'&COUNTIFS(hEstado_{hc},"?*",hTipo_{hc},"Macro")')
-        ws[f"H{rr}"] = f'=COUNTIFS(hEstado_{hc},"Vencida",hTipo_{hc},"Macro")'
+        ws[f"H{rr}"] = f'=COUNTIFS(rMes_{hc},MesCiclo,rAlerta_{hc},"Vencida*")'
+        ws[f"I{rr}"] = f'=COUNTIFS(rMes_{hc},MesCiclo,rAlerta_{hc},"Vence*")'
         ws[f"B{rr}"].hyperlink = f"#{q(AREAS[i][1])}!A1"
-        merge_set(ws, f"I{rr}:M{rr}",
-                  f'=IF(H{rr}>0,"⚠ "&H{rr}&" actividad(es) vencida(s) sin completar","Sin actividades vencidas")',
-                  font=font(9), alignment=LEFT, border=BORDER)
-        for colw in "BCDEFGH":
+        merge_set(ws, f"J{rr}:M{rr}",
+                  f'=IF(H{rr}+I{rr}=0,"✔ Sin vencidas ni por vencer",IF(H{rr}>0,"⚠ "&H{rr}&" vencida(s) sin cumplir","")'
+                  f'&IF(AND(H{rr}>0,I{rr}>0),"  ·  ","")&IF(I{rr}>0,I{rr}&" por vencer (≤ "&DiasAlerta&" días)",""))',
+                  font=font(9, True), alignment=LEFT, border=BORDER)
+        for colw in "BCDEFGHI":
             c = ws[f"{colw}{rr}"]; c.border = BORDER; c.font = font(10, colw == "B")
             c.alignment = LEFT if colw == "B" else CENTER
         ws[f"B{rr}"].fill = fill(AREAS[i][3]); ws[f"B{rr}"].font = font(10, True, "FFFFFF")
     h1, h2 = hr + 1, hr + 4
-    cf.add(f"H{h1}:H{h2}", FormulaRule(formula=[f'H{h1}>0'], fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
-    cf.add(f"I{h1}:M{h2}", FormulaRule(formula=[f'LEFT($I{h1},1)="⚠"'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
+    cf.add(f"H{h1}:H{h2}", FormulaRule(formula=[f'H{h1}>0'], fill=fill("C00000"), font=Font(color="FFFFFF", bold=True)))
+    cf.add(f"I{h1}:I{h2}", FormulaRule(formula=[f'I{h1}>0'], fill=fill("FFC000"), font=Font(color="3F2F00", bold=True)))
+    cf.add(f"J{h1}:M{h2}", FormulaRule(formula=[f'$H{h1}>0'], stopIfTrue=True, fill=fill("C00000"), font=Font(color="FFFFFF", bold=True)))
+    cf.add(f"J{h1}:M{h2}", FormulaRule(formula=[f'$I{h1}>0'], stopIfTrue=True, fill=fill("FFC000"), font=Font(color="3F2F00", bold=True)))
+    cf.add(f"J{h1}:M{h2}", FormulaRule(formula=[f'LEFT($J{h1},1)="✔"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
 
     ws.freeze_panes = "A3"
     ws.protection.sheet = True
@@ -1470,28 +1537,34 @@ def build_instrucciones(ws):
         ]),
         ("Cómo llenar su hoja «Cronograma» (paso a paso)", [
             "1) Abra la pestaña «Cronograma» de SU puesto y escriba en la primera fila vacía (celdas gris suave).",
-            "2) Escriba: nombre de la actividad (Macro Actividad), Responsable, Fecha de inicio y Fecha límite. El N° (1, 2, 3… por mes) y el Mes se llenan solos.",
-            "   (Si la actividad tiene subactividades, vea la sección «Subactividades» más abajo.)",
-            "3) Peso (%): qué tanto vale esa actividad dentro de su puesto EN ESE MES. Las actividades del mes deben sumar 100%. Ejemplo: Actividad 1 = 40%, Actividad 2 = 35%, Actividad 3 = 25%. Arriba de la tabla verá si las del mes actual ya suman 100%.",
-            "4) Cada viernes escriba en la columna de esa semana el avance TOTAL logrado hasta ese día (no lo que avanzó solo esa semana). Ejemplo: Semana 1 = 20%, Semana 2 = 45%, Semana 3 = 75%, Semana 4 = 100%. Deje en blanco las semanas que aún no llegan.",
-            "5) El «% de Avance Total Actual» y el «Estado» (Pendiente, En curso, Completado) se calculan solos.",
-            "6) Observaciones: si una actividad se atrasa o no se cumplió, escriba aquí el motivo y la nueva fecha. Si vence sin cumplirse y sin observación, el archivo se lo recuerda.",
+            "2) En «Tipo» elija «Macroactividad» (si lo deja vacío, también cuenta como macroactividad).",
+            "3) Escriba el nombre en «Actividad», la Fecha de inicio, la Fecha límite y el Peso. El N° (1, 2, 3… por mes) y el Mes se llenan solos.",
+            "4) Peso (%): qué tanto vale esa macroactividad dentro de su puesto EN ESE MES. Las macroactividades del mes deben sumar 100% (ej. 40% + 35% + 25%). Arriba de la tabla verá si ya suman 100%.",
+            "5) Si la macroactividad NO tiene subactividades: cada viernes escriba en la columna de esa semana el avance TOTAL logrado hasta ese día (ej. Semana 1 = 20%, Semana 2 = 45%, Semana 3 = 75%, Semana 4 = 100%).",
+            "6) El «% de Avance Total Actual», el «Estado» y la «Alerta de plazo» se calculan solos.",
+            "7) Observaciones: si una actividad se atrasa o no se cumplió, escriba aquí el motivo y la nueva fecha.",
         ]),
         ("Subactividades (puede agregar todas las que necesite)", [
-            "1) Escriba la macroactividad como siempre: nombre en «Macro Actividad», responsable, fechas y PESO.",
-            "2) En las filas de ABAJO escriba cada subactividad en la columna «Subactividad», dejando vacía «Macro Actividad». Ponga su responsable y fechas. Las subactividades NO llevan peso.",
-            "3) El N° NO se escribe: se pone solo (la columna está bloqueada). Sale 1, 2, 3… para las macroactividades y 1.1, 1.2, 1.3… para sus subactividades. Para que una fila sea subactividad basta con escribirla en la columna «Subactividad» debajo de su macroactividad.",
+            "1) Debajo de la macroactividad, en las filas siguientes, elija en «Tipo» la opción «Subactividad» y escriba su nombre en «Actividad», con sus fechas. Se verá con sangría (↳) justo debajo de su macroactividad.",
+            "2) El N° NO se escribe: sale solo 1.1, 1.2, 1.3… (la columna está bloqueada).",
+            "3) Peso de la subactividad: qué parte del peso de su macroactividad le corresponde. Los pesos de las subactividades deben SUMAR el peso de la macroactividad. Ejemplo: macroactividad 60% → subactividades 20% + 25% + 15% = 60%. Si deja los pesos de las subactividades vacíos, todas valen lo mismo.",
             "4) Cada viernes escriba el avance de CADA SUBACTIVIDAD en la columna de esa semana (ej. 100% si ya terminó, 50% si va a la mitad).",
-            "5) El avance de la macroactividad se calcula SOLO, semana por semana, como el promedio de sus subactividades. Ejemplo con 4 subactividades: si en la Semana 1 una llega a 100% y las demás están en 0%, la macroactividad queda en 25%; si en la Semana 2 ya van dos al 100%, queda en 50%. Por eso, en la fila de la macroactividad deje VACÍAS las semanas (se muestran en azul claro).",
-            "6) Para agregar otra subactividad más adelante, escríbala justo debajo de la última subactividad de su macroactividad (si no hay fila libre ahí, puede ponerla en otra fila: siempre pertenece a la macroactividad que esté más arriba).",
-            "7) Si una macroactividad no tiene subactividades, se escribe su avance directamente, como siempre.",
+            "5) El avance de la macroactividad se calcula SOLO, semana por semana, con sus subactividades según su peso. Ejemplo: subactividades de 20%, 25% y 15% (total 60%); si en la Semana 1 la primera llega al 100% y las otras están en 0%, la macroactividad va en 20/60 = 33%. Por eso, en la fila de la macroactividad deje VACÍAS las semanas (se ven en azul claro).",
+            "6) Para agregar otra subactividad más adelante, escríbala debajo de las demás subactividades de su macroactividad: siempre pertenece a la macroactividad que esté más arriba.",
+        ]),
+        ("Alerta de plazo (vencidas y por vencer)", [
+            "La columna «Alerta de plazo» (en el Cronograma y en la hoja Actividades) dice en cada actividad y subactividad:",
+            "• «Vencida hace X días» (rojo): pasó la fecha límite y no llegó al 100%. Escriba en Observaciones por qué no se cumplió.",
+            "• «Vence hoy» o «Vence en X días» (amarillo): la fecha límite está cerca (el número de días se cambia en Configuración).",
+            "• «En plazo» (verde claro) · «Cumplida» (verde): llegó al 100%.",
+            "Arriba de cada Cronograma aparece el total del mes («X vencida(s) · Y por vencer») y el Dashboard muestra lo mismo por puesto.",
         ]),
         ("¿Qué es la columna «Revisión automática (alertas)»?", [
-            "Es un revisor automático: revisa cada fila y avisa si algo falta o está mal. «✔ OK» = todo bien. «⚠» = hay algo que corregir y dice qué es, por ejemplo: «Sin responsable», «Sin fecha límite», «Pesos del mes suman 90%», «Avance semanal decreciente» (escribió un % menor que la semana anterior) o «Vencida» (pasó la fecha límite y no llegó al 100%).",
+            "Es un revisor automático: revisa cada fila y avisa si algo falta o está mal. «✔ OK» = todo bien. «⚠» = hay algo que corregir y dice qué es, por ejemplo: «Sin fecha límite», «Pesos del mes suman 90%», «Pesos de sus subactividades suman 50% (deben sumar 60%)», «Avance semanal decreciente» o «Vencida».",
             "No hay que escribir nada en esa columna. Corrija lo que indica y el aviso desaparece.",
         ]),
         ("La hoja «Actividades» (automática y bloqueada)", [
-            "1) Muestra solo las actividades del mes actual de su Cronograma, en orden: cada macroactividad (resaltada) seguida de sus subactividades (con «↳»). No se escribe nada en ella.",
+            "1) Muestra solo las actividades del mes actual de su Cronograma, en orden: cada macroactividad (resaltada) seguida de sus subactividades (con «↳»), con su alerta de plazo. No se escribe nada en ella.",
             "2) «Semana de entrega» indica en qué semana del mes cae la fecha límite (la semana actual se resalta en amarillo).",
             "3) Las columnas Semana 1 a 4 muestran una barra del color del puesto en las semanas en que la actividad está programada (de la fecha de inicio a la fecha límite) y, dentro, el avance anotado esa semana. Si la actividad está vencida, la barra se pone naranja.",
             "4) Para cambiar algo, corríjalo en el Cronograma: esta hoja se actualiza al instante.",
