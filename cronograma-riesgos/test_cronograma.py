@@ -58,8 +58,8 @@ def dash_puesto(wb, i):
                  estado="K", msg="L").items()}
 
 
-def cron(wb, r):
-    c = wb[B.S_CRON]
+def cron(wb, r, area):
+    c = wb[B.AREAS[B.PUESTOS.index(area)][0]]
     return c[f"L{r}"].value, c[f"M{r}"].value, c[f"P{r}"].value
 
 
@@ -80,18 +80,18 @@ rows = [
     act(8, ATR, 0.20, (None, None), resp=None, fin=None),
 ]
 wb = run("A", rows, semana=2, fecha_ref=D(2026, 10, 23))
-L, M, P = cron(wb, 5); check("Act. 1 (50%→100% en S2) = 100% Completado", (L, M) == (1, "Completado"), (L, M, P))
-L, M, P = cron(wb, 6); check("Act. 2 (100% en S1, S2 vacía) = 100%", L == 1, (L, M))
-L, M, P = cron(wb, 8); check("Escenario 1: sin avances → 0% Pendiente", (L, M) == (0, "Pendiente"), (L, M))
-L, M, P = cron(wb, 9); check("Escenario 2: 50% → En curso", (L, M) == (0.5, "En curso"), (L, M))
+L, M, P = cron(wb, 5, RO); check("Act. 1 (50%→100% en S2) = 100% Completado", (L, M) == (1, "Completado"), (L, M, P))
+L, M, P = cron(wb, 6, RO); check("Act. 2 (100% en S1, S2 vacía) = 100%", L == 1, (L, M))
+L, M, P = cron(wb, 5, RLN); check("Escenario 1: sin avances → 0% Pendiente", (L, M) == (0, "Pendiente"), (L, M))
+L, M, P = cron(wb, 6, RLN); check("Escenario 2: 50% → En curso", (L, M) == (0.5, "En curso"), (L, M))
 check("Escenario 7: alerta pesos ≠100% en fila", "Pesos del puesto suman 90%" in P, P)
-L, M, P = cron(wb, 10); check("Escenario 8: decreciente detectado y toma último valor (40%)",
+L, M, P = cron(wb, 5, ATR); check("Escenario 8: decreciente detectado y toma último valor (40%)",
                               L == 0.4 and "decreciente" in P, (L, P))
-L, M, P = cron(wb, 11); check("Semana intermedia vacía: toma S3 (50%)", L == 0.5, L)
+L, M, P = cron(wb, 6, ATR); check("Semana intermedia vacía: toma S3 (50%)", L == 0.5, L)
 check("Escenario 9: vencida no completada", "Vencida" in P, P)
-L, M, P = cron(wb, 12); check("Sin responsable y sin fecha límite señalados",
+L, M, P = cron(wb, 7, ATR); check("Sin responsable y sin fecha límite señalados",
                               "Sin responsable" in P and "Sin fecha límite" in P, P)
-L, M, P = cron(wb, 30); check("Fila vacía → celdas calculadas vacías", (L, M, P) == (None, None, None), (L, M, P))
+L, M, P = cron(wb, 30, RF); check("Fila vacía → celdas calculadas vacías", (L, M, P) == (None, None, None), (L, M, P))
 
 p = dash_puesto(wb, 0)
 check("Escenario 4: RO 100% anticipado", p["avance"] == 1 and p["msg"] == "¡Enhorabuena, completado anticipadamente!", p)
@@ -172,20 +172,25 @@ check("Al bajar de 100% el mensaje cambia a 'En ejecución'",
 
 # ---------------------------------------------------------------------------
 print("Escenario D: nueva fila agregada a la tabla (fila 105, fuera de las 100 preformateadas)")
-rowsD = [act(1, RO, 0.5, (1.0,)), act(2, RO, 0.5, (0.4,), _row=105)]
+rowsD = [act(1, RO, 0.5, (1.0,), _row=5), act(2, RO, 0.5, (0.4,), _row=105)]
 wb = run("D", rowsD, semana=1, fecha_ref=D(2026, 10, 16), extra_rows=1)
-L, M, P = cron(wb, 105)
+L, M, P = cron(wb, 105, RO)
 check("Fila nueva calcula avance/estado", (L, M) == (0.4, "En curso"), (L, M, P))
 p = dash_puesto(wb, 0)
 check("Dashboard incluye la fila nueva (RO = 70%)", abs(p["avance"] - 0.7) < 1e-9 and p["total"] == 2, p)
 # ID duplicado y evidencia faltante
-rowsE = [act(1, RO, 0.5, (1.0,), evid=None), act(1, RO, 0.5, (0.2,), ini=D(2026, 11, 10))]
+rowsE = [act(1, RO, 0.5, (1.0,), evid=None), act(2, RO, 0.5, (0.2,), ini=D(2026, 11, 10)),
+         act(1, RF, 1.0, (0.2,))]   # ID T-01 repetido en la hoja de otro puesto
 wb = run("E", rowsE, semana=1, fecha_ref=D(2026, 10, 16))
-L, M, P = cron(wb, 5); check("Completada sin evidencia + ID duplicado", "sin evidencia" in P and "ID duplicado" in P, P)
-L, M, P = cron(wb, 6); check("Fecha inicio posterior a fecha límite", "Inicio posterior" in P, P)
+L, M, P = cron(wb, 5, RO); check("Completada sin evidencia + ID duplicado", "sin evidencia" in P and "ID duplicado" in P, P)
+L, M, P = cron(wb, 6, RO); check("Fecha inicio posterior a fecha límite", "Inicio posterior" in P, P)
 check("Puesto 100%? No (50%+20%·0.5)", dash_puesto(wb, 0)["msg"] == "En ejecución", dash_puesto(wb, 0))
 
 # ---------------------------------------------------------------------------
+L, M, P = cron(wb, 5, RF); check("ID duplicado detectado entre hojas de distintos puestos", "ID duplicado" in P, P)
+ws_rf = wb[B.AREAS[2][0]]
+check("Columna Área / Puesto se llena sola", ws_rf["B5"].value == RF and ws_rf["B6"].value is None, ws_rf["B5"].value)
+
 print("Escenario F: libro vacío (entregable)")
 wb = run("F", [], semana=1)
 d = wb[B.S_DASH]
@@ -193,8 +198,12 @@ check("Sin actividades: no hay mensajes de completado",
       all(not str(dash_puesto(wb, i)["msg"]).startswith(("¡", "Completado")) for i in range(4)),
       [dash_puesto(wb, i)["msg"] for i in range(4)])
 check("Mensaje de proyecto: no hay actividades", d["G12"].value.startswith("⚠ No hay actividades"), d["G12"].value)
-h = wb[B.S_HITO]
+h = wb[B.AREAS[0][1]]
 check("Fecha objetivo hito S1 = 16/10/2026", h["C5"].value.date() == D(2026, 10, 16), h["C5"].value)
+check("Hitos RO: área automática y 4 hitos propios", h["D5"].value == RO and h["A8"].value == "H-RO-04" and h["D9"].value is None,
+      (h["D5"].value, h["A8"].value, h["D9"].value))
+hit = [d[f"G{r}"].value for r in range(60, 80) if isinstance(d[f"G{r}"].value, str) and "/" in d[f"G{r}"].value]
+check("Resumen de hitos en Dashboard = 0 / 4 por puesto", hit == ["0 / 4"] * 4, hit)
 
 print()
 print("FALLAS:" if FAILS else "TODAS LAS PRUEBAS PASARON", FAILS if FAILS else "")

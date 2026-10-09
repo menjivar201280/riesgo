@@ -71,14 +71,20 @@ ESTADOS = ["Pendiente", "En curso", "Completado"]
 SEMANAS = ["Semana 1", "Semana 2", "Semana 3", "Semana 4"]
 
 S_DASH = "Dashboard - Consolidado"
-S_CRON = "Cronograma y Actividades"
-S_HITO = "Linea de Tiempo - Hitos"
+# Una hoja de cronograma por puesto: (nombre de hoja, código, tabla)
+# (hoja de cronograma, hoja de hitos, código, color de pestaña) – nombres ≤ 31 caracteres
+AREAS = [
+    ("Cronograma R. Operacional", "Hitos R. Operacional", "RO", "2E75B6"),
+    ("Cronograma R. Legal y Normativo", "Hitos R. Legal y Normativo", "RLN", "7030A0"),
+    ("Cronograma R. Financiero", "Hitos R. Financiero", "RF", "00B050"),
+    ("Cronograma Asistente Técnico", "Hitos Asistente Técnico", "ATR", "C55A11"),
+]
 S_CONF = "Configuración"
 S_INST = "Instrucciones"
 S_CALC = "Calculos"
 
 FIRST = 5            # primera fila de datos de las tablas
-N_ACT_ROWS = 100     # filas preformateadas en tblActividades (25 por puesto)
+N_ACT_ROWS = 100     # filas preformateadas por hoja de cronograma de cada puesto
 LAST_RNG = 1000      # límite de los rangos con nombre que leen el Dashboard
 
 COLS_ACT = [
@@ -165,12 +171,16 @@ def add_name(wb, name, ref):
 # --------------------------------------------------------------------------
 def reg(r):
     """Fila registrada: hay algún dato de entrada."""
-    return f"(COUNTA($A{r}:$K{r})+COUNTA($N{r}:$O{r}))>0"
+    return f"(COUNTA($A{r})+COUNTA($C{r}:$K{r})+COUNTA($N{r}:$O{r}))>0"
 
 
 def f_avance(r):
     return (f'=IF(NOT({reg(r)}),"",'
             f'IFERROR(LOOKUP(2,1/(H{r}:K{r}<>""),H{r}:K{r}),0))')
+
+
+def f_area(r, puesto):
+    return f'=IF({reg(r)},"{puesto}","")'
 
 
 def f_estado(r):
@@ -181,12 +191,11 @@ def f_estado(r):
 def checks(r):
     A, B, C, D, E, F, G = (f"{c}{r}" for c in "ABCDEFG")
     H, I, J, K, L, O = (f"{c}{r}" for c in "HIJKLO")
-    sum_w = f"SUMIFS($G${FIRST}:$G${LAST_RNG},$B${FIRST}:$B${LAST_RNG},{B})"
+    sum_w = f"SUM($G${FIRST}:$G${LAST_RNG})"
+    dup = "+".join(f"COUNTIF({q(a[0])}!$A${FIRST}:$A${LAST_RNG},{A})" for a in AREAS)
     return [
         (f'{A}=""', "Falta ID"),
-        (f'AND({A}<>"",COUNTIF($A${FIRST}:$A${LAST_RNG},{A})>1)', "ID duplicado"),
-        (f'{B}=""', "Área sin seleccionar"),
-        (f'AND({B}<>"",ISNA(MATCH({B},ListaPuestos,0)))', "Área no válida"),
+        (f'AND({A}<>"",({dup})>1)', "ID duplicado"),
         (f'{C}=""', "Macroactividad vacía"),
         (f'{D}=""', "Sin responsable"),
         (f'{E}=""', "Sin fecha de inicio"),
@@ -195,7 +204,7 @@ def checks(r):
         (f'AND(ISNUMBER({E}),ISNUMBER({F}),{E}>{F})', "Inicio posterior a fecha límite"),
         (f'{G}=""', "Peso vacío"),
         (f'AND({G}<>"",OR(NOT(ISNUMBER({G})),{G}<=0,{G}>1))', "Peso fuera de rango"),
-        (f'AND({B}<>"",ABS({sum_w}-1)>0.0001)',
+        (f'ABS({sum_w}-1)>0.0001',
          f'"Pesos del puesto suman "&TEXT({sum_w},"0%")'),
         (f'(COUNTIF({H}:{K},">1")+COUNTIF({H}:{K},"<0")+COUNTA({H}:{K})-COUNT({H}:{K}))>0',
          "Avance fuera de rango 0-100%"),
@@ -218,7 +227,7 @@ def f_validacion(r):
 
 # Traducción a referencias estructuradas para la definición de columna
 # calculada de la tabla (permite que Excel extienda las fórmulas al agregar filas).
-def to_structured(formula, r=FIRST, table="tblActividades"):
+def to_structured(formula, table, r=FIRST):
     f = formula.lstrip("=")
 
     def colname(letter):
@@ -245,8 +254,12 @@ def build(path, test_rows=None, semana=1, fecha_ref=None, extra_rows=0,
     wb = Workbook()
     ws_d = wb.active
     ws_d.title = S_DASH
-    ws_c = wb.create_sheet(S_CRON)
-    ws_h = wb.create_sheet(S_HITO)
+    area_ws, hito_ws = [], []
+    for a in AREAS:
+        area_ws.append(wb.create_sheet(a[0]))
+        hito_ws.append(wb.create_sheet(a[1]))
+        area_ws[-1].sheet_properties.tabColor = a[3]
+        hito_ws[-1].sheet_properties.tabColor = a[3]
     ws_i = wb.create_sheet(S_INST)
     ws_k = wb.create_sheet(S_CONF)
     ws_x = wb.create_sheet(S_CALC)
@@ -256,8 +269,12 @@ def build(path, test_rows=None, semana=1, fecha_ref=None, extra_rows=0,
         ws.sheet_view.zoomScale = 90
 
     build_config(wb, ws_k, semana, fecha_ref, inicio_ciclo, evidencia)
-    last_act = build_cronograma(wb, ws_c, test_rows or [], extra_rows)
-    build_hitos(wb, ws_h)
+    test_rows = test_rows or []
+    for i, ws_a in enumerate(area_ws):
+        rows_i = [t for t in test_rows if t.get("area") == PUESTOS[i]]
+        build_cronograma(wb, ws_a, i, rows_i, extra_rows if any("_row" in t for t in rows_i) else 0)
+    for i, ws_h in enumerate(hito_ws):
+        build_hitos(wb, ws_h, i)
     build_calculos(wb, ws_x)
     build_dashboard(wb, ws_d)
     build_instrucciones(ws_i)
@@ -377,7 +394,7 @@ def build_config(wb, ws, semana, fecha_ref, inicio_ciclo, evidencia):
         "5. Avance semanal acumulado (Semana n) = Σ peso × último avance registrado hasta la Semana n. Incremento semanal = acumulado Semana n − acumulado Semana n−1.",
         "6. «¡Enhorabuena, completado anticipadamente!»: el puesto (o el proyecto) es válido, llega al 100% y la semana en que lo alcanzó (la menor entre la primera semana con 100% registrada y la Semana actual) es anterior a la Semana 4. Si lo alcanza en la Semana 4: «Completado». Si no: «En ejecución».",
         "7. Una semana se muestra en el seguimiento si es ≤ Semana actual o si ya tiene algún avance registrado.",
-        "8. Los rangos que alimentan el Dashboard cubren las filas 5 a 1000 de la hoja Cronograma y Actividades.",
+        "8. Cada puesto tiene su propia hoja de cronograma y de hitos. El Dashboard consolida las cuatro hojas de cronograma (filas 5 a 1000) y las cuatro de hitos (filas 5 a 500).",
     ]
     for n in notes:
         r += 1
@@ -393,25 +410,53 @@ def build_config(wb, ws, semana, fecha_ref, inicio_ciclo, evidencia):
 
 
 # --------------------------------------------------------------------------
-def build_cronograma(wb, ws, test_rows, extra_rows):
-    widths = [12, 27, 44, 22, 12, 12, 11, 11, 11, 11, 11, 12, 13, 13, 36, 58]
+def protect_and_print(ws, hr, last_col, last):
+    ws.protection.sheet = True
+    ws.protection.autoFilter = False
+    ws.protection.sort = False
+    ws.protection.formatColumns = False
+    ws.protection.formatRows = False
+    ws.page_setup.orientation = "landscape"
+    ws.page_setup.paperSize = ws.PAPERSIZE_LETTER
+    ws.page_setup.fitToWidth = 1; ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr.fitToPage = True
+    ws.print_title_rows = f"{hr}:{hr}"
+    ws.print_area = f"A1:{last_col}{last}"
+    ws.page_margins.left = ws.page_margins.right = 0.4
+    ws.page_margins.top = ws.page_margins.bottom = 0.5
+    ws.oddFooter.center.text = "&A – Página &P de &N"
+
+
+def build_cronograma(wb, ws, idx, test_rows, extra_rows):
+    puesto = PUESTOS[idx]
+    sheet, _, code, color = AREAS[idx]
+    widths = [12, 24, 44, 22, 12, 12, 11, 11, 11, 11, 11, 12, 13, 13, 36, 58]
     for i, w in enumerate(widths):
         ws.column_dimensions[get_column_letter(i + 1)].width = w
 
-    merge_set(ws, "A1:P1", "Cronograma y Actividades – Ciclo de 4 semanas del área de Riesgos",
+    merge_set(ws, "A1:P1", f"Cronograma y Actividades – {puesto}",
               font=font(14, True, "FFFFFF"), fill=fill(NAVY), alignment=LEFT)
     ws.row_dimensions[1].height = 28
     merge_set(ws, "A2:P2",
+              f"Hoja exclusiva de {puesto}: registre aquí SOLO las actividades de este puesto. "
               "Celdas amarillas: entrada de datos.  Celdas grises: cálculo automático (protegidas).  "
               "Avances semanales = % ACUMULADO al cierre de cada semana (deje vacía la semana aún no actualizada).  "
-              "Pesos: % relativo dentro del puesto; deben sumar 100% por puesto.",
+              "Los pesos de esta hoja deben sumar 100%.",
               font=font(9, False, NAVY), fill=fill(LIGHT), alignment=LEFT)
     ws.row_dimensions[2].height = 30
     ws["A3"] = "Entrada"; ws["A3"].fill = fill(INPUT); ws["A3"].font = font(8); ws["A3"].border = BORDER
     ws["B3"] = "Cálculo automático"; ws["B3"].fill = fill(CALC); ws["B3"].font = font(8); ws["B3"].border = BORDER
+    ws["C3"] = "Suma de pesos de la hoja:"; ws["C3"].font = font(9, True, NAVY)
+    ws["C3"].alignment = Alignment(horizontal="right", vertical="center")
+    ws["D3"] = f"=SUM(G{FIRST}:G{LAST_RNG})"; ws["D3"].number_format = "0.0%"
+    ws["D3"].font = font(10, True, NAVY); ws["D3"].alignment = CENTER; ws["D3"].border = BORDER
+    ws["E3"] = f'=IF(COUNTIF(P{FIRST}:P{LAST_RNG},"?*")=0,"",IF(ABS(D3-1)<=0.0001,"✔ 100%","⚠ Debe sumar 100%"))'
+    ws["E3"].font = font(9, True)
+    ws.conditional_formatting.add("E3", FormulaRule(formula=['LEFT($E$3,1)="⚠"'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
+    ws.conditional_formatting.add("E3", FormulaRule(formula=['LEFT($E$3,1)="✔"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
 
     hr = FIRST - 1
-    calc_cols = {12, 13, 16}
+    calc_cols = {2, 12, 13, 16}
     for i, h in enumerate(COLS_ACT):
         c = ws.cell(row=hr, column=i + 1, value=h)
         c.font = font(10, True, "FFFFFF")
@@ -441,6 +486,7 @@ def build_cronograma(wb, ws, test_rows, extra_rows):
                 c.alignment = CENTER
             else:
                 c.alignment = LEFT
+        ws.cell(row=r, column=2, value=f_area(r, puesto))
         ws.cell(row=r, column=12, value=f_avance(r))
         ws.cell(row=r, column=13, value=f_estado(r))
         ws.cell(row=r, column=16, value=f_validacion(r))
@@ -449,37 +495,30 @@ def build_cronograma(wb, ws, test_rows, extra_rows):
     # Datos de prueba (solo en ejecuciones de test)
     for i, row in enumerate(test_rows):
         r = row.get("_row", FIRST + i)
-        for key, col in [("id", 1), ("area", 2), ("macro", 3), ("resp", 4), ("ini", 5),
+        for key, col in [("id", 1), ("macro", 3), ("resp", 4), ("ini", 5),
                          ("fin", 6), ("peso", 7), ("s1", 8), ("s2", 9), ("s3", 10),
                          ("s4", 11), ("act", 14), ("evid", 15)]:
             if key in row and row[key] is not None:
                 ws.cell(row=r, column=col, value=row[key])
 
-    # Tabla estructurada
-    tab = Table(displayName="tblActividades", ref=f"A{hr}:P{last}")
+    # Tabla estructurada (una por puesto)
+    tname = f"tblAct_{code}"
+    tab = Table(displayName=tname, ref=f"A{hr}:P{last}")
     tab.tableStyleInfo = TableStyleInfo(name="TableStyleLight1", showRowStripes=False)
     tab._initialise_columns()
     for i, col in enumerate(tab.tableColumns):
         col.name = COLS_ACT[i]
-    for idx, fn in [(11, f_avance), (12, f_estado), (15, f_validacion)]:
-        tab.tableColumns[idx].calculatedColumnFormula = TableFormula(
-            attr_text=to_structured(fn(FIRST)))
+    for ci, fn in [(1, lambda r: f_area(r, puesto)), (11, f_avance), (12, f_estado), (15, f_validacion)]:
+        tab.tableColumns[ci].calculatedColumnFormula = TableFormula(
+            attr_text=to_structured(fn(FIRST), tname))
     ws.add_table(tab)
 
-    # Nombres de rango para Dashboard / Cálculos
-    for nm, col in [("rID", "A"), ("rArea", "B"), ("rResp", "D"), ("rFIni", "E"), ("rFLim", "F"),
-                    ("rPeso", "G"), ("rS1", "H"), ("rS2", "I"), ("rS3", "J"), ("rS4", "K"),
-                    ("rAvance", "L"), ("rEstado", "M"), ("rEvid", "O"), ("rValid", "P")]:
-        add_name(wb, nm, f"{q(S_CRON)}!${col}${FIRST}:${col}${LAST_RNG}")
+    # Nombres de rango por puesto para Dashboard / Cálculos
+    for nm, col in [("rID", "A"), ("rFLim", "F"), ("rPeso", "G"), ("rS1", "H"), ("rS2", "I"),
+                    ("rS3", "J"), ("rS4", "K"), ("rAvance", "L"), ("rEstado", "M"), ("rValid", "P")]:
+        add_name(wb, f"{nm}_{code}", f"{q(sheet)}!${col}${FIRST}:${col}${LAST_RNG}")
 
     # Validaciones de datos
-    V = f"{FIRST}:{LAST_RNG}"
-    dv_area = DataValidation(type="list", formula1="ListaPuestos", allow_blank=True,
-                             showErrorMessage=True, errorTitle="Área no válida",
-                             error="Seleccione una de las cuatro áreas de la lista.",
-                             showInputMessage=True, promptTitle="Área / Puesto",
-                             prompt="Seleccione el puesto responsable de la actividad.")
-    dv_area.add(f"B{FIRST}:B{LAST_RNG}")
     dv_date = DataValidation(type="date", operator="greaterThan", formula1="36526", allow_blank=True,
                              showErrorMessage=True, errorTitle="Fecha no válida",
                              error="Ingrese una fecha válida (dd/mm/aaaa).")
@@ -489,7 +528,7 @@ def build_cronograma(wb, ws, test_rows, extra_rows):
                              allow_blank=True, showErrorMessage=True, errorTitle="Peso no válido",
                              error="Ingrese un porcentaje entre 0% y 100% (por ejemplo 25%).",
                              showInputMessage=True, promptTitle="Peso de actividad",
-                             prompt="Peso relativo dentro del puesto. La suma por puesto debe ser 100%.")
+                             prompt="Peso relativo dentro del puesto. La suma de esta hoja debe ser 100%.")
     dv_peso.add(f"G{FIRST}:G{LAST_RNG}")
     dv_av = DataValidation(type="decimal", operator="between", formula1="0", formula2="1",
                            allow_blank=True, showErrorMessage=True, errorTitle="Avance no válido",
@@ -502,105 +541,98 @@ def build_cronograma(wb, ws, test_rows, extra_rows):
                             showInputMessage=True, promptTitle="Estado automático",
                             prompt="Se calcula a partir del % de avance. No se edita manualmente.")
     dv_est.add(f"M{FIRST}:M{LAST_RNG}")
-    for d in (dv_area, dv_date, dv_peso, dv_av, dv_est):
+    for d in (dv_date, dv_peso, dv_av, dv_est):
         ws.add_data_validation(d)
 
     # Formato condicional
     R = lambda cols: f"{cols[0]}{FIRST}:{cols[1]}{LAST_RNG}"
-    regf = f"(COUNTA($A{FIRST}:$K{FIRST})+COUNTA($N{FIRST}:$O{FIRST}))>0"
+    regf = reg(FIRST)
     red = dict(fill=fill(RED_F), font=Font(color=RED_T))
     amb = dict(fill=fill(AMBER_F), font=Font(color=AMBER_T))
     org = dict(fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True))
+    dup = "+".join(f"COUNTIF({q(a[0])}!$A${FIRST}:$A${LAST_RNG},$A{FIRST})" for a in AREAS)
     cf = ws.conditional_formatting
-    # Estado
     cf.add(R("MM"), FormulaRule(formula=[f'$M{FIRST}="Completado"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
     cf.add(R("MM"), FormulaRule(formula=[f'$M{FIRST}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
     cf.add(R("MM"), FormulaRule(formula=[f'$M{FIRST}="Pendiente"'], fill=fill(RED_F), font=Font(color=RED_T)))
-    # Avance total
     cf.add(R("LL"), FormulaRule(formula=[f'AND(ISNUMBER($L{FIRST}),$L{FIRST}>=1)'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
     cf.add(R("LL"), DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color="5B9BD5", showValue=True))
-    # Vencida / próxima a vencer (fecha límite)
     cf.add(R("FF"), FormulaRule(formula=[f'AND(ISNUMBER($F{FIRST}),$F{FIRST}<FechaRef,N($L{FIRST})<1)'], stopIfTrue=True, **org))
     cf.add(R("FF"), FormulaRule(formula=[f'AND(ISNUMBER($F{FIRST}),$F{FIRST}>=FechaRef,$F{FIRST}-FechaRef<=DiasAlerta,N($L{FIRST})<1)'], **amb))
-    # Datos obligatorios faltantes
-    cf.add(R("AG"), FormulaRule(formula=[f'AND({regf},A{FIRST}="")'], **red))
-    # ID duplicado
-    cf.add(R("AA"), FormulaRule(formula=[f'AND($A{FIRST}<>"",COUNTIF($A${FIRST}:$A${LAST_RNG},$A{FIRST})>1)'], **org))
-    # Fechas incoherentes
+    cf.add(R("AA"), FormulaRule(formula=[f'AND($A{FIRST}<>"",({dup})>1)'], stopIfTrue=True, **org))
+    cf.add(R("AA"), FormulaRule(formula=[f'AND({regf},A{FIRST}="")'], **red))
+    cf.add(R("CG"), FormulaRule(formula=[f'AND({regf},C{FIRST}="")'], **red))
     cf.add(R("EF"), FormulaRule(formula=[f'AND(ISNUMBER($E{FIRST}),ISNUMBER($F{FIRST}),$E{FIRST}>$F{FIRST})'], **org))
-    # Ponderación incorrecta del puesto
     cf.add(R("GG"), FormulaRule(
-        formula=[f'AND($B{FIRST}<>"",ABS(SUMIFS($G${FIRST}:$G${LAST_RNG},$B${FIRST}:$B${LAST_RNG},$B{FIRST})-1)>0.0001)'], **amb))
-    # Porcentajes semanales fuera de rango / decrecientes
+        formula=[f'AND({regf},ABS(SUM($G${FIRST}:$G${LAST_RNG})-1)>0.0001)'], **amb))
     cf.add(R("HK"), FormulaRule(formula=[f'AND(H{FIRST}<>"",OR(NOT(ISNUMBER(H{FIRST})),H{FIRST}>1,H{FIRST}<0))'], stopIfTrue=True, **red))
     cf.add(R("IK"), FormulaRule(formula=[f'AND(I{FIRST}<>"",I{FIRST}<MAX($H{FIRST}:H{FIRST}))'], **org))
-    # Evidencia faltante en completadas
     cf.add(R("OO"), FormulaRule(formula=[f'AND(EvidenciaObligatoria="Sí",N($L{FIRST})>=1,$O{FIRST}="")'], **red))
-    # Columna de validación
     cf.add(R("PP"), FormulaRule(formula=[f'LEFT($P{FIRST},1)="⚠"'], fill=fill(RED_F), font=Font(color=RED_T)))
     cf.add(R("PP"), FormulaRule(formula=[f'LEFT($P{FIRST},1)="✔"'], font=Font(color=GREEN_T, bold=True)))
 
     ws.freeze_panes = f"D{FIRST}"
-    ws.protection.sheet = True
-    ws.protection.autoFilter = False
-    ws.protection.sort = False
-    ws.protection.formatColumns = False
-    ws.protection.formatRows = False
-    ws.page_setup.orientation = "landscape"
-    ws.page_setup.paperSize = ws.PAPERSIZE_LETTER
-    ws.page_setup.fitToWidth = 1; ws.page_setup.fitToHeight = 0
-    ws.sheet_properties.pageSetUpPr.fitToPage = True
-    ws.print_title_rows = f"{hr}:{hr}"
-    ws.print_area = f"A1:P{last}"
-    ws.page_margins.left = ws.page_margins.right = 0.4
-    ws.page_margins.top = ws.page_margins.bottom = 0.5
-    ws.oddFooter.center.text = "Página &P de &N"
+    protect_and_print(ws, hr, "P", last)
     return last
 
 
 # --------------------------------------------------------------------------
-def build_hitos(wb, ws):
-    widths = [11, 11, 13, 26, 48, 52, 18, 13, 14, 30, 34]
+N_HITO_ROWS = 20
+
+
+def hreg(r):
+    return f"(COUNTA($A{r},$B{r})+COUNTA($E{r}:$K{r}))>0"
+
+
+def build_hitos(wb, ws, idx):
+    puesto = PUESTOS[idx]
+    sheet, hsheet, code, color = AREAS[idx]
+    widths = [11, 11, 13, 24, 48, 52, 18, 13, 14, 30, 34]
     for i, w in enumerate(widths):
         ws.column_dimensions[get_column_letter(i + 1)].width = w
-    merge_set(ws, "A1:K1", "Línea de Tiempo – Hitos y entregables (propuesta inicial editable)",
+    merge_set(ws, "A1:K1", f"Línea de Tiempo – Hitos y entregables – {puesto}",
               font=font(14, True, "FFFFFF"), fill=fill(NAVY), alignment=LEFT)
     ws.row_dimensions[1].height = 28
     merge_set(ws, "A2:K2",
-              "PROPUESTA INICIAL EDITABLE, sujeta a validación de los responsables de cada puesto. No constituye una "
-              "obligación institucional aprobada. Semana 1: diagnóstico y planificación · Semana 2: desarrollo y documentación · "
+              f"Hoja exclusiva de {puesto}. PROPUESTA INICIAL EDITABLE, sujeta a validación del responsable del puesto; "
+              "no constituye una obligación institucional aprobada. Puede modificar o agregar hitos (ID, semana, entregable, criterio). "
+              "Semana 1: diagnóstico y planificación · Semana 2: desarrollo y documentación · "
               "Semana 3: validación, análisis y propuestas · Semana 4: cierre y presentación ejecutiva.",
               font=font(9, True, "7F6000"), fill=fill("FFF2CC"), alignment=LEFT)
     ws.row_dimensions[2].height = 32
     ws["A3"] = "Entrada"; ws["A3"].fill = fill(INPUT); ws["A3"].font = font(8); ws["A3"].border = BORDER
-    ws["B3"] = "Fecha objetivo propuesta = viernes de la semana según «Fecha de inicio del ciclo» (Configuración); puede sobrescribirse."
-    ws["B3"].font = font(8, italic=True)
+    ws["B3"] = "Cálculo"; ws["B3"].fill = fill(CALC); ws["B3"].font = font(8); ws["B3"].border = BORDER
+    ws["C3"] = ("Fecha objetivo propuesta = viernes de la semana según «Fecha de inicio del ciclo» (Configuración); "
+                "puede escribir otra fecha encima.")
+    ws["C3"].font = font(8, italic=True)
 
     hr = FIRST - 1
     for i, h in enumerate(COLS_HITO):
         c = ws.cell(row=hr, column=i + 1, value=h)
-        c.font = font(10, True, "FFFFFF"); c.fill = fill(NAVY); c.alignment = CENTER; c.border = BORDER
+        c.font = font(10, True, "FFFFFF"); c.fill = fill(NAVY if i != 3 else MID)
+        c.alignment = CENTER; c.border = BORDER
     ws.row_dimensions[hr].height = 34
 
-    hitos_sorted = sorted(HITOS, key=lambda h: (h[1], h[2]))
-    n_rows = 40
-    last = FIRST + n_rows - 1
-    for idx in range(n_rows):
-        r = FIRST + idx
+    mine = sorted([h for h in HITOS if h[2] == idx], key=lambda h: h[1])
+    last = FIRST + N_HITO_ROWS - 1
+    for k in range(N_HITO_ROWS):
+        r = FIRST + k
         for col in range(1, 12):
             c = ws.cell(row=r, column=col)
-            c.border = BORDER; c.font = font(10); c.fill = fill(INPUT)
-            c.protection = Protection(locked=False)
+            c.border = BORDER; c.font = font(10)
+            locked = col == 4
+            c.fill = fill(CALC if locked else INPUT)
+            c.protection = Protection(locked=locked)
             c.alignment = CENTER if col in (1, 2, 3, 8, 9) else LEFT
             if col in (3, 9):
                 c.number_format = "dd/mm/yyyy"
-        if idx < len(hitos_sorted):
-            code, sem, p, ent, crit = hitos_sorted[idx]
-            ws.cell(row=r, column=1, value=f"H-{code}-{sem:02d}")
+        ws.cell(row=r, column=4, value=f'=IF({hreg(r)},"{puesto}","")')
+        ws.cell(row=r, column=3,
+                value=f'=IF(OR(InicioCiclo="",$B{r}=""),"",InicioCiclo+7*VALUE(RIGHT($B{r},1))-3)')
+        if k < len(mine):
+            hcode, sem, p, ent, crit = mine[k]
+            ws.cell(row=r, column=1, value=f"H-{hcode}-{sem:02d}")
             ws.cell(row=r, column=2, value=f"Semana {sem}")
-            ws.cell(row=r, column=3,
-                    value=f'=IF(OR(InicioCiclo="",B{r}=""),"",InicioCiclo+7*VALUE(RIGHT(B{r},1))-3)')
-            ws.cell(row=r, column=4, value=PUESTOS[p])
             ws.cell(row=r, column=5, value=ent)
             ws.cell(row=r, column=6, value=crit)
             ws.cell(row=r, column=7, value="Por asignar")
@@ -608,27 +640,24 @@ def build_hitos(wb, ws):
             ws.cell(row=r, column=11, value="Propuesta inicial editable – sujeta a validación del responsable.")
             ws.row_dimensions[r].height = 45
 
-    tab = Table(displayName="tblHitos", ref=f"A{hr}:K{last}")
+    tname = f"tblHitos_{code}"
+    tab = Table(displayName=tname, ref=f"A{hr}:K{last}")
     tab.tableStyleInfo = TableStyleInfo(name="TableStyleLight1", showRowStripes=False)
     ws.add_table(tab)
 
-    for nm, col in [("hSemana", "B"), ("hFechaObj", "C"), ("hArea", "D"), ("hEstado", "H"),
-                    ("hFechaReal", "I")]:
-        add_name(wb, nm, f"{q(S_HITO)}!${col}${FIRST}:${col}$500")
+    for nm, col in [("hSemana", "B"), ("hFechaObj", "C"), ("hEstado", "H")]:
+        add_name(wb, f"{nm}_{code}", f"{q(hsheet)}!${col}${FIRST}:${col}$500")
 
     dv_s = DataValidation(type="list", formula1="ListaSemanas", allow_blank=True, showErrorMessage=True,
                           error="Seleccione Semana 1, Semana 2, Semana 3 o Semana 4.")
     dv_s.add(f"B{FIRST}:B500")
-    dv_a = DataValidation(type="list", formula1="ListaPuestos", allow_blank=True, showErrorMessage=True,
-                          error="Seleccione una de las cuatro áreas.")
-    dv_a.add(f"D{FIRST}:D500")
     dv_e = DataValidation(type="list", formula1="ListaEstados", allow_blank=True, showErrorMessage=True,
                           error="Seleccione Pendiente, En curso o Completado.")
     dv_e.add(f"H{FIRST}:H500")
     dv_d = DataValidation(type="date", operator="greaterThan", formula1="36526", allow_blank=True,
                           showErrorMessage=True, error="Ingrese una fecha válida (dd/mm/aaaa).")
     dv_d.add(f"C{FIRST}:C500"); dv_d.add(f"I{FIRST}:I500")
-    for d in (dv_s, dv_a, dv_e, dv_d):
+    for d in (dv_s, dv_e, dv_d):
         ws.add_data_validation(d)
 
     cf = ws.conditional_formatting
@@ -645,41 +674,32 @@ def build_hitos(wb, ws):
     cf.add(rng("J"), FormulaRule(formula=[f'AND($H{FIRST}="Completado",$J{FIRST}="")'], fill=fill(RED_F), font=Font(color=RED_T)))
 
     ws.freeze_panes = f"C{FIRST}"
-    ws.protection.sheet = True
-    ws.protection.autoFilter = False
-    ws.protection.sort = False
-    ws.protection.formatColumns = False
-    ws.protection.formatRows = False
-    ws.page_setup.orientation = "landscape"
-    ws.page_setup.paperSize = ws.PAPERSIZE_LETTER
-    ws.page_setup.fitToWidth = 1; ws.page_setup.fitToHeight = 0
-    ws.sheet_properties.pageSetUpPr.fitToPage = True
-    ws.print_title_rows = f"{hr}:{hr}"
-    ws.print_area = f"A1:K{last}"
-    ws.page_margins.left = ws.page_margins.right = 0.4
-    ws.oddFooter.center.text = "Página &P de &N"
+    protect_and_print(ws, hr, "K", last)
 
 
 # --------------------------------------------------------------------------
 # Hoja oculta de cálculos por puesto
 # --------------------------------------------------------------------------
-V = {
-    1: "rS1",
-    2: "(rS2+(rS2=\"\")*rS1)",
-}
-V[3] = f"(rS3+(rS3=\"\")*{V[2]})"
-V[4] = f"(rS4+(rS4=\"\")*{V[3]})"
+def V(code, w):
+    """Avance acumulado arrastrado hasta la semana w (semanas vacías toman la anterior)."""
+    S = [None] + [f"rS{i}_{code}" for i in range(1, 5)]
+    expr = S[1]
+    for i in range(2, w + 1):
+        expr = f'({S[i]}+({S[i]}="")*{expr})'
+    return expr
+
 
 CALC_HDR = ["Puesto", "N° actividades", "Suma de pesos", "Pesos vacíos o inválidos",
             "Configuración válida", "Avance ponderado actual",
             "Acum. Semana 1", "Acum. Semana 2", "Acum. Semana 3", "Acum. Semana 4",
             "Primera semana con 100%", "Completado (100%)", "Completado anticipadamente",
-            "Completadas", "En curso", "Pendientes", "Vencidas", "Con alertas"]
+            "Completadas", "En curso", "Pendientes", "Vencidas", "Con alertas",
+            "Próximas a vencer", "Hoja de cronograma"]
 
 
 def build_calculos(wb, ws):
-    ws["A1"] = ("Hoja auxiliar OCULTA: cálculos intermedios por puesto que alimentan el Dashboard. "
-                "No editar. Ver metodología en la hoja Configuración.")
+    ws["A1"] = ("Hoja auxiliar OCULTA: cálculos intermedios por puesto (cada fila lee la hoja de cronograma "
+                "de su puesto) que alimentan el Dashboard. No editar. Ver metodología en Configuración.")
     ws["A1"].font = font(9, True)
     for i, h in enumerate(CALC_HDR):
         c = ws.cell(row=3, column=i + 1, value=h)
@@ -688,25 +708,29 @@ def build_calculos(wb, ws):
     ws.column_dimensions["A"].width = 28
     for i, p in enumerate(PUESTOS):
         r = 4 + i
+        code = AREAS[i][2]
         ws[f"A{r}"] = f"=INDEX(ListaPuestos,{i + 1})"
-        ws[f"B{r}"] = f"=COUNTIFS(rArea,$A{r})"
-        ws[f"C{r}"] = f"=SUMIFS(rPeso,rArea,$A{r})"
-        ws[f"D{r}"] = (f'=COUNTIFS(rArea,$A{r},rPeso,"")+COUNTIFS(rArea,$A{r},rPeso,"<=0")'
-                       f'+COUNTIFS(rArea,$A{r},rPeso,">1")')
+        ws[f"B{r}"] = f'=COUNTIF(rValid_{code},"?*")'
+        ws[f"C{r}"] = f"=SUM(rPeso_{code})"
+        ws[f"D{r}"] = (f'=COUNTIFS(rValid_{code},"?*",rPeso_{code},"")+COUNTIF(rPeso_{code},"<=0")'
+                       f'+COUNTIF(rPeso_{code},">1")')
         ws[f"E{r}"] = f"=AND(B{r}>0,D{r}=0,ABS(C{r}-1)<=0.0001)"
-        ws[f"F{r}"] = f"=IFERROR(SUMPRODUCT(--(rArea=$A{r}),rPeso,rAvance),0)"
+        ws[f"F{r}"] = f"=IFERROR(SUMPRODUCT(rPeso_{code},rAvance_{code}),0)"
         for w in range(1, 5):
             col = get_column_letter(6 + w)
-            ws[f"{col}{r}"] = f"=IFERROR(SUMPRODUCT((rArea=$A{r})*rPeso*{V[w]}),0)"
+            ws[f"{col}{r}"] = f"=IFERROR(SUMPRODUCT(rPeso_{code}*{V(code, w)}),0)"
         ws[f"K{r}"] = (f'=IF(ROUND(G{r},4)>=1,1,IF(ROUND(H{r},4)>=1,2,'
                        f'IF(ROUND(I{r},4)>=1,3,IF(ROUND(J{r},4)>=1,4,""))))')
         ws[f"L{r}"] = f"=AND(E{r},ROUND(F{r},4)>=1)"
         ws[f"M{r}"] = f"=AND(L{r},MIN(IF(K{r}=\"\",4,K{r}),SemanaActual)<4)"
-        ws[f"N{r}"] = f'=COUNTIFS(rArea,$A{r},rEstado,"Completado")'
-        ws[f"O{r}"] = f'=COUNTIFS(rArea,$A{r},rEstado,"En curso")'
-        ws[f"P{r}"] = f'=COUNTIFS(rArea,$A{r},rEstado,"Pendiente")'
-        ws[f"Q{r}"] = f'=SUMPRODUCT((rArea=$A{r})*ISNUMBER(SEARCH("Vencida",rValid)))'
-        ws[f"R{r}"] = f'=SUMPRODUCT((rArea=$A{r})*(LEFT(rValid,1)="⚠"))'
+        ws[f"N{r}"] = f'=COUNTIF(rEstado_{code},"Completado")'
+        ws[f"O{r}"] = f'=COUNTIF(rEstado_{code},"En curso")'
+        ws[f"P{r}"] = f'=COUNTIF(rEstado_{code},"Pendiente")'
+        ws[f"Q{r}"] = f'=SUMPRODUCT(--ISNUMBER(SEARCH("Vencida",rValid_{code})))'
+        ws[f"R{r}"] = f'=SUMPRODUCT(--(LEFT(rValid_{code},1)="⚠"))'
+        ws[f"S{r}"] = (f'=COUNTIFS(rFLim_{code},">="&FechaRef,rFLim_{code},"<="&(FechaRef+DiasAlerta),'
+                       f'rAvance_{code},"<1")')
+        ws[f"T{r}"] = AREAS[i][0]
     r = 8
     ws[f"A{r}"] = "Proyecto (promedio de 4 puestos)"
     ws[f"B{r}"] = "=SUM(B4:B7)"
@@ -721,24 +745,22 @@ def build_calculos(wb, ws):
                    f'IF(ROUND(I8,4)>=1,3,IF(ROUND(J8,4)>=1,4,"")))))')
     ws[f"L{r}"] = "=AND(E8,ROUND(N(F8),4)>=1)"
     ws[f"M{r}"] = "=AND(L8,MIN(IF(K8=\"\",4,K8),SemanaActual)<4)"
-    ws[f"N{r}"] = '=COUNTIF(rEstado,"Completado")'
-    ws[f"O{r}"] = '=COUNTIF(rEstado,"En curso")'
-    ws[f"P{r}"] = '=COUNTIF(rEstado,"Pendiente")'
-    ws[f"Q{r}"] = '=SUMPRODUCT(--ISNUMBER(SEARCH("Vencida",rValid)))'
-    ws[f"R{r}"] = '=SUMPRODUCT(--(LEFT(rValid,1)="⚠"))'
+    for col in "NOPQRS":
+        ws[f"{col}{r}"] = f"=SUM({col}4:{col}7)"
     ws["A9"] = "Fila 8: C = n° puestos válidos; D = avance provisional (promedio solo de puestos válidos)."
     ws["A9"].font = font(8, italic=True)
 
     ws["A10"] = "Semana visible en seguimiento"
     for w in range(1, 5):
         col = get_column_letter(6 + w)
-        ws[f"{col}10"] = f"=OR({w}<=SemanaActual,COUNT(rS{w})>0)"
+        cnt = "+".join(f"COUNT(rS{w}_{a[2]})" for a in AREAS)
+        ws[f"{col}10"] = f"=OR({w}<=SemanaActual,({cnt})>0)"
     ws["A11"] = "Total registros"
-    ws["B11"] = '=SUMPRODUCT(--(LEN(rValid)>0))'
+    ws["B11"] = "=B8"
     ws["A12"] = "Puestos al 100%"
     ws["B12"] = "=COUNTIF(L4:L7,TRUE)"
     ws["A13"] = "Próximas a vencer"
-    ws["B13"] = '=COUNTIFS(rFLim,">="&FechaRef,rFLim,"<="&(FechaRef+DiasAlerta),rAvance,"<1")'
+    ws["B13"] = "=S8"
     for rr in range(4, 9):
         for cc in "CDFGHIJ":
             ws[f"{cc}{rr}"].number_format = "0.0%"
@@ -750,8 +772,11 @@ def build_calculos(wb, ws):
 # Dashboard
 # --------------------------------------------------------------------------
 def count_msgs(*msgs):
-    parts = "+".join(f'ISNUMBER(SEARCH("{m}",rValid))' for m in msgs)
-    return f"=SUMPRODUCT(--(({parts})>0))"
+    terms = []
+    for a in AREAS:
+        parts = "+".join(f'ISNUMBER(SEARCH("{m}",rValid_{a[2]}))' for m in msgs)
+        terms.append(f"SUMPRODUCT(--(({parts})>0))")
+    return "=" + "+".join(terms)
 
 
 def build_dashboard(wb, ws):
@@ -770,7 +795,7 @@ def build_dashboard(wb, ws):
     ws["D2"] = "Fecha de corte:"; ws["D2"].font = font(10, True, NAVY); ws["D2"].alignment = Alignment(horizontal="right")
     ws["E2"] = "=FechaRef"; ws["E2"].number_format = "dd/mm/yyyy"; ws["E2"].font = font(11, True, NAVY)
     ws["E2"].alignment = CENTER
-    merge_set(ws, "F2:M2", "Se actualiza automáticamente desde «Cronograma y Actividades». Semana y fecha de corte: hoja Configuración.",
+    merge_set(ws, "F2:M2", "Consolida automáticamente las 4 hojas «Cronograma …» y las 4 hojas «Hitos …». Semana y fecha de corte: hoja Configuración.",
               font=font(9, italic=True, color=NAVY), alignment=LEFT)
     ws.row_dimensions[2].height = 22
 
@@ -822,7 +847,7 @@ def build_dashboard(wb, ws):
                                   color="2E75B6", showValue=True))
     # Mensaje de proyecto
     proj_msg = (
-        f'=IF({C}$B$11=0,"⚠ No hay actividades registradas. Registre actividades y pesos en «Cronograma y Actividades».",'
+        f'=IF({C}$B$11=0,"⚠ No hay actividades registradas. Cada puesto registra sus actividades y pesos en su hoja «Cronograma …».",'
         f'IF(NOT({C}$E$8),"⚠ Avance global NO definitivo: "&(4-{C}$C$8)&" puesto(s) sin actividades válidas o con pesos que no suman 100%.",'
         f'IF({C}$M$8,"Proyecto: ¡Enhorabuena, completado anticipadamente!",'
         f'IF({C}$L$8,"Proyecto completado: meta del 100% alcanzada.",'
@@ -850,6 +875,7 @@ def build_dashboard(wb, ws):
         rr = r + 2 + i
         k = 4 + i
         ws[f"B{rr}"] = f"={C}A{k}"
+        ws[f"B{rr}"].hyperlink = f"#{q(AREAS[i][0])}!A1"
         ws[f"C{rr}"] = (f'=IF({C}B{k}=0,"Sin actividades",IF(NOT({C}E{k}),"Revisar pesos",{C}F{k}))')
         ws[f"D{rr}"] = f"=IF(ISNUMBER(C{rr}),C{rr},0)"
         ws[f"E{rr}"] = f"={C}B{k}"
@@ -1052,8 +1078,8 @@ def build_dashboard(wb, ws):
          "Actualizar avance o reprogramar con justificación en Observaciones."),
         ("Actividades próximas a vencer (no completadas)", f"={C}B13", "warn",
          "Alerta preventiva: priorizar seguimiento."),
-        ("Datos obligatorios incompletos (ID, área o macroactividad)",
-         count_msgs("Falta ID", "Área sin seleccionar", "Área no válida", "Macroactividad vacía"), "crit",
+        ("Datos obligatorios incompletos (ID o macroactividad)",
+         count_msgs("Falta ID", "Macroactividad vacía"), "crit",
          "Completar los campos obligatorios."),
         ("ID de actividad duplicados", count_msgs("ID duplicado"), "crit", "Asignar un ID único a cada actividad."),
         ("Actividades completadas sin evidencia (si es obligatoria)", count_msgs("sin evidencia"), "crit",
@@ -1077,7 +1103,7 @@ def build_dashboard(wb, ws):
     cf.add(f"H{q1}:H{q2}", FormulaRule(formula=[f'LEFT(H{q1},1)="⚠"'], fill=fill(RED_F), font=Font(color=RED_T, bold=True)))
     note = q2 + 1
     merge_set(ws, f"B{note}:M{note}",
-              "Detalle por actividad: columna «Validación de datos» de la hoja Cronograma y Actividades (filtrar por «⚠»). "
+              "Detalle por actividad: columna «Validación de datos» de la hoja «Cronograma …» de cada puesto (filtrar por «⚠»). "
               "Pendiente normal = sin avance y dentro de plazo; Vencida = fecha límite anterior a la fecha de corte sin llegar a 100%.",
               font=font(8, italic=True, color="404040"), alignment=LEFT)
     ws.row_dimensions[note].height = 26
@@ -1097,12 +1123,15 @@ def build_dashboard(wb, ws):
     for i in range(4):
         rr = hr + 1 + i
         ws[f"B{rr}"] = f"={C}A{4 + i}"
+        hc = AREAS[i][2]
         for w in range(4):
             colw = "CDEF"[w]
-            ws[f"{colw}{rr}"] = (f'=COUNTIFS(hArea,$B{rr},hSemana,"Semana {w + 1}",hEstado,"Completado")&" / "'
-                                 f'&COUNTIFS(hArea,$B{rr},hSemana,"Semana {w + 1}")')
-        ws[f"G{rr}"] = f'=COUNTIFS(hArea,$B{rr},hEstado,"Completado")&" / "&COUNTIFS(hArea,$B{rr})'
-        ws[f"H{rr}"] = (f'=COUNTIFS(hArea,$B{rr},hEstado,"<>Completado",hFechaObj,"<"&FechaRef)')
+            ws[f"{colw}{rr}"] = (f'=COUNTIFS(hSemana_{hc},"Semana {w + 1}",hEstado_{hc},"Completado")&" / "'
+                                 f'&COUNTIF(hSemana_{hc},"Semana {w + 1}")')
+        ws[f"G{rr}"] = (f'=COUNTIFS(hSemana_{hc},"Semana*",hEstado_{hc},"Completado")&" / "'
+                        f'&COUNTIF(hSemana_{hc},"Semana*")')
+        ws[f"H{rr}"] = f'=COUNTIFS(hEstado_{hc},"<>Completado",hFechaObj_{hc},"<"&FechaRef)'
+        ws[f"B{rr}"].hyperlink = f"#{q(AREAS[i][1])}!A1"
         merge_set(ws, f"I{rr}:M{rr}",
                   f'=IF(H{rr}>0,"⚠ "&H{rr}&" hito(s) con fecha objetivo vencida sin completar","Sin hitos vencidos")',
                   font=font(9), alignment=LEFT, border=BORDER)
@@ -1151,27 +1180,28 @@ def build_instrucciones(ws):
         ]),
         ("2. Estructura del libro", [
             "• Dashboard - Consolidado: indicadores, avance por puesto, seguimiento semanal, control de calidad e hitos. Solo lectura (todo es fórmula).",
-            "• Cronograma y Actividades: base de datos principal (tabla tblActividades). Aquí se registran los datos.",
-            "• Linea de Tiempo - Hitos: hitos y entregables por semana (tabla tblHitos). Contiene una PROPUESTA INICIAL EDITABLE de 16 hitos, sujeta a validación de los responsables.",
+            "• Una hoja «Cronograma …» por puesto (pestañas de color): Cronograma R. Operacional, Cronograma R. Legal y Normativo, Cronograma R. Financiero y Cronograma Asistente Técnico. Cada responsable llena SOLO la hoja de su puesto (tablas tblAct_RO, tblAct_RLN, tblAct_RF, tblAct_ATR). La columna Área / Puesto se completa sola.",
+            "• Una hoja «Hitos …» por puesto, junto a su cronograma (tablas tblHitos_RO, tblHitos_RLN, tblHitos_RF, tblHitos_ATR). Cada una trae 4 hitos de PROPUESTA INICIAL EDITABLE (uno por semana), sujetos a validación del responsable. El ID del hito (ej. H-RO-01), la semana, el entregable y el criterio se pueden cambiar libremente, y se pueden agregar más hitos en las filas vacías.",
+            "• En el Dashboard, el nombre de cada puesto es un enlace a su hoja.",
             "• Configuración: semana actual, fecha de corte, fecha de inicio del ciclo, días de alerta, evidencia obligatoria, plan de referencia, listas desplegables y metodología.",
             "• Calculos (oculta): cálculos intermedios por puesto. Para verla: clic derecho en una pestaña > Mostrar. No editar.",
         ]),
         ("3. Paso a paso", [
             "1) En Configuración, verifique la Fecha de inicio del ciclo (valor inicial editable) y seleccione la Semana actual (1 a 4).",
-            "2) En Cronograma y Actividades registre cada macroactividad en una fila: ID único (ej. RO-01), Área / Puesto (lista), Macro Actividad, Responsable, Fecha de inicio, Fecha límite y Peso (%).",
-            "3) Los pesos son relativos dentro de cada puesto y deben sumar 100% por puesto (ej. 40% + 35% + 25%). Si aún no hay pesos aprobados, deje el campo vacío: el libro mostrará una alerta y no calculará el avance del puesto.",
+            "2) En la hoja «Cronograma …» de su puesto registre cada macroactividad en una fila: ID único (ej. RO-01, RLN-01, RF-01, ATR-01), Macro Actividad, Responsable, Fecha de inicio, Fecha límite y Peso (%). El área se asigna automáticamente; el ID no debe repetirse en ninguna de las cuatro hojas.",
+            "3) Los pesos son relativos dentro del puesto y los de cada hoja deben sumar 100% (ej. 40% + 35% + 25%); la celda «Suma de pesos de la hoja» lo muestra arriba. Si aún no hay pesos aprobados, deje el campo vacío: el libro mostrará una alerta y no calculará el avance del puesto.",
             "4) Al cierre de cada semana registre el avance ACUMULADO de la actividad en la columna de esa semana (ej. S1 20%, S2 45%, S3 75%, S4 100%). No registre incrementos. Deje vacías las semanas futuras.",
             "5) Actualice «Última actualización» y registre la evidencia o enlace (SharePoint/OneDrive) en «Evidencia / Observaciones». Las incidencias excepcionales (bloqueo, cancelación, reprogramación) se anotan en Observaciones: no alteran el estado calculado.",
             "6) Revise la columna «Validación de datos»: «✔ OK» o «⚠» con la lista de problemas. Use el filtro de la columna para ver solo las filas con «⚠».",
             "7) Consulte el Dashboard. Si un puesto o el proyecto llega al 100% antes de la Semana 4 aparece «¡Enhorabuena, completado anticipadamente!».",
-            "8) Actualice el Estado, Fecha real y Evidencia de los hitos en Linea de Tiempo - Hitos.",
+            "8) Actualice el Estado, Fecha real y Evidencia de los hitos en la hoja «Hitos …» de su puesto.",
         ]),
         ("4. Código de colores", [
             "• Amarillo pálido: celda de entrada (desbloqueada). • Gris: fórmula protegida. • Azul oscuro/medio: encabezados e indicadores.",
             "• Verde: 100% / Completado. • Azul claro: En curso. • Rojo suave: Pendiente, dato faltante o alerta crítica. • Ámbar: próxima a vencer, pesos ≠ 100% o por debajo del plan. • Naranja: vencida, ID duplicado, fechas incoherentes o avance decreciente. • Verde oscuro con texto blanco: finalización anticipada.",
         ]),
         ("5. Agregar filas", [
-            "La tabla tblActividades trae 100 filas preformateadas (fórmulas, validaciones y formato). Las filas vacías no se cuentan.",
+            "Cada hoja de cronograma trae 100 filas preformateadas y cada hoja de hitos 20 (fórmulas, validaciones y formato). Las filas vacías no se cuentan.",
             "Para agregar más filas: Revisar > Desproteger hoja; ubíquese en la última celda de la tabla y presione Tab (o escriba justo debajo de la tabla). Excel extiende automáticamente las fórmulas de las columnas calculadas (% de Avance Total Actual, Estado y Validación). Vuelva a proteger la hoja al terminar. El Dashboard lee hasta la fila 1000.",
             "No elimine ni mueva las columnas de la tabla; no escriba sobre las columnas grises.",
         ]),
@@ -1186,19 +1216,20 @@ def build_instrucciones(ws):
         ("7. Protección de fórmulas", [
             "Todas las hojas están protegidas SIN contraseña: las celdas con fórmulas están bloqueadas y las celdas de entrada (amarillas) desbloqueadas. Se permiten filtros, ordenar y ajustar anchos.",
             "Para establecer una contraseña: Revisar > Desproteger hoja, luego Revisar > Proteger hoja, marque las opciones «Seleccionar celdas desbloqueadas», «Usar Autofiltro» y «Ordenar» y escriba la contraseña. Guárdela en un lugar seguro. Opcional: Revisar > Proteger libro (estructura) para impedir mostrar/eliminar hojas.",
+            "Separar por hojas ordena el trabajo (cada quien llena su pestaña), pero dentro del mismo archivo compartido cualquier persona con permiso de edición puede abrir la hoja de otro puesto. Opción intermedia: proteger cada hoja de puesto con una contraseña distinta y entregar a cada responsable solo la suya (en ese caso desbloquee/bloquee celdas según necesidad; las celdas amarillas deben quedar desbloqueadas para su dueño, por lo que la contraseña protege las fórmulas, no los datos). Para separación real, use la opción de la sección 8.",
             "LIMITACIÓN: la protección de hoja evita sobrescribir fórmulas, pero NO impide que un usuario con permiso de edición modifique los registros de otro puesto dentro de las celdas de entrada. Excel para la Web tampoco admite «Permitir que los usuarios editen rangos» con permisos por usuario. La trazabilidad se apoya en el historial de versiones.",
         ]),
         ("8. Segregación real de permisos (si se requiere)", [
-            "1) Cree cuatro archivos de captura idénticos (uno por puesto) con la misma estructura de tblActividades, cada uno en una carpeta de SharePoint con permisos solo para su responsable.",
-            "2) En este archivo consolidado: Datos > Obtener datos > Desde archivo > Desde SharePoint (o Desde carpeta), seleccione la carpeta con los cuatro archivos y combine la tabla tblActividades de cada uno (Combinar y transformar).",
-            "3) Cargue el resultado como tabla en la hoja Cronograma y Actividades (o reemplace tblActividades por la tabla de la consulta, con los mismos encabezados). Las columnas calculadas pueden recalcularse en la consulta o en la tabla.",
+            "1) Cree cuatro archivos de captura (uno por puesto), cada uno con una copia de las hojas «Cronograma …» y «Hitos …» de ese puesto, cada uno en una carpeta de SharePoint con permisos solo para su responsable.",
+            "2) En este archivo consolidado: Datos > Obtener datos > Desde archivo > Desde SharePoint (o Desde carpeta), seleccione la carpeta con los cuatro archivos y cree una consulta por tabla (tblAct_XX y tblHitos_XX).",
+            "3) Cargue cada consulta en la hoja «Cronograma …» del puesto correspondiente (con los mismos encabezados), o deje las hojas de este libro como copia de solo lectura actualizada por Power Query. Las columnas calculadas pueden recalcularse en la consulta o en la tabla.",
             "4) Configure Datos > Consultas y conexiones > Propiedades > «Actualizar al abrir el archivo». Nota: la actualización de Power Query desde orígenes de SharePoint se ejecuta en Excel de escritorio; en Excel para la Web el soporte depende del tipo de origen y del plan de Microsoft 365.",
             "5) Solo el coordinador tiene permiso de edición del consolidado; los demás, lectura.",
         ]),
         ("9. Compatibilidad técnica", [
             "Diseñado para Microsoft 365 en español (escritorio y Web). Archivo .xlsx sin macros ni complementos.",
             "Las fórmulas se guardan internamente en inglés y Excel en español las muestra traducidas automáticamente: LOOKUP = BUSCAR, IFERROR = SI.ERROR, IF = SI, SUMPRODUCT = SUMAPRODUCTO, COUNTIFS = CONTAR.SI.CONJUNTO, SUMIFS = SUMAR.SI.CONJUNTO, ISNUMBER = ESNUMERO, SEARCH = HALLAR, TODAY = HOY. El separador de argumentos también se adapta (; en configuración regional española).",
-            "Fórmula del avance actual (fila 5, tal como se ve en Excel en español): =SI(NO((CONTARA($A5:$K5)+CONTARA($N5:$O5))>0);\"\";SI.ERROR(BUSCAR(2;1/(H5:K5<>\"\");H5:K5);0)). La primera parte deja la celda vacía en filas sin datos.",
+            "Fórmula del avance actual (fila 5, tal como se ve en Excel en español): =SI(NO((CONTARA($A5)+CONTARA($C5:$K5)+CONTARA($N5:$O5))>0);\"\";SI.ERROR(BUSCAR(2;1/(H5:K5<>\"\");H5:K5);0)). La primera parte deja la celda vacía en filas sin datos.",
             "Fórmula del estado: =SI(L5=\"\";\"\";SI(L5>=1;\"Completado\";SI(L5>0;\"En curso\";\"Pendiente\"))).",
         ]),
         ("10. Limitaciones conocidas", [
