@@ -858,9 +858,12 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
                              showInputMessage=True, promptTitle="Fecha de cumplimiento",
                              prompt="Escriba la fecha en que se cumplió. La actividad queda al 100% y ya no aparece vencida.")
     dv_cump.add(R("cump"))
-    dv_peso = DataValidation(type="decimal", operator="between", formula1="0", formula2="1",
-                             allow_blank=True, showErrorMessage=True, errorTitle="Peso no válido",
-                             error="Ingrese un porcentaje entre 0% y 100% (por ejemplo 40%).",
+    pc = f'{C["peso"]}{FIRST}'
+    dv_peso = DataValidation(type="custom",
+                             formula1=f'AND(LEFT(${C["tipo"]}{FIRST},3)<>"Sub",ISNUMBER({pc}),{pc}>=0,{pc}<=1)',
+                             allow_blank=True, showErrorMessage=True, errorTitle="Peso no permitido",
+                             error="Las subactividades NO llevan peso (su avance se promedia en la macroactividad). "
+                                   "En una macroactividad ingrese un porcentaje entre 0% y 100% (por ejemplo 40%).",
                              showInputMessage=True, promptTitle="Peso (solo macroactividades)",
                              prompt="Opcional. Vacío = todas las macroactividades del mes valen igual. Si escribe pesos, se ajustan solos a 100%. Las subactividades no llevan peso.")
     dv_peso.add(R("peso"))
@@ -1772,7 +1775,7 @@ def build_instrucciones(ws):
         ("Subactividades (puede agregar todas las que necesite)", [
             "1) Debajo de la macroactividad, en las filas siguientes, elija en «Tipo» la opción «Subactividad» y escriba su nombre en «Actividad», con sus fechas. Se verá con sangría (↳) justo debajo de su macroactividad.",
             "2) El N° NO se escribe: sale solo 1.1, 1.2, 1.3… (la columna está bloqueada).",
-            "3) Las subactividades NO llevan peso: todas valen lo mismo dentro de su macroactividad.",
+            "3) Las subactividades NO llevan peso: todas valen lo mismo dentro de su macroactividad. Excel no deja escribir un peso en una fila «Subactividad» (muestra un aviso).",
             "4) Cuando termine una subactividad, escriba su FECHA DE CUMPLIMIENTO (queda al 100%). También puede anotar avances parciales por semana.",
             "5) El % de la macroactividad se calcula SOLO: es el promedio de sus subactividades. Ejemplo con 4 subactividades: si cumple 1 → 25%; si cumple 2 → 50%; si cumple las 4 → 100%. En la fila de la macroactividad deje VACÍAS las semanas (se ven en azul claro).",
             "6) Para agregar otra subactividad más adelante, escríbala debajo de las demás subactividades de su macroactividad: siempre pertenece a la macroactividad que esté más arriba.",
