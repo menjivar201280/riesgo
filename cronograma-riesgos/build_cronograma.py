@@ -271,7 +271,7 @@ def checks(r):
         (f'AND({macro},{F}="")', "Peso vacío"),
         (f'AND({macro},{F}<>"",OR(NOT(ISNUMBER({F})),{F}<=0,{F}>1))', "Peso fuera de rango"),
         (f'AND({sub},{F}<>"",OR(NOT(ISNUMBER({F})),{F}<0,{F}>1))', "Peso fuera de rango"),
-        (f'AND({sub},{F}="",N({R})>0,N(INDEX({col_abs("AG")},{R}-{FIRST - 1}))>0)', "Falta el peso de la subactividad"),
+        (f'AND({sub},{F}="",IFERROR(N(INDEX({col_abs("AG")},{R}-{FIRST - 1})),0)>0)', "Falta el peso de la subactividad"),
         (f'AND(N({T})>0,N($AG{r})>0,ABS(N($AG{r})-N({F}))>0.0001)',
          f'"Pesos de sus subactividades suman "&TEXT(N($AG{r}),"0%")&" (deben sumar "&TEXT(N({F}),"0%")&")"'),
         (f'AND({macro},ABS({sum_w}-1)>0.0001)',
