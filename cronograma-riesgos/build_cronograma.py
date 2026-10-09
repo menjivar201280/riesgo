@@ -113,6 +113,8 @@ COL_SPEC = [
     ("e1", "Efectivo S1 (aux)"), ("e2", "Efectivo S2 (aux)"), ("e3", "Efectivo S3 (aux)"), ("e4", "Efectivo S4 (aux)"),
     ("pef", "Peso efectivo (aux)"),
     ("dfila", "Fila en el puesto (aux)"), ("dn", "N° delegada en el mes (aux)"), ("dkey", "Clave delegada (aux)"),
+    ("dname", "Clave puesto-actividad (aux)"),
+    ("jfila", "Fila en Administración (aux)"), ("ief", "Inicio efectivo (aux)"), ("lef", "Límite efectivo (aux)"),
 ]
 ADMIN_ONLY = ("deleg", "seg")       # columnas visibles solo en la hoja Administración
 PREFIJO_JEF = "[Jefatura] "         # marca de las actividades delegadas por la jefatura
@@ -183,8 +185,37 @@ def X(k, r):
 
 
 def reg(r):
-    """Fila registrada: hay algún dato de entrada."""
-    return f"(COUNTA({X('tipo', r)}:{X('s4', r)})+COUNTA({X('obs', r)}))>0"
+    """Fila registrada: hay algún dato de entrada (las fechas no cuentan: pueden traer fórmula de la jefatura)."""
+    return (f"(COUNTA({X('tipo', r)}:{X('deleg', r)})+COUNTA({X('cump', r)}:{X('s4', r)})"
+            f"+COUNTA({X('obs', r)}))>0")
+
+
+# --- Actividades delegadas por la jefatura: sus fechas vienen de Administración ---
+def es_jef(r):
+    return f'LEFT({X("act", r)},{len(PREFIJO_JEF)})="{PREFIJO_JEF}"'
+
+
+def f_jfila(r, puesto=None):
+    """Fila (1…) de la actividad en la hoja Administración; vacío si no es delegada."""
+    if puesto is None:
+        return '=""'
+    nombre = f'MID({X("act", r)},{len(PREFIJO_JEF) + 1},500)'
+    return f'=IF({es_jef(r)},IFERROR(MATCH("{puesto}|"&{nombre},rDname_ADM,0),0),"")'
+
+
+def f_fecha_jef(r, k):
+    """Fórmula por defecto de las celdas de fecha del puesto: muestra la fecha de la jefatura si es delegada."""
+    return f'=IF(N({X("jfila", r)})>0,INDEX({"rIni_ADM" if k == "ini" else "rLim_ADM"},{X("jfila", r)}),"")'
+
+
+def f_ief(r):
+    return (f'=IF(N({X("jfila", r)})>0,INDEX(rIni_ADM,{X("jfila", r)}),'
+            f'IF(ISNUMBER({X("ini", r)}),{X("ini", r)},""))')
+
+
+def f_lef(r):
+    return (f'=IF(N({X("jfila", r)})>0,INDEX(rLim_ADM,{X("jfila", r)}),'
+            f'IF(ISNUMBER({X("lim", r)}),{X("lim", r)},""))')
 
 
 def f_tipo(r):
@@ -250,7 +281,7 @@ def f_estado(r):
 
 def _alerta_core(r):
     """Alerta de plazo: cumplida (a tiempo o con retraso) / vencida / vence hoy / por vencer / en plazo."""
-    av, lim, cump = X("av", r), X("lim", r), X("cump", r)
+    av, lim, cump = X("av", r), X("lef", r), X("cump", r)
     dias = lambda a, b: f'({a}-{b})&IF({a}-{b}=1," día"," días")'
     return (f'IF(ISNUMBER({cump}),IF(AND(ISNUMBER({lim}),{cump}>{lim}),"Cumplida con "&{dias(cump, lim)}&" de retraso","Cumplida"),'
             f'IF(N({av})>=1,"Cumplida",IF(NOT(ISNUMBER({lim})),"Sin fecha límite",'
@@ -270,10 +301,10 @@ def _mes_de(ini, lim):
 def f_mes(r):
     """Mes de la actividad (fecha de inicio o límite). Las subactividades usan el mes de su macroactividad."""
     g = f'{X("grupo", r)}-{FIRST - 1}'
-    m_ini = f"INDEX({col_abs('ini')},{g})"
-    m_lim = f"INDEX({col_abs('lim')},{g})"
+    m_ini = f"INDEX({col_abs('ief')},{g})"
+    m_lim = f"INDEX({col_abs('lef')},{g})"
     return (f'=IF(NOT({reg(r)}),"",IF(AND({X("t", r)}="Sub",N({X("grupo", r)})>0),{_mes_de(m_ini, m_lim)},'
-            f'{_mes_de(X("ini", r), X("lim", r))}))')
+            f'{_mes_de(X("ief", r), X("lef", r))}))')
 
 
 def f_orden(r):
@@ -304,7 +335,8 @@ def f_id(r):
 
 
 def checks(r):
-    act, ini, lim, cump, peso = (X(k, r) for k in ("act", "ini", "lim", "cump", "peso"))
+    act, ini, lim, cump, peso = (X(k, r) for k in ("act", "ief", "lef", "cump", "peso"))
+    ini_t, lim_t = X("ini", r), X("lim", r)
     s1, s2, s3, s4, av, obs = (X(k, r) for k in ("s1", "s2", "s3", "s4", "av", "obs"))
     t, grupo, nsub = X("t", r), X("grupo", r), X("nsub", r)
     macro, sub = f'{t}="Macro"', f'{t}="Sub"'
@@ -313,7 +345,8 @@ def checks(r):
         (f'AND({sub},N({grupo})=0)', "Subactividad sin macroactividad arriba"),
         (f'{ini}=""', "Sin fecha de inicio"),
         (f'{lim}=""', "Sin fecha límite"),
-        (f'OR(AND({ini}<>"",NOT(ISNUMBER({ini}))),AND({lim}<>"",NOT(ISNUMBER({lim}))),AND({cump}<>"",NOT(ISNUMBER({cump}))))',
+        (f'AND({es_jef(r)},N({X("jfila", r)})=0)', "No se encuentra en la hoja de la jefatura (elíjala de nuevo en la lista)"),
+        (f'OR(AND({ini_t}<>"",NOT(ISNUMBER({ini_t}))),AND({lim_t}<>"",NOT(ISNUMBER({lim_t}))),AND({cump}<>"",NOT(ISNUMBER({cump}))))',
          "Fecha no válida"),
         (f'AND(ISNUMBER({ini}),ISNUMBER({lim}),{ini}>{lim})', "Inicio posterior a fecha límite"),
         (f'AND({macro},{peso}<>"",OR(NOT(ISNUMBER({peso})),{peso}<0,{peso}>1))', "Peso fuera de rango"),
@@ -379,12 +412,16 @@ def f_dn(r):
             f'{col_upto("mes", r)},MesCiclo,{col_upto("t", r)},"Macro"),"")')
 
 
+def f_dname(r):
+    return f'=IF({_delegada(r)},{X("deleg", r)}&"|"&{X("act", r)},"")'
+
+
 def f_dkey(r):
     return f'=IF({X("dn", r)}="","",{X("deleg", r)}&"|"&{X("dn", r)})'
 
 
 ADMIN_FUNCS = {"av": f_av_adm, "alerta": f_alerta_adm, "seg": f_seg_adm,
-               "dfila": f_dfila, "dn": f_dn, "dkey": f_dkey}
+               "dfila": f_dfila, "dn": f_dn, "dkey": f_dkey, "dname": f_dname}
 
 
 # Columnas calculadas (clave → función) visibles y auxiliares
@@ -392,7 +429,8 @@ CALC_FUNCS = [("id", f_id), ("av", f_avance), ("est", f_estado), ("alerta", f_al
               ("rev", f_validacion), ("mes", f_mes)]
 AUX_FUNCS = [("orden", f_orden), ("grupo", f_grupo), ("t", f_tipo), ("nsub", f_nsub), ("ap", f_ap)] + \
     [(f"o{w + 1}", (lambda w: (lambda r: f_own(r, w)))(w)) for w in range(4)] + \
-    [(f"e{w + 1}", (lambda w: (lambda r: f_eff(r, w)))(w)) for w in range(4)] + [("pef", f_pef)]
+    [(f"e{w + 1}", (lambda w: (lambda r: f_eff(r, w)))(w)) for w in range(4)] + [("pef", f_pef)] + \
+    [("ief", f_ief), ("lef", f_lef)]
 
 
 # Traducción a referencias estructuradas para la definición de columna calculada de la
@@ -664,7 +702,9 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     funcs = CALC_FUNCS + AUX_FUNCS
     if es_admin:
         funcs = [(k, ADMIN_FUNCS.get(k, fn)) for k, fn in funcs] + \
-                [(k, ADMIN_FUNCS[k]) for k in ("seg", "dfila", "dn", "dkey")]
+                [(k, ADMIN_FUNCS[k]) for k in ("seg", "dfila", "dn", "dkey", "dname")] + [("jfila", f_jfila)]
+    else:
+        funcs = funcs + [("jfila", (lambda p: (lambda r: f_jfila(r, p)))(puesto))]
     widths = {"id": 7, "tipo": 15, "act": 48, "deleg": 22, "seg": 30, "ini": 12, "lim": 12, "cump": 14, "peso": 12,
               "s1": 10, "s2": 10, "s3": 10, "s4": 10, "av": 12, "est": 12, "alerta": 24,
               "obs": 36, "rev": 44, "mes": 14}
@@ -752,6 +792,9 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
         for k, fn in funcs:
             ws.cell(row=r, column=CN[k], value=fn(r))
         ws.cell(row=r, column=CN["rev"]).font = font(9)
+        if not es_admin:   # fechas de la jefatura en actividades delegadas (se reemplaza al escribir en filas propias)
+            ws.cell(row=r, column=CN["ini"], value=f_fecha_jef(r, "ini"))
+            ws.cell(row=r, column=CN["lim"], value=f_fecha_jef(r, "lim"))
 
     # Datos de prueba (solo en ejecuciones de test)
     for i, row in enumerate(test_rows):
@@ -777,7 +820,7 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     ws.add_table(tab)
 
     # Nombres de rango por puesto para Dashboard / Cálculos
-    names = [("rFLim", "lim"), ("rPeso", "pef"), ("rPesoEscrito", "peso"), ("rS1", "s1"), ("rS2", "s2"),
+    names = [("rFLim", "lef"), ("rIni", "ini"), ("rLim", "lim"), ("rDname", "dname"), ("rPeso", "pef"), ("rPesoEscrito", "peso"), ("rS1", "s1"), ("rS2", "s2"),
              ("rS3", "s3"), ("rS4", "s4"), ("rAvance", "av"), ("rEstado", "est"), ("rAlerta", "alerta"),
              ("rValid", "rev"), ("rMes", "mes"), ("rOrden", "orden"), ("rTipo", "t"),
              ("rEf1", "e1"), ("rEf2", "e2"), ("rEf3", "e3"), ("rEf4", "e4"),
@@ -796,8 +839,19 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     dv_date = DataValidation(type="date", operator="greaterThan", formula1="36526", allow_blank=True,
                              showErrorMessage=True, errorTitle="Fecha no válida",
                              error="Ingrese una fecha válida (dd/mm/aaaa).")
-    for k in ("ini", "lim"):
-        dv_date.add(R(k))
+    if es_admin:
+        for k in ("ini", "lim"):
+            dv_date.add(R(k))
+    else:
+        dv_fj = DataValidation(type="custom", allow_blank=True, showErrorMessage=True,
+                               formula1=f'AND(LEFT(${C["act"]}{FIRST},{len(PREFIJO_JEF)})<>"{PREFIJO_JEF}",ISNUMBER({C["ini"]}{FIRST}),{C["ini"]}{FIRST}>36526)',
+                               errorTitle="Fecha no permitida",
+                               error="Si la actividad es de la jefatura ([Jefatura]), las fechas las pone la jefatura y no se pueden cambiar. "
+                                     "En sus actividades propias escriba una fecha válida (dd/mm/aaaa).",
+                               showInputMessage=True, promptTitle="Fechas",
+                               prompt="En actividades [Jefatura] las fechas aparecen solas (las pone la jefatura). En las propias, escriba la fecha.")
+        dv_fj.add(f"{C['ini']}{FIRST}:{C['lim']}{LAST_RNG}")
+        ws.add_data_validation(dv_fj)
     dv_cump = DataValidation(type="date", operator="greaterThan", formula1="36526", allow_blank=True,
                              showErrorMessage=True, errorTitle="Fecha no válida",
                              error="Ingrese una fecha válida (dd/mm/aaaa).",
@@ -860,10 +914,11 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     cf.add(R("av"), FormulaRule(formula=[f'AND(ISNUMBER({x("av")}),{x("av")}>=1)'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
     cf.add(R("av"), DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color="5B9BD5", showValue=True))
     cf.add(R("cump"), FormulaRule(formula=[f'ISNUMBER({x("cump")})'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
-    cf.add(R("lim"), FormulaRule(formula=[f'AND(ISNUMBER({x("lim")}),{x("lim")}<FechaRef,N({x("av")})<1)'], stopIfTrue=True, **org))
-    cf.add(R("lim"), FormulaRule(formula=[f'AND(ISNUMBER({x("lim")}),{x("lim")}>=FechaRef,{x("lim")}-FechaRef<=DiasAlerta,N({x("av")})<1)'], **amb))
+    cf.add(R("lim"), FormulaRule(formula=[f'AND(ISNUMBER({x("lef")}),{x("lef")}<FechaRef,N({x("av")})<1)'], stopIfTrue=True, **org))
+    cf.add(R("lim"), FormulaRule(formula=[f'AND(ISNUMBER({x("lef")}),{x("lef")}>=FechaRef,{x("lef")}-FechaRef<=DiasAlerta,N({x("av")})<1)'], **amb))
     DE = f"{C['ini']}{F_}:{C['lim']}{LAST_RNG}"
-    cf.add(DE, FormulaRule(formula=[f'AND({regf},{C["ini"]}{F_}="")'], stopIfTrue=True, **red))
+    cf.add(DE, FormulaRule(formula=[f'AND(N({x("jfila")})>0)'], stopIfTrue=True, fill=fill("FFF2CC"), font=Font(color="7F6000", bold=True)))
+    cf.add(DE, FormulaRule(formula=[f'AND({regf},{x("ief")}="")'], stopIfTrue=True, **red))
     cf.add(DE, FormulaRule(formula=[f'AND(ISNUMBER({x("ini")}),ISNUMBER({x("lim")}),{x("ini")}>{x("lim")})'], **org))
     cf.add(R("peso"), FormulaRule(formula=[f'AND({x("t")}="Sub",{x("peso")}<>"")'], stopIfTrue=True, **red))
     cf.add(R("peso"), FormulaRule(formula=[f'{x("t")}="Sub"'], stopIfTrue=True, fill=fill(CALC)))
@@ -948,8 +1003,8 @@ def build_vista(wb, ws, idx):
         vals = {
             1: f'=IF({on},"",{g(C["id"])})',
             2: f'=IF({on},"",IF($O{r}="Sub","      ↳  "&{g(C["act"])},{g(C["act"])}&""))',
-            3: f'=IF({on},"",IF({g(C["ini"])}="","",{g(C["ini"])}))',
-            4: f'=IF({on},"",IF({g(C["lim"])}="","",{g(C["lim"])}))',
+            3: f'=IF({on},"",IF({g(C["ief"])}="","",{g(C["ief"])}))',
+            4: f'=IF({on},"",IF({g(C["lef"])}="","",{g(C["lef"])}))',
             5: (f'=IF({on},"",IF(NOT(ISNUMBER($D{r})),"",IF($D{r}<InicioCiclo,"Antes del ciclo",'
                 f'IF($D{r}>=InicioCiclo+28,"Después del ciclo","Semana "&(INT(($D{r}-InicioCiclo)/7)+1)))))'),
             10: f'=IF({on},"",{g(C["av"])})',
@@ -1733,9 +1788,10 @@ def build_instrucciones(ws):
             "Es la lista de actividades de la jefatura, con el mismo formato del Cronograma: Tipo (macroactividad / subactividad), actividad, fechas, fecha de cumplimiento, avance por semana, estado, alerta de plazo y observaciones.",
             "DELEGAR: 1) La jefatura escribe la macroactividad y en «Delegar a» elige el puesto (si lo deja vacío, la actividad es de la jefatura).",
             "2) Al puesto le aparece arriba de su Cronograma un aviso amarillo: «La jefatura le delegó X actividad(es)… pendiente(s) de agregar».",
-            "3) El puesto, en una fila nueva de su Cronograma, abre la lista de la columna «Actividad» y elige la actividad (sale como «[Jefatura] nombre»). Luego pone sus fechas, su avance o fecha de cumplimiento y, si quiere, subactividades debajo. No debe cambiar el texto elegido.",
+            "3) El puesto, en una fila nueva de su Cronograma, abre la lista de la columna «Actividad» y elige la actividad (sale como «[Jefatura] nombre»). La FECHA DE INICIO y la FECHA LÍMITE aparecen solas: las pone la jefatura y el puesto no las puede cambiar (Excel lo impide). El puesto solo registra la FECHA DE CUMPLIMIENTO, el % de avance semanal, las observaciones y, si quiere, subactividades debajo. No debe cambiar el texto elegido.",
             "4) En la hoja Administración, las columnas «% de Avance», «Estado», «Alerta de plazo» y «Seguimiento» de esa actividad se llenan solas con lo que registra el puesto. «Seguimiento» dice «✔ Recibida por …» o «⚠ … aún no la agrega».",
-            "Nota: si la jefatura cambia el nombre de una actividad ya delegada, el puesto debe volver a elegirla en la lista.",
+            "Nota: si la jefatura cambia las fechas, se actualizan solas en el puesto. Si cambia el NOMBRE de una actividad ya delegada, el puesto debe volver a elegirla en la lista.",
+            "Para que SOLO la jefatura pueda escribir en la hoja Administración: en esa hoja vaya a Revisar > Desproteger hoja, seleccione las celdas grises de la tabla, Inicio > Formato > Bloquear celda, y luego Revisar > Proteger hoja con una contraseña que solo tenga la jefatura (para editar, la jefatura desprotege con su contraseña).",
             "Las vencidas y por vencer de la jefatura también aparecen en el Dashboard, en la tabla de alertas de plazo.",
         ]),
         ("¿Qué es la columna «Revisión automática (alertas)»?", [

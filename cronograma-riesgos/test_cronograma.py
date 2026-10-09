@@ -355,7 +355,7 @@ JEF = B.PREFIJO_JEF
 rowsJ = [dict(act(1, ADM, None, (), fin=D(2026, 10, 18)), macro="SSF – Visita", deleg=RO),
          dict(act(2, ADM, None, (), fin=D(2026, 10, 20)), macro="Indicadores – Plan de recuperación", deleg=RF),
          dict(act(3, ADM, None, (0.4,), fin=D(2026, 10, 30)), macro="Política T.C."),
-         dict(act(10, RO, None, ()), macro=JEF + "SSF – Visita", fin=D(2026, 10, 18)),
+         dict(act(10, RO, None, ()), macro=JEF + "SSF – Visita", fin=D(2026, 10, 30)),   # fecha distinta: manda la de la jefatura
          sub(11, (), fin=D(2026, 10, 14), cump=D(2026, 10, 14)), sub(12, (), fin=D(2026, 10, 18)),
          act(13, RO, None, (0.3,))]
 wb = run("J", rowsJ, semana=1, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
@@ -372,9 +372,19 @@ ro = wb[B.AREAS[0][0]]
 banner = ro[f"{K['obs']}3"].value
 check("Aviso en el Cronograma de R. Operacional (1 delegada, 0 pendientes)",
       "le delegó 1 actividad" in banner and "0 pendiente" in banner, banner)
+check("Fechas de la jefatura en la actividad delegada (límite 18/10 aunque el puesto escribió 30/10)",
+      ro[f"{K['lef']}5"].value.date() == D(2026, 10, 18) and ro[f"{K['alerta']}5"].value == "Vence en 2 días",
+      (ro[f"{K['lef']}5"].value, ro[f"{K['alerta']}5"].value))
 rf = wb[B.AREAS[2][0]]
 check("Aviso en R. Financiero (1 pendiente de agregar)", "1 pendiente" in rf[f"{K['obs']}3"].value, rf[f"{K['obs']}3"].value)
 calc = wb[B.S_CALC]
+rowsJ2 = [dict(act(1, ADM, None, (), ini=D(2026, 10, 5), fin=D(2026, 10, 18)), macro="SSF – Visita", deleg=RO),
+          dict(act(10, RO, None, ()), macro=JEF + "SSF – Visita", ini=None, fin=None)]
+wb2 = run("J2", rowsJ2, semana=1, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
+ro2 = wb2[B.AREAS[0][0]]
+check("Celdas de fecha del puesto muestran solas las fechas de la jefatura (05/10 – 18/10), sin alertas",
+      (ro2[f"{K['ini']}5"].value.date(), ro2[f"{K['lim']}5"].value.date(), ro2[f"{K['rev']}5"].value) == (D(2026, 10, 5), D(2026, 10, 18), "✔ OK"),
+      (ro2[f"{K['ini']}5"].value, ro2[f"{K['lim']}5"].value, ro2[f"{K['rev']}5"].value))
 check("Lista desplegable de R. Financiero ofrece la actividad delegada",
       calc["D21"].value == JEF + "Indicadores – Plan de recuperación" and calc["D22"].value in (None, ""),
       (calc["D21"].value, calc["D22"].value))
