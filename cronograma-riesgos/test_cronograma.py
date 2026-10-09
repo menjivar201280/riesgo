@@ -26,10 +26,10 @@ FAILS = []
 
 
 def act(i, area, peso, s=(None, None, None, None), fin=D(2026, 11, 6), ini=D(2026, 10, 12),
-        resp="Resp. prueba", evid="Enlace evidencia", **kw):
+        resp="Resp. prueba", obs="Observación de prueba", **kw):
     s = tuple(s) + (None,) * (4 - len(s))
-    d = dict(id=f"T-{i:02d}", area=area, macro=f"Actividad de prueba {i}", resp=resp, ini=ini,
-             fin=fin, peso=peso, s1=s[0], s2=s[1], s3=s[2], s4=s[3], evid=evid)
+    d = dict(area=area, macro=f"Actividad de prueba {i}", resp=resp, ini=ini,
+             fin=fin, peso=peso, s1=s[0], s2=s[1], s3=s[2], s4=s[3], obs=obs)
     d.update(kw)
     return d
 
@@ -60,7 +60,7 @@ def dash_puesto(wb, i):
 
 def cron(wb, r, area):
     c = wb[B.AREAS[B.PUESTOS.index(area)][0]]
-    return c[f"L{r}"].value, c[f"M{r}"].value, c[f"P{r}"].value
+    return c[f"K{r}"].value, c[f"L{r}"].value, c[f"N{r}"].value
 
 
 # ---------------------------------------------------------------------------
@@ -179,20 +179,20 @@ check("Fila nueva calcula avance/estado", (L, M) == (0.4, "En curso"), (L, M, P)
 p = dash_puesto(wb, 0)
 check("Dashboard incluye la fila nueva (RO = 70%)", abs(p["avance"] - 0.7) < 1e-9 and p["total"] == 2, p)
 # ID duplicado y evidencia faltante
-rowsE = [act(1, RO, 0.5, (1.0,), evid=None), act(2, RO, 0.5, (0.2,), ini=D(2026, 11, 10)),
-         act(1, RF, 1.0, (0.2,))]   # ID T-01 repetido en la hoja de otro puesto
+rowsE = [act(1, RO, 0.5, (0.6,), fin=D(2026, 10, 14), obs=None),   # vencida sin observación
+         act(2, RO, 0.5, (0.2,), ini=D(2026, 11, 10))]
 wb = run("E", rowsE, semana=1, fecha_ref=D(2026, 10, 16))
-L, M, P = cron(wb, 5, RO); check("Completada sin evidencia + ID duplicado", "sin evidencia" in P and "ID duplicado" in P, P)
+L, M, P = cron(wb, 5, RO); check("Vencida sin observación detectada", "Vencida sin observación" in P, P)
 L, M, P = cron(wb, 6, RO); check("Fecha inicio posterior a fecha límite", "Inicio posterior" in P, P)
 check("Puesto 100%? No (50%+20%·0.5)", dash_puesto(wb, 0)["msg"] == "En ejecución", dash_puesto(wb, 0))
 
 # ---------------------------------------------------------------------------
-L, M, P = cron(wb, 5, RF); check("ID duplicado detectado entre hojas de distintos puestos", "ID duplicado" in P, P)
-ws_rf = wb[B.AREAS[2][0]]
-check("Columna Área / Puesto se llena sola", ws_rf["B5"].value == RF and ws_rf["B6"].value is None, ws_rf["B5"].value)
+ws_ro = wb[B.AREAS[0][0]]
+check("ID automático 1, 2 y vacío en fila sin datos", (ws_ro["A5"].value, ws_ro["A6"].value, ws_ro["A7"].value) == (1, 2, None),
+      (ws_ro["A5"].value, ws_ro["A6"].value, ws_ro["A7"].value))
 
 print("Escenario F: libro vacío (entregable)")
-wb = run("F", [], semana=1)
+wb = run("F", [], semana=1, inicio_ciclo=D(2026, 10, 12), fecha_ref=D(2026, 10, 19))
 d = wb[B.S_DASH]
 check("Sin actividades: no hay mensajes de completado",
       all(not str(dash_puesto(wb, i)["msg"]).startswith(("¡", "Completado")) for i in range(4)),
@@ -200,10 +200,25 @@ check("Sin actividades: no hay mensajes de completado",
 check("Mensaje de proyecto: no hay actividades", d["G12"].value.startswith("⚠ No hay actividades"), d["G12"].value)
 h = wb[B.AREAS[0][1]]
 check("Fecha objetivo hito S1 = 16/10/2026", h["C5"].value.date() == D(2026, 10, 16), h["C5"].value)
-check("Hitos RO: área automática y 4 hitos propios", h["D5"].value == RO and h["A8"].value == "H-RO-04" and h["D9"].value is None,
-      (h["D5"].value, h["A8"].value, h["D9"].value))
+check("Actividades semanales RO: ID 1–4 automático, fila 9 vacía", (h["A5"].value, h["A8"].value, h["A9"].value) == (1, 4, None),
+      (h["A5"].value, h["A8"].value, h["A9"].value))
+check("Estado semanal automático: S1 vencida, S2 pendiente (semana 1)", (h["G5"].value, h["G6"].value) == ("Vencido", "Pendiente"),
+      (h["G5"].value, h["G6"].value))
 hit = [d[f"G{r}"].value for r in range(60, 80) if isinstance(d[f"G{r}"].value, str) and "/" in d[f"G{r}"].value]
 check("Resumen de hitos en Dashboard = 0 / 4 por puesto", hit == ["0 / 4"] * 4, hit)
+
+# ---------------------------------------------------------------------------
+print("Escenario G: configuración automática (mes nov-2026, corte 18/11/2026, sin semana manual)")
+wb = run("G", [], mes=D(2026, 11, 1), fecha_ref=D(2026, 11, 18))
+k = wb[B.S_CONF]
+check("Inicio automático = primer lunes (02/11/2026)", k["C5"].value.date() == D(2026, 11, 2), k["C5"].value)
+check("Semana actual automática = 3", k["C7"].value == 3, k["C7"].value)
+h = wb[B.AREAS[1][1]]
+check("Estado semanal: S1 Vencido, S3 En curso, S4 Pendiente",
+      (h["G5"].value, h["G7"].value, h["G8"].value) == ("Vencido", "En curso", "Pendiente"),
+      (h["G5"].value, h["G7"].value, h["G8"].value))
+check("Hoja renombrada a Riesgo Normativo", B.PUESTOS[1] == "Riesgo Normativo" and wb[B.S_DASH]["B17"].value == "Riesgo Normativo",
+      wb[B.S_DASH]["B17"].value)
 
 print()
 print("FALLAS:" if FAILS else "TODAS LAS PRUEBAS PASARON", FAILS if FAILS else "")
