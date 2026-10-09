@@ -61,7 +61,7 @@ def dash_puesto(wb, i):
 
 def cron(wb, r, area):
     c = wb[B.AREAS[B.PUESTOS.index(area)][0]]
-    return c[f"K{r}"].value, c[f"L{r}"].value, c[f"N{r}"].value
+    return c[f"L{r}"].value, c[f"M{r}"].value, c[f"O{r}"].value
 
 
 # ---------------------------------------------------------------------------
@@ -246,8 +246,8 @@ rowsH = [
 wb = run("H", rowsH, mes=D(2026, 11, 1), fecha_ref=D(2026, 11, 6))
 c = wb[B.AREAS[0][0]]
 check("Columna Mes automática (oct/nov) y N° reinicia por mes",
-      [(c[f"A{r}"].value, c[f"O{r}"].value.month) for r in range(5, 9)] == [(1, 10), (2, 10), (1, 11), (2, 11)],
-      [(c[f"A{r}"].value, c[f"O{r}"].value) for r in range(5, 9)])
+      [(c[f"A{r}"].value, c[f"P{r}"].value.month) for r in range(5, 9)] == [(1, 10), (2, 10), (1, 11), (2, 11)],
+      [(c[f"A{r}"].value, c[f"P{r}"].value) for r in range(5, 9)])
 p = dash_puesto(wb, 0)
 check("Dashboard de noviembre: RO = 20% con 2 actividades (octubre no se mezcla)",
       abs(p["avance"] - 0.2) < 1e-9 and p["total"] == 2, p)
@@ -269,6 +269,45 @@ check("Historial: diciembre sin datos", hst[f"C{row[12]}"].value == "Sin datos",
 wb = run("H2", rowsH, mes=D(2026, 10, 15), fecha_ref=D(2026, 10, 30))
 check("Revisar mes anterior (escribiendo una fecha de octubre): RO 100% con 2 actividades",
       dash_puesto(wb, 0)["avance"] == 1 and dash_puesto(wb, 0)["total"] == 2, dash_puesto(wb, 0))
+
+# ---------------------------------------------------------------------------
+print("Escenario S: subactividades (macro con 3 subactividades + macro sin subactividades)")
+def sub(i, s=(), **kw):
+    d = act(i, RO, None, s, **kw)
+    d["sub"] = d.pop("macro").replace("Actividad", "Subactividad")
+    return d
+rowsS = [
+    act(1, RO, 0.6, ()),                         # macro con subactividades (semanas vacías)
+    sub(11, (0.5, 1.0)), sub(12, (None, 0.6)), sub(13, ()),
+    act(2, RO, 0.4, (0.3, 0.7)),                 # macro sin subactividades
+    sub(21, (1.0,), _row=11),                    # subactividad agregada más abajo (pertenece a la macro 2)
+]
+rowsS[-1]["_row"] = 10
+wb = run("S", rowsS, semana=2, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
+c = wb[B.AREAS[0][0]]
+ids = [c[f"A{r}"].value for r in range(5, 11)]
+check("N° automático 1, 1.1, 1.2, 1.3, 2, 2.1", [str(x) for x in ids] == ["1", "1.1", "1.2", "1.3", "2", "2.1"], ids)
+L1, M1, P1 = cron(wb, 5, RO)
+check("Macro 1 = promedio de subactividades (100%+60%+0%)/3 = 53%, En curso, sin alertas",
+      abs(L1 - 1.6 / 3) < 1e-9 and M1 == "En curso" and P1 == "✔ OK", (L1, M1, P1))
+L2, M2, P2 = cron(wb, 6, RO)
+check("Subactividad 1.1 al 100% = Completado; no exige peso", (L2, M2, P2) == (1, "Completado", "✔ OK"), (L2, M2, P2))
+L3, M3, P3 = cron(wb, 9, RO)
+check("Macro 2 con subactividad agregada: avance = promedio subactividades (100%)", L3 == 1, (L3, M3, P3))
+check("Macro 2 con semanas escritas y subactividades → aviso", "deje vacías las semanas" in P3, P3)
+p = dash_puesto(wb, 0)
+check("Dashboard RO = 60%×53% + 40%×100% = 72% (2 macroactividades)", abs(p["avance"] - (0.6 * 1.6 / 3 + 0.4)) < 1e-9 and p["total"] == 2, p)
+d = wb[B.S_DASH]
+check("Semana 1 RO = 60%×(50%+0+0)/3 + 40%×100% = 50%", abs(d["C25"].value - (0.6 * 0.5 / 3 + 0.4)) < 1e-9, d["C25"].value)
+v = wb[B.AREAS[0][1]]
+check("Hoja Actividades muestra macro y subactividades con ↳",
+      v["B5"].value == "Actividad de prueba 1" and v["B6"].value.strip() == "↳ Subactividad de prueba 11"
+      and str(v["A6"].value) == "1.1", (v["A5"].value, v["B5"].value, v["A6"].value, v["B6"].value))
+check("Actividades: semana 1 de la macro = 17% (promedio de subactividades)", abs(v["G5"].value - 0.5 / 3) < 1e-9, v["G5"].value)
+rowsS2 = [sub(1, (0.5,)), act(2, RO, 1.0, (0.5,)), dict(sub(3, (0.2,)), peso=0.3)]
+wb = run("S2", rowsS2, semana=1, fecha_ref=D(2026, 10, 16))
+check("Subactividad sin macroactividad arriba → aviso", "sin macroactividad arriba" in cron(wb, 5, RO)[2], cron(wb, 5, RO)[2])
+check("Subactividad con peso → aviso", "no llevan peso" in cron(wb, 7, RO)[2], cron(wb, 7, RO)[2])
 
 print()
 print("FALLAS:" if FAILS else "TODAS LAS PRUEBAS PASARON", FAILS if FAILS else "")
