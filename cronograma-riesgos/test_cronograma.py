@@ -228,7 +228,7 @@ check("Mensaje de proyecto: no hay actividades", d["G12"].value.startswith("⚠ 
 h = wb[B.AREAS[0][1]]
 check("Hoja Actividades vacía cuando el Cronograma está vacío", h["A5"].value is None and h["L5"].value is None, h["A5"].value)
 hit = [d[f"G{r}"].value for r in range(40, 130) if isinstance(d[f"G{r}"].value, str) and "/" in d[f"G{r}"].value]
-check("Resumen de entregas en Dashboard = 0 / 0 por puesto", hit == ["0 / 0"] * 4, hit)
+check("Resumen de entregas en Dashboard = 0 / 0 (4 puestos + Administración)", hit == ["0 / 0"] * 5, hit)
 
 # ---------------------------------------------------------------------------
 print("Escenario G: configuración automática (mes nov-2026, corte 18/11/2026, sin semana manual)")
