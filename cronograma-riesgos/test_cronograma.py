@@ -22,6 +22,7 @@ import build_cronograma as B  # noqa: E402
 RECALC, TMP = sys.argv[1], sys.argv[2]
 D = dt.date
 RO, RLN, RF, ATR = B.PUESTOS
+ADM = B.ADMIN[0]
 FAILS = []
 
 
@@ -61,11 +62,11 @@ def dash_puesto(wb, i):
 
 def cron(wb, r, area):
     c = wb[B.AREAS[B.PUESTOS.index(area)][0]]
-    return c[f"K{r}"].value, c[f"L{r}"].value, c[f"O{r}"].value
+    return c[f"L{r}"].value, c[f"M{r}"].value, c[f"P{r}"].value
 
 
 def alerta(wb, r, area):
-    return wb[B.AREAS[B.PUESTOS.index(area)][0]][f"M{r}"].value
+    return wb[B.AREAS[B.PUESTOS.index(area)][0]][f"N{r}"].value
 
 
 # ---------------------------------------------------------------------------
@@ -89,7 +90,7 @@ L, M, P = cron(wb, 5, RO); check("Act. 1 (50%→100% en S2) = 100% Completado", 
 L, M, P = cron(wb, 6, RO); check("Act. 2 (100% en S1, S2 vacía) = 100%", L == 1, (L, M))
 L, M, P = cron(wb, 5, RLN); check("Escenario 1: sin avances → 0% Pendiente", (L, M) == (0, "Pendiente"), (L, M))
 L, M, P = cron(wb, 6, RLN); check("Escenario 2: 50% → En curso", (L, M) == (0.5, "En curso"), (L, M))
-check("Escenario 7: alerta pesos ≠100% en fila", "Pesos del mes suman 90%" in P, P)
+check("Escenario 7: pesos 50% + 40% se ajustan solos (sin aviso de pesos)", "Peso" not in P, P)
 L, M, P = cron(wb, 5, ATR); check("Escenario 8: decreciente detectado y toma último valor (40%)",
                               L == 0.4 and "decreciente" in P, (L, P))
 L, M, P = cron(wb, 6, ATR); check("Semana intermedia vacía: toma S3 (50%)", L == 0.5, L)
@@ -104,8 +105,8 @@ L, M, P = cron(wb, 30, RF); check("Fila vacía → celdas calculadas vacías", (
 p = dash_puesto(wb, 0)
 check("Escenario 4: RO 100% anticipado", p["avance"] == 1 and p["msg"] == "¡Enhorabuena, completado anticipadamente!", p)
 p = dash_puesto(wb, 1)
-check("RLN: pesos 90% → 'Revisar pesos', sin mensaje de completado",
-      p["avance"] == "Revisar pesos" and p["msg"].startswith("⚠") and "90%" in p["estado"], p)
+check("RLN: pesos 50%/40% ajustados → avance (50%×0 + 40%×50%)/90% = 22%",
+      abs(p["avance"] - 0.2 / 0.9) < 1e-9 and p["msg"] == "En ejecución", p)
 p = dash_puesto(wb, 2)
 check("Escenario 6: RF sin actividades → no se marca completado",
       p["avance"] == "Sin actividades" and p["msg"] == "⚠ Registrar actividades" and p["total"] == 0, p)
@@ -115,7 +116,7 @@ check("ATR ponderado = 35%", abs(p["avance"] - exp) < 1e-9 and p["msg"] == "En e
 check("ATR vencidas = 1", p["venc"] == 1, p)
 d = wb[B.S_DASH]
 check("Avance general 'No definitivo' (faltan puestos)", d["B5"].value == "No definitivo", d["B5"].value)
-check("Mensaje de proyecto advierte 2 puestos", "NO definitivo: 2 puesto" in d["G12"].value, d["G12"].value)
+check("Mensaje advierte 1 puesto sin actividades", "NO definitivo: 1 puesto" in d["G12"].value, d["G12"].value)
 check("KPI total actividades = 8", d["H5"].value == 8, d["H5"].value)
 check("KPI completadas = 3", d["K5"].value == 3, d["K5"].value)
 x = wb[B.S_CALC]
@@ -151,8 +152,7 @@ check("Dashboard entregas: RO 3/3 completadas en Semana 4; ATR 1 vencida",
 qc = {d[f"B{r}"].value: d[f"G{r}"].value for r in range(40, 130) if d[f"B{r}"].value}
 print("   Control de calidad:", qc)
 check("QC: 1 puesto sin actividades", qc.get("Puestos sin actividades registradas") == 1, qc)
-check("QC: 1 puesto con pesos ≠100% (ATR y RO suman 100%)",
-      qc.get("Puestos cuya ponderación no suma 100% (o con pesos vacíos)") == 1, qc)
+check("QC: 0 puestos con pesos no válidos", qc.get("Puestos con pesos no válidos (fuera de 0–100%)") == 0, qc)
 check("QC: decreciente = 1", qc.get("Avance semanal menor que el de una semana anterior") == 1, qc)
 check("QC: vencidas = 1", qc.get("Actividades vencidas no completadas") == 1, qc)
 
@@ -252,8 +252,8 @@ rowsH = [
 wb = run("H", rowsH, mes=D(2026, 11, 1), fecha_ref=D(2026, 11, 6))
 c = wb[B.AREAS[0][0]]
 check("Columna Mes automática (oct/nov) y N° reinicia por mes",
-      [(c[f"A{r}"].value, c[f"P{r}"].value.month) for r in range(5, 9)] == [(1, 10), (2, 10), (1, 11), (2, 11)],
-      [(c[f"A{r}"].value, c[f"P{r}"].value) for r in range(5, 9)])
+      [(c[f"A{r}"].value, c[f"Q{r}"].value.month) for r in range(5, 9)] == [(1, 10), (2, 10), (1, 11), (2, 11)],
+      [(c[f"A{r}"].value, c[f"Q{r}"].value) for r in range(5, 9)])
 p = dash_puesto(wb, 0)
 check("Dashboard de noviembre: RO = 20% con 2 actividades (octubre no se mezcla)",
       abs(p["avance"] - 0.2) < 1e-9 and p["total"] == 2, p)
@@ -313,23 +313,40 @@ check("Actividades: semana 1 de la macro = 17% (promedio de subactividades)", ab
 rowsS2 = [sub(1, (0.5,)), act(2, RO, 1.0, (0.5,)), dict(sub(3, (0.2,)), peso=0.3)]
 wb = run("S2", rowsS2, semana=1, fecha_ref=D(2026, 10, 16))
 check("Subactividad sin macroactividad arriba → aviso", "sin macroactividad arriba" in cron(wb, 5, RO)[2], cron(wb, 5, RO)[2])
-check("Pesos de subactividades ≠ peso de la macro → aviso en la macro",
-      "Pesos de sus subactividades suman 30% (deben sumar 100%)" in cron(wb, 6, RO)[2], cron(wb, 6, RO)[2])
+check("Subactividad con peso → aviso (las subactividades no llevan peso)",
+      "no llevan peso" in cron(wb, 7, RO)[2], cron(wb, 7, RO)[2])
 
-print("Escenario W: subactividades con peso (completan el peso de la macroactividad)")
-rowsW = [act(1, RO, 0.6, ()),
-         dict(sub(11, (1.0,)), peso=0.2), dict(sub(12, (0.0,)), peso=0.25), dict(sub(13, ()), peso=0.15),
-         act(2, RO, 0.4, (0.5,), fin=D(2026, 10, 18))]
+print("Escenario W: fecha de cumplimiento, peso automático y hoja Administración")
+rowsW = [act(1, RO, None, ()),                                                        # macro sin peso
+         sub(11, (0.5,), fin=D(2026, 10, 14), cump=D(2026, 10, 14)),                  # cumplida a tiempo
+         sub(12, (), fin=D(2026, 10, 14), cump=D(2026, 10, 15)),                      # cumplida con retraso
+         sub(13, (), fin=D(2026, 10, 30)), sub(14, (), fin=D(2026, 10, 30)),
+         act(2, RO, None, (0.5,), fin=D(2026, 10, 18)),                               # por vencer
+         act(3, RO, None, (), fin=D(2026, 10, 15)),                                   # vencida
+         dict(act(90, ADM, None, (), fin=D(2026, 10, 14), obs="Presentación 9/10"), macro="SSF – Visita"),
+         dict(act(91, ADM, None, (0.1,), fin=D(2026, 10, 20)), macro="Indicadores – Plan de recuperación")]
 wb = run("W", rowsW, semana=1, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
-L1, M1, P1 = cron(wb, 5, RO)
-check("Macro 1 = Σ(peso×avance)/Σ pesos = 20%/60% = 33%, sin alertas", abs(L1 - 0.2 / 0.6) < 1e-9 and P1 == "✔ OK", (L1, P1))
-check("Subactividad con peso: sin alertas", cron(wb, 6, RO)[2] == "✔ OK", cron(wb, 6, RO)[2])
-check("Por vencer: fin 18/10, corte 16/10 → 'Vence en 2 días'", alerta(wb, 9, RO) == "Vence en 2 días", alerta(wb, 9, RO))
-d = wb[B.S_DASH]
-ent = {d[f"B{r}"].value: (d[f"H{r}"].value, d[f"I{r}"].value) for r in range(40, 130) if d[f"B{r}"].value in B.PUESTOS}
-check("Dashboard: RO 0 vencidas, 1 por vencer", ent.get(RO) == (0, 1), ent)
+L, M, P = cron(wb, 6, RO)
+check("Subactividad con fecha de cumplimiento = 100% Completado y 'Cumplida'",
+      (L, M, alerta(wb, 6, RO)) == (1, "Completado", "Cumplida"), (L, M, alerta(wb, 6, RO)))
+check("Cumplida después de la fecha límite → 'Cumplida con 1 día de retraso' (no vencida)",
+      alerta(wb, 7, RO) == "Cumplida con 1 día de retraso" and "Vencida" not in cron(wb, 7, RO)[2],
+      (alerta(wb, 7, RO), cron(wb, 7, RO)[2]))
+L1 = cron(wb, 5, RO)[0]
+check("Macro = promedio de 4 subactividades (2 cumplidas) = 50%", abs(L1 - 0.5) < 1e-9, L1)
+check("Por vencer: fin 18/10, corte 16/10 → 'Vence en 2 días'", alerta(wb, 10, RO) == "Vence en 2 días", alerta(wb, 10, RO))
+check("Vencida sin cumplimiento → 'Vencida hace 1 día'", alerta(wb, 11, RO) == "Vencida hace 1 día", alerta(wb, 11, RO))
 p = dash_puesto(wb, 0)
-check("Dashboard RO = 60%×33% + 40%×50% = 40%", abs(p["avance"] - (0.6 * (0.2 / 0.6) + 0.4 * 0.5)) < 1e-9, p)
+check("Peso vacío = partes iguales: RO = (50% + 50% + 0%)/3 = 33%", abs(p["avance"] - 1 / 3) < 1e-9, p)
+check("Sin aviso de pesos con pesos vacíos", "Peso" not in str(cron(wb, 5, RO)[2]), cron(wb, 5, RO)[2])
+d = wb[B.S_DASH]
+ent = {d[f"B{r}"].value: (d[f"H{r}"].value, d[f"I{r}"].value) for r in range(40, 130)
+       if d[f"B{r}"].value in B.PUESTOS + [ADM]}
+check("Dashboard: RO 1 vencida y 1 por vencer; Administración 1 vencida", ent.get(RO) == (1, 1) and ent.get(ADM) == (1, 0), ent)
+adm = wb[B.ADMIN[1]]
+check("Hoja Administración: N° automático, alerta y avance",
+      (adm["A5"].value, adm["N5"].value, adm["A6"].value, adm["L6"].value) == (1, "Vencida hace 2 días", 2, 0.1),
+      (adm["A5"].value, adm["N5"].value, adm["A6"].value, adm["L6"].value))
 
 print()
 print("FALLAS:" if FAILS else "TODAS LAS PRUEBAS PASARON", FAILS if FAILS else "")
