@@ -258,8 +258,8 @@ check("Actividades muestra solo noviembre, sin huecos",
       (v["B5"].value, v["B6"].value, v["B7"].value))
 hst = wb[B.S_HIST]
 row = {(hst[f"B{r}"].value.year, hst[f"B{r}"].value.month): r for r in range(6, 30)}
-check("Historial empieza en octubre 2026 (24 meses, hasta septiembre 2027)",
-      hst["B6"].value.date() == D(2026, 10, 1) and hst["B29"].value.date() == D(2027, 9, 1), (hst["B6"].value, hst["B29"].value))
+check("Historial empieza en octubre 2026 (24 meses, hasta septiembre 2028)",
+      hst["B6"].value.date() == D(2026, 10, 1) and hst["B29"].value.date() == D(2028, 9, 1), (hst["B6"].value, hst["B29"].value))
 row = {m: row[(2026, m)] for m in (10, 11, 12)}
 check("Historial: octubre RO 100% (2 / 2), RN 100%; noviembre RO 20%",
       hst[f"C{row[10]}"].value == 1 and hst[f"D{row[10]}"].value == "2 / 2" and hst[f"E{row[10]}"].value == 1
