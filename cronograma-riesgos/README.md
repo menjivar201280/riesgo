@@ -4,16 +4,17 @@ Entregable: `Cronograma_Dashboard_Riesgos.xlsx` (sin macros y sin datos de prueb
 
 | Hoja | Contenido |
 |---|---|
-| Dashboard - Consolidado | 8 tarjetas de indicadores, avance por puesto, mensajes de finalización, seguimiento semanal, 2 gráficos, control de calidad y actividades semanales |
-| Cronograma R. Operacional / R. Normativo / R. Financiero / Asistente Técnico | Una hoja por puesto con su color, tablas `tblAct_RO`, `tblAct_RN`, `tblAct_RF`, `tblAct_ATR` (14 columnas, N° automático, 100 filas) |
-| Actividades R. Operacional / R. Normativo / R. Financiero / Asistente Técnico | Vista semanal AUTOMÁTICA del cronograma de cada puesto (línea de tiempo por semana, semana de entrega, estado), tablas `tblSem_XX` |
+| Dashboard - Consolidado | Resumen del mes mostrado: 8 indicadores, avance por puesto, mensajes de finalización, seguimiento semanal, 2 gráficos, control de calidad y entregas por semana |
+| Historial mensual | Avance y completadas por puesto de los últimos 12 meses (nada se borra al cambiar de mes) |
+| Cronograma R. Operacional / R. Normativo / R. Financiero / Asistente Técnico | Una hoja por puesto con su color (Operacional naranja, Normativo morado, Financiero verde, Asistente azul); celdas a llenar en gris suave, tablas `tblAct_RO`, `tblAct_RN`, `tblAct_RF`, `tblAct_ATR` (N° y Mes automáticos, 300 filas que acumulan los meses; columna auxiliar oculta) |
+| Actividades R. Operacional / R. Normativo / R. Financiero / Asistente Técnico | Vista AUTOMÁTICA y bloqueada de las actividades del mes (línea de tiempo por semana, semana de entrega, estado), tablas `tblSem_XX` |
 | Instrucciones | Uso, colaboración, protección, segregación con Power Query y limitaciones |
-| Configuración | Mes, inicio del ciclo, fecha de corte y semana actual calculados automáticamente; listas y metodología |
+| Configuración | Mes mostrado, inicio del ciclo, fecha de corte y semana actual calculados automáticamente; listas y metodología |
 | Calculos (oculta) | Cálculos intermedios por puesto |
 
 Regenerar y probar:
 
 ```bash
 python build_cronograma.py Cronograma_Dashboard_Riesgos.xlsx
-python test_cronograma.py <ruta>/recalc.py <directorio_temporal>   # 63 verificaciones con LibreOffice
+python test_cronograma.py <ruta>/recalc.py <directorio_temporal>   # 69 verificaciones con LibreOffice
 ```

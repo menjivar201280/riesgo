@@ -35,6 +35,7 @@ def act(i, area, peso, s=(None, None, None, None), fin=D(2026, 11, 6), ini=D(202
 
 
 def run(name, rows, **kw):
+    kw.setdefault("mes", D(2026, 10, 1))
     path = os.path.join(TMP, f"test_{name}.xlsx")
     B.build(path, test_rows=rows, **kw)
     out = subprocess.run([sys.executable, RECALC, path, "90"], capture_output=True, text=True)
@@ -84,7 +85,7 @@ L, M, P = cron(wb, 5, RO); check("Act. 1 (50%→100% en S2) = 100% Completado", 
 L, M, P = cron(wb, 6, RO); check("Act. 2 (100% en S1, S2 vacía) = 100%", L == 1, (L, M))
 L, M, P = cron(wb, 5, RLN); check("Escenario 1: sin avances → 0% Pendiente", (L, M) == (0, "Pendiente"), (L, M))
 L, M, P = cron(wb, 6, RLN); check("Escenario 2: 50% → En curso", (L, M) == (0.5, "En curso"), (L, M))
-check("Escenario 7: alerta pesos ≠100% en fila", "Pesos del puesto suman 90%" in P, P)
+check("Escenario 7: alerta pesos ≠100% en fila", "Pesos del mes suman 90%" in P, P)
 L, M, P = cron(wb, 5, ATR); check("Escenario 8: decreciente detectado y toma último valor (40%)",
                               L == 0.4 and "decreciente" in P, (L, P))
 L, M, P = cron(wb, 6, ATR); check("Semana intermedia vacía: toma S3 (50%)", L == 0.5, L)
@@ -163,7 +164,7 @@ rowsB = [
 wb = run("B", rowsB, semana=4, fecha_ref=D(2026, 11, 6))
 d = wb[B.S_DASH]
 check("Escenario 5: avance general = 100%", d["B5"].value == 1, d["B5"].value)
-check("Proyecto completado (no anticipado) en S4", d["G12"].value == "Proyecto completado: meta del 100% alcanzada.", d["G12"].value)
+check("Proyecto completado (no anticipado) en S4", d["G12"].value == "Actividades del mes completadas: meta del 100% alcanzada.", d["G12"].value)
 for i in range(4):
     p = dash_puesto(wb, i)
     check(f"{B.PUESTOS[i]}: 'Completado' sin felicitación", p["msg"] == "Completado", p)
@@ -179,7 +180,7 @@ for r in rowsC:
         r["s3"] = 1.0
 wb = run("C", rowsC, semana=3, fecha_ref=D(2026, 10, 30))
 d = wb[B.S_DASH]
-check("Proyecto 100% anticipado", d["G12"].value == "Proyecto: ¡Enhorabuena, completado anticipadamente!", d["G12"].value)
+check("Proyecto 100% anticipado", d["G12"].value == "Actividades del mes: ¡Enhorabuena, completado anticipadamente!", d["G12"].value)
 check("Total proyecto: mensaje de felicitación", d["L20"].value == "¡Enhorabuena, completado anticipadamente!", d["L20"].value)
 # Si la condición deja de cumplirse, el mensaje desaparece
 rowsC2 = [dict(r) for r in rowsC]
@@ -191,15 +192,16 @@ check("Al bajar de 100% el mensaje cambia a 'En ejecución'",
 
 # ---------------------------------------------------------------------------
 print("Escenario D: nueva fila agregada a la tabla (fila 105, fuera de las 100 preformateadas)")
-rowsD = [act(1, RO, 0.5, (1.0,), _row=5), act(2, RO, 0.5, (0.4,), _row=105)]
+NEW = B.FIRST + B.N_ACT_ROWS   # primera fila fuera de las preformateadas
+rowsD = [act(1, RO, 0.5, (1.0,), _row=5), act(2, RO, 0.5, (0.4,), _row=NEW)]
 wb = run("D", rowsD, semana=1, fecha_ref=D(2026, 10, 16), extra_rows=1)
-L, M, P = cron(wb, 105, RO)
+L, M, P = cron(wb, NEW, RO)
 check("Fila nueva calcula avance/estado", (L, M) == (0.4, "En curso"), (L, M, P))
 p = dash_puesto(wb, 0)
 check("Dashboard incluye la fila nueva (RO = 70%)", abs(p["avance"] - 0.7) < 1e-9 and p["total"] == 2, p)
 # ID duplicado y evidencia faltante
 rowsE = [act(1, RO, 0.5, (0.6,), fin=D(2026, 10, 14), obs=None),   # vencida sin observación
-         act(2, RO, 0.5, (0.2,), ini=D(2026, 11, 10))]
+         act(2, RO, 0.5, (0.2,), ini=D(2026, 10, 20), fin=D(2026, 10, 15))]
 wb = run("E", rowsE, semana=1, fecha_ref=D(2026, 10, 16))
 L, M, P = cron(wb, 5, RO); check("Vencida sin observación detectada", "Vencida sin observación" in P, P)
 L, M, P = cron(wb, 6, RO); check("Fecha inicio posterior a fecha límite", "Inicio posterior" in P, P)
@@ -232,6 +234,38 @@ h = wb[B.AREAS[1][1]]
 check("Actividades: semana del ciclo calculada desde el inicio automático (02/11)", h["G3"].value.date() == D(2026, 11, 2), h["G3"].value)
 check("Hoja renombrada a Riesgo Normativo", B.PUESTOS[1] == "Riesgo Normativo" and wb[B.S_DASH]["B17"].value == "Riesgo Normativo",
       wb[B.S_DASH]["B17"].value)
+
+# ---------------------------------------------------------------------------
+print("Escenario H: historial – octubre completo, noviembre en curso (se muestra noviembre)")
+rowsH = [
+    act(1, RO, 0.6, (0.5, 1.0)), act(2, RO, 0.4, (1.0,)),                                  # octubre (100%)
+    act(3, RO, 0.5, (0.4,), ini=D(2026, 11, 2), fin=D(2026, 11, 20)),                   # noviembre
+    act(4, RO, 0.5, (None,), ini=D(2026, 11, 9), fin=D(2026, 11, 27)),
+    act(5, RLN, 1.0, (1.0,)),                                                             # octubre
+]
+wb = run("H", rowsH, mes=D(2026, 11, 1), fecha_ref=D(2026, 11, 6))
+c = wb[B.AREAS[0][0]]
+check("Columna Mes automática (oct/nov) y N° reinicia por mes",
+      [(c[f"A{r}"].value, c[f"O{r}"].value.month) for r in range(5, 9)] == [(1, 10), (2, 10), (1, 11), (2, 11)],
+      [(c[f"A{r}"].value, c[f"O{r}"].value) for r in range(5, 9)])
+p = dash_puesto(wb, 0)
+check("Dashboard de noviembre: RO = 20% con 2 actividades (octubre no se mezcla)",
+      abs(p["avance"] - 0.2) < 1e-9 and p["total"] == 2, p)
+check("Dashboard de noviembre: Riesgo Normativo sin actividades en el mes", dash_puesto(wb, 1)["total"] == 0, dash_puesto(wb, 1))
+v = wb[B.AREAS[0][1]]
+check("Actividades muestra solo noviembre, sin huecos",
+      (v["B5"].value, v["B6"].value, v["B7"].value) == ("Actividad de prueba 3", "Actividad de prueba 4", None),
+      (v["B5"].value, v["B6"].value, v["B7"].value))
+hst = wb[B.S_HIST]
+row = {hst[f"B{r}"].value.month: r for r in range(6, 18)}
+check("Historial: octubre RO 100% (2 / 2), RN 100%; noviembre RO 20%",
+      hst[f"C{row[10]}"].value == 1 and hst[f"D{row[10]}"].value == "2 / 2" and hst[f"E{row[10]}"].value == 1
+      and abs(hst[f"C{row[11]}"].value - 0.2) < 1e-9,
+      (hst[f"C{row[10]}"].value, hst[f"D{row[10]}"].value, hst[f"E{row[10]}"].value, hst[f"C{row[11]}"].value))
+check("Historial: septiembre sin datos", hst[f"C{row[9]}"].value == "Sin datos", hst[f"C{row[9]}"].value)
+wb = run("H2", rowsH, mes=D(2026, 10, 15), fecha_ref=D(2026, 10, 30))
+check("Revisar mes anterior (escribiendo una fecha de octubre): RO 100% con 2 actividades",
+      dash_puesto(wb, 0)["avance"] == 1 and dash_puesto(wb, 0)["total"] == 2, dash_puesto(wb, 0))
 
 print()
 print("FALLAS:" if FAILS else "TODAS LAS PRUEBAS PASARON", FAILS if FAILS else "")
