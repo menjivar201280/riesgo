@@ -143,8 +143,8 @@ check("Actividades: alerta de plazo visible", v["L6"].value == "Vencida hace 3 d
 check("Actividades: fila sin datos en Cronograma queda vacía", (v["A8"].value, v["B8"].value, v["L8"].value) == (None, None, None),
       (v["A8"].value, v["B8"].value))
 check("Actividades: semanas del ciclo (12/10, 19/10, 26/10, 02/11)",
-      [v.cell(row=3, column=c).value.date() for c in range(7, 11)] == [D(2026, 10, 12), D(2026, 10, 19), D(2026, 10, 26), D(2026, 11, 2)],
-      [v.cell(row=3, column=c).value for c in range(7, 11)])
+      [v.cell(row=3, column=c).value.date() for c in range(6, 10)] == [D(2026, 10, 12), D(2026, 10, 19), D(2026, 10, 26), D(2026, 11, 2)],
+      [v.cell(row=3, column=c).value for c in range(6, 10)])
 ent = {d[f"B{r}"].value: (d[f"F{r}"].value, d[f"G{r}"].value, d[f"H{r}"].value) for r in range(40, 130) if d[f"B{r}"].value in B.PUESTOS}
 check("Dashboard entregas: RO 3/3 completadas en Semana 4; ATR 1 vencida",
       ent.get(RO) == ("3 / 3", "3 / 3", 0) and ent.get(ATR)[2] == 1, ent)
@@ -237,7 +237,7 @@ k = wb[B.S_CONF]
 check("Inicio automático = primer lunes (02/11/2026)", k["C5"].value.date() == D(2026, 11, 2), k["C5"].value)
 check("Semana actual automática = 3", k["C7"].value == 3, k["C7"].value)
 h = wb[B.AREAS[1][1]]
-check("Actividades: semana del ciclo calculada desde el inicio automático (02/11)", h["G3"].value.date() == D(2026, 11, 2), h["G3"].value)
+check("Actividades: semana del ciclo calculada desde el inicio automático (02/11)", h["F3"].value.date() == D(2026, 11, 2), h["F3"].value)
 check("Hoja renombrada a Riesgo Normativo", B.PUESTOS[1] == "Riesgo Normativo" and wb[B.S_DASH]["B17"].value == "Riesgo Normativo",
       wb[B.S_DASH]["B17"].value)
 
