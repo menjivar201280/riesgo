@@ -79,7 +79,7 @@ rows = [
     act(7, ATR, 0.30, (0.2, None, 0.5), fin=D(2026, 10, 20)),
     act(8, ATR, 0.20, (None, None), resp=None, fin=None),
 ]
-wb = run("A", rows, semana=2, fecha_ref=D(2026, 10, 23))
+wb = run("A", rows, semana=2, fecha_ref=D(2026, 10, 23), inicio_ciclo=D(2026, 10, 12))
 L, M, P = cron(wb, 5, RO); check("Act. 1 (50%→100% en S2) = 100% Completado", (L, M) == (1, "Completado"), (L, M, P))
 L, M, P = cron(wb, 6, RO); check("Act. 2 (100% en S1, S2 vacía) = 100%", L == 1, (L, M))
 L, M, P = cron(wb, 5, RLN); check("Escenario 1: sin avances → 0% Pendiente", (L, M) == (0, "Pendiente"), (L, M))
@@ -121,6 +121,25 @@ check("RO incremento S2 = 37.5 p.p.", abs(d["I25"].value - 0.375) < 1e-9, d["I25
 check("Semana 4 no visible (semana actual 2, sin datos en S4)", d["F25"].value in (None, ""), d["F25"].value)
 # ATR semana 3 visible porque hay datos registrados en S3
 check("Semana 3 visible si hay avances registrados", d["E28"].value not in (None, ""), d["E28"].value)
+v = wb[B.AREAS[3][1]]   # hoja Actividades del Asistente Técnico (vista automática)
+check("Actividades se alimenta del Cronograma (N°, nombre, responsable)",
+      (v["A5"].value, v["B5"].value, v["C5"].value) == (1, "Actividad de prueba 6", "Resp. prueba"),
+      (v["A5"].value, v["B5"].value, v["C5"].value))
+check("Actividades: semana de entrega según fecha límite (20/10 → Semana 2; 06/11 → Semana 4)",
+      (v["F6"].value, v["F5"].value) == ("Semana 2", "Semana 4"), (v["F6"].value, v["F5"].value))
+check("Actividades: avance por semana copiado (S1 20%, S3 50%) y % actual 50%",
+      (v["G6"].value, v["H6"].value, v["I6"].value, v["K6"].value) == (0.2, None, 0.5, 0.5),
+      (v["G6"].value, v["H6"].value, v["I6"].value, v["K6"].value))
+check("Actividades: estado Vencida / En curso / Pendiente", (v["L6"].value, v["L5"].value, v["L7"].value) == ("Vencida", "En curso", "Pendiente"),
+      (v["L6"].value, v["L5"].value, v["L7"].value))
+check("Actividades: fila sin datos en Cronograma queda vacía", (v["A8"].value, v["B8"].value, v["L8"].value) == (None, None, None),
+      (v["A8"].value, v["B8"].value))
+check("Actividades: semanas del ciclo (12/10, 19/10, 26/10, 02/11)",
+      [v.cell(row=3, column=c).value.date() for c in range(7, 11)] == [D(2026, 10, 12), D(2026, 10, 19), D(2026, 10, 26), D(2026, 11, 2)],
+      [v.cell(row=3, column=c).value for c in range(7, 11)])
+ent = {d[f"B{r}"].value: (d[f"F{r}"].value, d[f"G{r}"].value, d[f"H{r}"].value) for r in range(60, 80) if d[f"B{r}"].value in B.PUESTOS}
+check("Dashboard entregas: RO 3/3 completadas en Semana 4; ATR 1 vencida",
+      ent.get(RO) == ("3 / 3", "3 / 3", 0) and ent.get(ATR)[2] == 1, ent)
 qc = {d[f"B{r}"].value: d[f"G{r}"].value for r in range(50, 72) if d[f"B{r}"].value}
 print("   Control de calidad:", qc)
 check("QC: 1 puesto sin actividades", qc.get("Puestos sin actividades registradas") == 1, qc)
@@ -199,13 +218,9 @@ check("Sin actividades: no hay mensajes de completado",
       [dash_puesto(wb, i)["msg"] for i in range(4)])
 check("Mensaje de proyecto: no hay actividades", d["G12"].value.startswith("⚠ No hay actividades"), d["G12"].value)
 h = wb[B.AREAS[0][1]]
-check("Fecha objetivo hito S1 = 16/10/2026", h["C5"].value.date() == D(2026, 10, 16), h["C5"].value)
-check("Actividades semanales RO: ID 1–4 automático, fila 9 vacía", (h["A5"].value, h["A8"].value, h["A9"].value) == (1, 4, None),
-      (h["A5"].value, h["A8"].value, h["A9"].value))
-check("Estado semanal automático: S1 vencida, S2 pendiente (semana 1)", (h["G5"].value, h["G6"].value) == ("Vencido", "Pendiente"),
-      (h["G5"].value, h["G6"].value))
+check("Hoja Actividades vacía cuando el Cronograma está vacío", h["A5"].value is None and h["L5"].value is None, h["A5"].value)
 hit = [d[f"G{r}"].value for r in range(60, 80) if isinstance(d[f"G{r}"].value, str) and "/" in d[f"G{r}"].value]
-check("Resumen de hitos en Dashboard = 0 / 4 por puesto", hit == ["0 / 4"] * 4, hit)
+check("Resumen de entregas en Dashboard = 0 / 0 por puesto", hit == ["0 / 0"] * 4, hit)
 
 # ---------------------------------------------------------------------------
 print("Escenario G: configuración automática (mes nov-2026, corte 18/11/2026, sin semana manual)")
@@ -214,9 +229,7 @@ k = wb[B.S_CONF]
 check("Inicio automático = primer lunes (02/11/2026)", k["C5"].value.date() == D(2026, 11, 2), k["C5"].value)
 check("Semana actual automática = 3", k["C7"].value == 3, k["C7"].value)
 h = wb[B.AREAS[1][1]]
-check("Estado semanal: S1 Vencido, S3 En curso, S4 Pendiente",
-      (h["G5"].value, h["G7"].value, h["G8"].value) == ("Vencido", "En curso", "Pendiente"),
-      (h["G5"].value, h["G7"].value, h["G8"].value))
+check("Actividades: semana del ciclo calculada desde el inicio automático (02/11)", h["G3"].value.date() == D(2026, 11, 2), h["G3"].value)
 check("Hoja renombrada a Riesgo Normativo", B.PUESTOS[1] == "Riesgo Normativo" and wb[B.S_DASH]["B17"].value == "Riesgo Normativo",
       wb[B.S_DASH]["B17"].value)
 

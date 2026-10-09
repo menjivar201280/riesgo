@@ -72,7 +72,7 @@ ESTADOS = ["Pendiente", "En curso", "Completado"]
 SEMANAS = ["Semana 1", "Semana 2", "Semana 3", "Semana 4"]
 
 S_DASH = "Dashboard - Consolidado"
-# (hoja de cronograma, hoja de hitos, código, color propio del puesto) – nombres ≤ 31 caracteres
+# (hoja de cronograma, hoja de actividades (vista automática), código, color propio del puesto) – nombres ≤ 31 caracteres
 AREAS = [
     ("Cronograma R. Operacional", "Actividades R. Operacional", "RO", "2E75B6"),       # azul
     ("Cronograma R. Normativo", "Actividades R. Normativo", "RN", "7030A0"),           # morado
@@ -95,49 +95,10 @@ COLS_ACT = [
     "Avance Semana 4 (%)", "% de Avance Total Actual", "Estado",
     "Observaciones", "Revisión automática (alertas)",
 ]
-COLS_HITO = [
-    "N°", "Semana", "Fecha objetivo", "Actividad / Entregable",
-    "Criterio de aceptación", "Responsable", "Estado",
-    "Fecha real de cumplimiento", "Evidencia / Enlace", "Observaciones",
+COLS_VISTA = [
+    "N°", "Macro Actividad", "Responsable", "Fecha de inicio", "Fecha límite", "Semana de entrega",
+    "Semana 1", "Semana 2", "Semana 3", "Semana 4", "% Avance actual", "Estado", "Observaciones",
 ]
-
-# Propuesta inicial de hitos (editable, sujeta a validación de responsables)
-HITOS = [
-    # (código, semana, puesto, entregable, criterio)
-    ("RO", 1, 0, "Diagnóstico inicial: inventario de procesos críticos y revisión de la matriz de riesgo operacional vigente",
-     "Documento con el listado de procesos críticos, fuentes consultadas y brechas identificadas, revisado por el titular del puesto."),
-    ("RO", 2, 0, "Borrador de matriz de riesgo operacional actualizada (eventos, probabilidad, impacto y controles)",
-     "Matriz con proceso, evento de riesgo, probabilidad, impacto, control y dueño para cada proceso crítico del inventario."),
-    ("RO", 3, 0, "Validación de controles con dueños de proceso y propuesta de planes de mitigación",
-     "Planes de mitigación con responsable y fecha para todos los riesgos calificados como altos; validación documentada (acta o correo)."),
-    ("RO", 4, 0, "Informe final de riesgo operacional y presentación ejecutiva",
-     "Informe y presentación entregados en la reunión de cierre y con conformidad registrada de la jefatura."),
-    ("RN", 1, 1, "Inventario de normativa aplicable y diagnóstico preliminar de cumplimiento",
-     "Listado de normas aplicables con fuente, vigencia y estado preliminar de cumplimiento por requisito."),
-    ("RN", 2, 1, "Matriz de cumplimiento normativo documentada",
-     "Matriz con requisito, área responsable, evidencia de cumplimiento y nivel de riesgo para cada norma del inventario."),
-    ("RN", 3, 1, "Análisis de brechas normativas y propuestas de adecuación",
-     "Cada brecha identificada tiene propuesta de adecuación, responsable sugerido y plazo; revisión del titular documentada."),
-    ("RN", 4, 1, "Informe de cumplimiento normativo y presentación ejecutiva",
-     "Informe y presentación entregados en la reunión de cierre y con conformidad registrada de la jefatura."),
-    ("RF", 1, 2, "Levantamiento de información financiera y definición de indicadores de riesgo (liquidez, mercado, crédito)",
-     "Fuentes de datos identificadas y ficha de cada indicador con fórmula, periodicidad, fuente y responsable."),
-    ("RF", 2, 2, "Cálculo y documentación de indicadores y límites de riesgo financiero",
-     "Indicadores calculados con datos de corte definidos, memoria de cálculo y comparación contra límites vigentes."),
-    ("RF", 3, 2, "Análisis de sensibilidad / escenarios y propuesta de límites o alertas tempranas",
-     "Al menos un escenario base y uno adverso documentados, con propuesta de umbrales de alerta justificada."),
-    ("RF", 4, 2, "Informe de riesgo financiero y presentación ejecutiva",
-     "Informe y presentación entregados en la reunión de cierre y con conformidad registrada de la jefatura."),
-    ("ATR", 1, 3, "Plan de trabajo consolidado del área y estructura del repositorio de evidencias",
-     "Actividades de los cuatro puestos registradas en el cronograma con pesos que suman 100% y repositorio con carpeta por puesto."),
-    ("ATR", 2, 3, "Organización de bases de datos y documentación de soporte; primer reporte de seguimiento",
-     "Avances de la Semana 1 y 2 registrados en los cronogramas y reporte de avance semanal emitido."),
-    ("ATR", 3, 3, "Control de calidad de entregables y consolidación de la información de los tres puestos",
-     "Lista de verificación de calidad aplicada a cada entregable; Dashboard sin alertas de datos pendientes de corrección."),
-    ("ATR", 4, 3, "Consolidación del informe final del área y soporte a la presentación ejecutiva",
-     "Informe consolidado y anexos entregados; todas las actividades semanales con estado actualizado."),
-]
-
 
 # --------------------------------------------------------------------------
 # Utilidades
@@ -262,12 +223,12 @@ def build(path, test_rows=None, semana=None, fecha_ref=None, extra_rows=0,
     wb = Workbook()
     ws_d = wb.active
     ws_d.title = S_DASH
-    area_ws, hito_ws = [], []
+    area_ws, vista_ws = [], []
     for a in AREAS:
         area_ws.append(wb.create_sheet(a[0]))
-        hito_ws.append(wb.create_sheet(a[1]))
+        vista_ws.append(wb.create_sheet(a[1]))
         area_ws[-1].sheet_properties.tabColor = a[3]
-        hito_ws[-1].sheet_properties.tabColor = a[3]
+        vista_ws[-1].sheet_properties.tabColor = a[3]
     ws_i = wb.create_sheet(S_INST)
     ws_k = wb.create_sheet(S_CONF)
     ws_x = wb.create_sheet(S_CALC)
@@ -281,8 +242,8 @@ def build(path, test_rows=None, semana=None, fecha_ref=None, extra_rows=0,
     for i, ws_a in enumerate(area_ws):
         rows_i = [t for t in test_rows if t.get("area") == PUESTOS[i]]
         build_cronograma(wb, ws_a, i, rows_i, extra_rows if any("_row" in t for t in rows_i) else 0)
-    for i, ws_h in enumerate(hito_ws):
-        build_hitos(wb, ws_h, i)
+    for i, ws_h in enumerate(vista_ws):
+        build_vista(wb, ws_h, i)
     build_calculos(wb, ws_x)
     build_dashboard(wb, ws_d)
     build_instrucciones(ws_i)
@@ -320,7 +281,7 @@ def build_config(wb, ws, semana, fecha_ref, inicio_ciclo, mes, obs):
          MES_FMT, "MesCiclo", True),
         ("Fecha de inicio del ciclo (lunes de la Semana 1)",
          inicio_ciclo if inicio_ciclo else "=MesCiclo+MOD(2-WEEKDAY(MesCiclo),7)",
-         "AUTOMÁTICO: primer lunes del mes. Puede escribir otra fecha. Define las fechas objetivo de las actividades semanales (viernes de cada semana).",
+         "AUTOMÁTICO: primer lunes del mes. Puede escribir otra fecha. Define en qué semana cae cada actividad en las hojas «Actividades».",
          "dd/mm/yyyy", "InicioCiclo", True),
         ("Fecha de corte", fecha_ref if fecha_ref else "=TODAY()",
          "AUTOMÁTICO: hoy. Puede escribir una fecha fija para emitir un reporte de corte. Determina actividades vencidas.",
@@ -418,7 +379,7 @@ def build_config(wb, ws, semana, fecha_ref, inicio_ciclo, mes, obs):
         "7. Una semana se muestra en el seguimiento si es ≤ Semana actual o si ya tiene algún avance registrado.",
         "8. Cada puesto tiene su propia hoja «Cronograma» y su hoja «Actividades» semanales. El Dashboard consolida los cuatro cronogramas (filas 5 a 1000) y las cuatro hojas de actividades (filas 5 a 500).",
         "9. Semana actual = ENTERO((fecha de corte − fecha de inicio) / 7) + 1, limitada entre 1 y 4, salvo que se escriba una semana manual.",
-        "10. Estado de una actividad semanal: Completado si tiene fecha real de cumplimiento; Vencido si pasó su fecha objetivo sin cumplirse; En curso si su semana ya llegó; si no, Pendiente.",
+        "10. Hojas «Actividades»: se llenan solas desde el Cronograma del puesto. Semana de entrega = semana en que cae la fecha límite. Estado: Completado (100%), Vencida (pasó la fecha límite sin llegar a 100%), En curso o Pendiente.",
     ]
     for n in notes:
         r += 1
@@ -592,118 +553,102 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows):
 
 
 # --------------------------------------------------------------------------
-# Hoja «Actividades» semanales por puesto
-# Columnas: A ID · B Semana · C Fecha objetivo · D Actividad / Entregable · E Criterio
-#           F Responsable · G Estado · H Fecha real · I Evidencia · J Observaciones
+# Hoja «Actividades» por puesto: vista semanal AUTOMÁTICA del Cronograma.
+# Cada fila r refleja la fila r del Cronograma del mismo puesto (no se escribe nada).
+# Columnas: A N° · B Macro Actividad · C Responsable · D Inicio · E Límite
+#           F Semana de entrega · G–J Semana 1–4 (avance + barra) · K % Avance · L Estado · M Observaciones
 # --------------------------------------------------------------------------
-N_HITO_ROWS = 20
+def week_start(w):
+    return f"(InicioCiclo+{7 * (w - 1)})"
 
 
-def hreg(r):
-    """Fila con datos (excluye las columnas automáticas A, C y G)."""
-    return f"(COUNTA($B{r})+COUNTA($D{r}:$F{r})+COUNTA($H{r}:$J{r}))>0"
-
-
-def f_hito_estado(r):
-    return (f'=IF(NOT({hreg(r)}),"",IF(ISNUMBER($H{r}),"Completado",'
-            f'IF(AND(ISNUMBER($C{r}),$C{r}<FechaRef),"Vencido",'
-            f'IF(IFERROR(VALUE(RIGHT($B{r},1)),5)<=SemanaActual,"En curso","Pendiente"))))')
-
-
-def build_hitos(wb, ws, idx):
+def build_vista(wb, ws, idx):
     puesto = PUESTOS[idx]
-    sheet, hsheet, code, color = AREAS[idx]
-    widths = [8, 11, 13, 50, 54, 18, 13, 14, 30, 36]
+    sheet, vsheet, code, color = AREAS[idx]
+    src = q(sheet) + "!"
+    widths = [7, 46, 22, 12, 12, 16, 11, 11, 11, 11, 12, 13, 46]
     for i, w in enumerate(widths):
         ws.column_dimensions[get_column_letter(i + 1)].width = w
-    merge_set(ws, "A1:J1", f"Actividades semanales y entregables – {puesto}",
+    merge_set(ws, "A1:M1", f"Actividades por semana – {puesto}",
               font=font(14, True, "FFFFFF"), fill=fill(color), alignment=LEFT)
     ws.row_dimensions[1].height = 28
-    merge_set(ws, "A2:J2",
-              "Llene las celdas AMARILLAS; las GRISES son automáticas (N°, fecha objetivo propuesta y estado). "
-              "Cuando cumpla una actividad escriba la FECHA REAL de cumplimiento: el estado cambia solo a «Completado». "
-              "Las 4 actividades incluidas son una PROPUESTA editable (una por semana); puede cambiarlas o agregar más en las filas vacías.",
-              font=font(9, True, "7F6000"), fill=fill("FFF2CC"), alignment=LEFT)
+    merge_set(ws, "A2:M2",
+              f"HOJA AUTOMÁTICA: se actualiza sola con lo que se escribe en «{sheet}». No hay que escribir nada aquí. "
+              "La barra de color marca las semanas en que cada actividad está programada (de la fecha de inicio a la fecha límite) "
+              "y dentro aparece el avance registrado en esa semana.",
+              font=font(9, True, NAVY), fill=fill(LIGHT), alignment=LEFT)
     ws.row_dimensions[2].height = 32
-    ws["A3"] = "Entrada"; ws["A3"].fill = fill(INPUT); ws["A3"].font = font(8); ws["A3"].border = BORDER
-    ws["B3"] = "Automático"; ws["B3"].fill = fill(CALC); ws["B3"].font = font(8); ws["B3"].border = BORDER
-    ws["C3"] = ("Fecha objetivo = viernes de la semana elegida (según el inicio del ciclo en Configuración); "
-                "puede escribir otra fecha encima.")
-    ws["C3"].font = font(8, italic=True)
+    # Fila 3: rango de fechas de cada semana
+    ws["F3"] = "Semana del:"; ws["F3"].font = font(8, True, NAVY)
+    ws["F3"].alignment = Alignment(horizontal="right", vertical="center")
+    for w in range(1, 5):
+        c = ws.cell(row=3, column=6 + w, value=f"={week_start(w)}")
+        c.number_format = "dd/mm"; c.font = font(8, True, NAVY); c.alignment = CENTER
+        c.fill = fill(LIGHT); c.border = BORDER
 
     hr = FIRST - 1
-    auto_cols = {1, 7}
-    for i, h in enumerate(COLS_HITO):
+    for i, h in enumerate(COLS_VISTA):
         c = ws.cell(row=hr, column=i + 1, value=h)
-        c.font = font(10, True, "FFFFFF"); c.fill = fill(NAVY if (i + 1) in auto_cols else color)
+        c.font = font(10, True, "FFFFFF"); c.fill = fill(color if 7 <= i + 1 <= 10 else NAVY)
         c.alignment = CENTER; c.border = BORDER
     ws.row_dimensions[hr].height = 34
 
-    mine = sorted([h for h in HITOS if h[2] == idx], key=lambda h: h[1])
-    last = FIRST + N_HITO_ROWS - 1
-    for k in range(N_HITO_ROWS):
-        r = FIRST + k
-        for col in range(1, 11):
-            c = ws.cell(row=r, column=col)
+    last = FIRST + N_ACT_ROWS - 1
+    for r in range(FIRST, last + 1):
+        on = f'{src}$A{r}=""'
+        vals = {
+            1: f'=IF({on},"",{src}$A{r})',
+            2: f'=IF({on},"",{src}$B{r}&"")',
+            3: f'=IF({on},"",{src}$C{r}&"")',
+            4: f'=IF(OR({on},{src}$D{r}=""),"",{src}$D{r})',
+            5: f'=IF(OR({on},{src}$E{r}=""),"",{src}$E{r})',
+            6: (f'=IF(OR({on},NOT(ISNUMBER({src}$E{r}))),"",IF({src}$E{r}<InicioCiclo,"Antes del ciclo",'
+                f'IF({src}$E{r}>=InicioCiclo+28,"Después del ciclo","Semana "&(INT(({src}$E{r}-InicioCiclo)/7)+1))))'),
+            11: f'=IF({on},"",{src}$K{r})',
+            12: (f'=IF({on},"",IF(N({src}$K{r})>=1,"Completado",IF(AND(ISNUMBER({src}$E{r}),{src}$E{r}<FechaRef),"Vencida",'
+                 f'IF(N({src}$K{r})>0,"En curso","Pendiente"))))'),
+            13: f'=IF({on},"",{src}$M{r}&"")',
+        }
+        for w in range(1, 5):
+            sc = "GHIJ"[w - 1]
+            vals[6 + w] = f'=IF(OR({on},{src}${sc}{r}=""),"",{src}${sc}{r})'
+        for col in range(1, 14):
+            c = ws.cell(row=r, column=col, value=vals[col])
             c.border = BORDER; c.font = font(10)
-            locked = col in auto_cols
-            c.fill = fill(CALC if locked else INPUT)
-            c.protection = Protection(locked=locked)
-            c.alignment = CENTER if col in (1, 2, 3, 7, 8) else LEFT
-            if col in (3, 8):
+            c.alignment = LEFT if col in (2, 3, 13) else CENTER
+            if col in (4, 5):
                 c.number_format = "dd/mm/yyyy"
-        ws.cell(row=r, column=1, value=f'=IF(NOT({hreg(r)}),"",COUNTIF($G${FIRST}:$G{r},"?*"))')
-        ws.cell(row=r, column=3,
-                value=f'=IF(OR(InicioCiclo="",$B{r}=""),"",InicioCiclo+7*VALUE(RIGHT($B{r},1))-3)')
-        ws.cell(row=r, column=7, value=f_hito_estado(r))
-        if k < len(mine):
-            _, sem, p, ent, crit = mine[k]
-            ws.cell(row=r, column=2, value=f"Semana {sem}")
-            ws.cell(row=r, column=4, value=ent)
-            ws.cell(row=r, column=5, value=crit)
-            ws.cell(row=r, column=6, value="Por asignar")
-            ws.cell(row=r, column=10, value="Propuesta editable – sujeta a validación del responsable.")
-            ws.row_dimensions[r].height = 45
+            elif col in (7, 8, 9, 10, 11):
+                c.number_format = "0%"
 
     tname = f"tblSem_{code}"
-    tab = Table(displayName=tname, ref=f"A{hr}:J{last}")
+    tab = Table(displayName=tname, ref=f"A{hr}:M{last}")
     tab.tableStyleInfo = TableStyleInfo(name="TableStyleLight1", showRowStripes=False)
     ws.add_table(tab)
 
-    for nm, col in [("hSemana", "B"), ("hFechaObj", "C"), ("hEstado", "G")]:
-        add_name(wb, f"{nm}_{code}", f"{q(hsheet)}!${col}${FIRST}:${col}$500")
-
-    dv_s = DataValidation(type="list", formula1="ListaSemanas", allow_blank=True, showErrorMessage=True,
-                          error="Seleccione Semana 1, Semana 2, Semana 3 o Semana 4.")
-    dv_s.add(f"B{FIRST}:B500")
-    dv_d = DataValidation(type="date", operator="greaterThan", formula1="36526", allow_blank=True,
-                          showErrorMessage=True, error="Ingrese una fecha válida (dd/mm/aaaa).",
-                          showInputMessage=True, promptTitle="Fecha real",
-                          prompt="Escriba la fecha en que se cumplió. El estado cambiará a Completado.")
-    dv_d.add(f"H{FIRST}:H500")
-    dv_c = DataValidation(type="date", operator="greaterThan", formula1="36526", allow_blank=True,
-                          showErrorMessage=True, error="Ingrese una fecha válida (dd/mm/aaaa).")
-    dv_c.add(f"C{FIRST}:C500")
-    for d in (dv_s, dv_d, dv_c):
-        ws.add_data_validation(d)
+    for nm, col in [("hSemana", "F"), ("hEstado", "L")]:
+        add_name(wb, f"{nm}_{code}", f"{q(vsheet)}!${col}${FIRST}:${col}${last}")
 
     cf = ws.conditional_formatting
-    rng = lambda c: f"{c}{FIRST}:{c}500"
-    cf.add(rng("G"), FormulaRule(formula=[f'$G{FIRST}="Completado"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
-    cf.add(rng("G"), FormulaRule(formula=[f'$G{FIRST}="Vencido"'], fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
-    cf.add(rng("G"), FormulaRule(formula=[f'$G{FIRST}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
-    cf.add(rng("G"), FormulaRule(formula=[f'$G{FIRST}="Pendiente"'], fill=fill(RED_F), font=Font(color=RED_T)))
-    cf.add(rng("C"), FormulaRule(formula=[f'$G{FIRST}="Vencido"'],
-                                 stopIfTrue=True, fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
-    cf.add(rng("C"), FormulaRule(formula=[f'AND(ISNUMBER($C{FIRST}),$C{FIRST}>=FechaRef,$C{FIRST}-FechaRef<=DiasAlerta,$G{FIRST}<>"Completado")'],
-                                 fill=fill(AMBER_F), font=Font(color=AMBER_T)))
-    cf.add(rng("H"), FormulaRule(formula=[f'AND(ISNUMBER($H{FIRST}),ISNUMBER($C{FIRST}),$H{FIRST}>$C{FIRST})'],
-                                 fill=fill(AMBER_F), font=Font(color=AMBER_T)))
-    cf.add(rng("J"), FormulaRule(formula=[f'AND(ObsObligatoria="Sí",$G{FIRST}="Vencido",$J{FIRST}="")'],
-                                 fill=fill(RED_F), font=Font(color=RED_T)))
+    rngc = lambda c: f"{c}{FIRST}:{c}{last}"
+    # Barra de semanas (Gantt): semana activa entre fecha de inicio y fecha límite
+    gantt = (f'AND(ISNUMBER($D{FIRST}),ISNUMBER($E{FIRST}),$D{FIRST}<=InicioCiclo+7*(COLUMN(G{FIRST})-7)+6,'
+             f'$E{FIRST}>=InicioCiclo+7*(COLUMN(G{FIRST})-7))')
+    cf.add(f"G{FIRST}:J{last}", FormulaRule(formula=[f'AND({gantt},$L{FIRST}="Vencida")'], stopIfTrue=True,
+                                           fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
+    cf.add(f"G{FIRST}:J{last}", FormulaRule(formula=[gantt], fill=fill(color), font=Font(color="FFFFFF", bold=True)))
+    cf.add(rngc("L"), FormulaRule(formula=[f'$L{FIRST}="Completado"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
+    cf.add(rngc("L"), FormulaRule(formula=[f'$L{FIRST}="Vencida"'], fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
+    cf.add(rngc("L"), FormulaRule(formula=[f'$L{FIRST}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
+    cf.add(rngc("L"), FormulaRule(formula=[f'$L{FIRST}="Pendiente"'], fill=fill(RED_F), font=Font(color=RED_T)))
+    cf.add(rngc("F"), FormulaRule(formula=[f'$F{FIRST}="Semana "&SemanaActual'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
+    cf.add(rngc("K"), DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color="5B9BD5", showValue=True))
+    # Semana actual resaltada en el encabezado
+    cf.add("G4:J4", FormulaRule(formula=['COLUMN(G4)-6=SemanaActual'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
+    cf.add("G3:J3", FormulaRule(formula=['COLUMN(G3)-6=SemanaActual'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
 
     ws.freeze_panes = f"C{FIRST}"
-    protect_and_print(ws, hr, "J", last)
+    protect_and_print(ws, hr, "M", last)
 
 
 # --------------------------------------------------------------------------
@@ -1144,12 +1089,12 @@ def build_dashboard(wb, ws):
 
     # --- Hitos ---
     r = note + 2
-    merge_set(ws, f"B{r}:M{r}", "Actividades semanales y entregables por puesto (completadas / programadas)",
+    merge_set(ws, f"B{r}:M{r}", "Entregas por semana según la fecha límite (completadas / programadas)",
               font=font(12, True, "FFFFFF"), fill=fill(NAVY), alignment=LEFT)
     ws.row_dimensions[r].height = 24
     hr = r + 1
     heads = {"B": "Puesto", "C": "Semana 1", "D": "Semana 2", "E": "Semana 3", "F": "Semana 4",
-             "G": "Total", "H": "Vencidos"}
+             "G": "Total", "H": "Vencidas"}
     for colh, t in heads.items():
         c = ws[f"{colh}{hr}"]; c.value = t; c.font = font(10, True, "FFFFFF"); c.fill = fill(MID)
         c.alignment = CENTER; c.border = BORDER
@@ -1162,12 +1107,11 @@ def build_dashboard(wb, ws):
             colw = "CDEF"[w]
             ws[f"{colw}{rr}"] = (f'=COUNTIFS(hSemana_{hc},"Semana {w + 1}",hEstado_{hc},"Completado")&" / "'
                                  f'&COUNTIF(hSemana_{hc},"Semana {w + 1}")')
-        ws[f"G{rr}"] = (f'=COUNTIFS(hSemana_{hc},"Semana*",hEstado_{hc},"Completado")&" / "'
-                        f'&COUNTIF(hSemana_{hc},"Semana*")')
-        ws[f"H{rr}"] = f'=COUNTIF(hEstado_{hc},"Vencido")'
+        ws[f"G{rr}"] = f'=COUNTIF(hEstado_{hc},"Completado")&" / "&COUNTIF(hEstado_{hc},"?*")'
+        ws[f"H{rr}"] = f'=COUNTIF(hEstado_{hc},"Vencida")'
         ws[f"B{rr}"].hyperlink = f"#{q(AREAS[i][1])}!A1"
         merge_set(ws, f"I{rr}:M{rr}",
-                  f'=IF(H{rr}>0,"⚠ "&H{rr}&" actividad(es) semanal(es) vencida(s) sin cumplir","Sin actividades semanales vencidas")',
+                  f'=IF(H{rr}>0,"⚠ "&H{rr}&" actividad(es) vencida(s) sin completar","Sin actividades vencidas")',
                   font=font(9), alignment=LEFT, border=BORDER)
         for colw in "BCDEFGH":
             c = ws[f"{colw}{rr}"]; c.border = BORDER; c.font = font(10, colw == "B")
@@ -1216,7 +1160,7 @@ def build_instrucciones(ws):
         ("Las hojas del archivo", [
             "• Dashboard - Consolidado: el resumen de todo. NO se llena: se actualiza solo.",
             "• Cronograma (una por puesto, con el color del puesto): aquí cada responsable anota sus actividades principales del mes, su peso y su avance de cada semana.",
-            "• Actividades (una por puesto, al lado de su cronograma): las actividades o entregables concretos de cada semana. Ya trae una propuesta de 4 (una por semana) que pueden cambiar.",
+            "• Actividades (una por puesto, al lado de su cronograma): se llena SOLA con lo que se escribe en el Cronograma. Muestra cada actividad en su semana, como una línea de tiempo. No se escribe nada en ella.",
             "• Configuración: el mes, la semana y la fecha de corte. Se calculan SOLOS con la fecha de hoy; normalmente no hay que tocar nada.",
             "• Colores de las celdas: AMARILLO = usted escribe aquí. GRIS = se calcula solo (está protegido). Cada puesto tiene su propio color: azul (Operacional), morado (Normativo), verde (Financiero) y naranja (Asistente Técnico).",
         ]),
@@ -1232,11 +1176,12 @@ def build_instrucciones(ws):
             "Es un revisor automático: el archivo revisa cada fila y le avisa si algo falta o está mal. «✔ OK» significa que todo está bien. «⚠» significa que hay algo que corregir y le dice qué es, por ejemplo: «Sin responsable», «Sin fecha límite», «Pesos del puesto suman 90%», «Avance semanal decreciente» (escribió un % menor que la semana anterior) o «Vencida» (pasó la fecha límite y no llegó al 100%).",
             "No hay que escribir nada en esa columna. Solo corrija lo que indica y el aviso desaparece.",
         ]),
-        ("Cómo llenar su hoja «Actividades» (semanales)", [
-            "1) Revise las 4 actividades propuestas (una por semana): puede cambiar el texto, la semana, el responsable o agregar más en las filas vacías. El N° se numera solo.",
-            "2) La fecha objetivo se propone sola (el viernes de la semana elegida); puede escribir otra fecha encima.",
-            "3) Cuando cumpla la actividad, escriba la FECHA REAL de cumplimiento. El Estado cambia solo a «Completado».",
-            "4) Estado automático: «Completado» (tiene fecha real), «Vencido» (pasó la fecha objetivo sin fecha real), «En curso» (ya es su semana) o «Pendiente» (su semana aún no llega). Si queda vencida, explique el motivo en Observaciones.",
+        ("La hoja «Actividades» (automática)", [
+            "1) No hay que llenarla: copia sola las actividades del Cronograma del mismo puesto, en el mismo orden.",
+            "2) «Semana de entrega» indica en qué semana del mes cae la fecha límite de cada actividad (la semana actual se resalta en amarillo).",
+            "3) Las columnas Semana 1 a 4 muestran una barra del color del puesto en las semanas en que la actividad está programada (de la fecha de inicio a la fecha límite) y, dentro, el avance anotado esa semana. Si la actividad está vencida, la barra se pone naranja.",
+            "4) Estado: «Completado» (100%), «Vencida» (pasó la fecha límite sin llegar al 100%), «En curso» o «Pendiente». Las observaciones también se copian del Cronograma.",
+            "5) Para cambiar algo, corríjalo en el Cronograma: esta hoja se actualiza al instante.",
         ]),
         ("El Dashboard (resumen automático)", [
             "• Muestra el avance de cada puesto y del área, cuántas actividades están completadas, en curso, pendientes o vencidas, y el avance de cada semana.",
@@ -1247,8 +1192,8 @@ def build_instrucciones(ws):
         ]),
         ("Cada mes: cómo empezar un mes nuevo", [
             "1) Al terminar el mes, guarde una copia del archivo con el nombre del mes (Archivo > Guardar una copia, ej. «Cronograma Riesgos – Octubre 2026»). Esa copia queda como histórico.",
-            "2) En el archivo de trabajo borre lo de las celdas amarillas que no se repite: avances semanales, fechas y observaciones (puede dejar las actividades que se repiten cada mes). Seleccione las celdas y presione Suprimir.",
-            "3) Listo: el mes, la fecha de inicio (primer lunes del mes), la semana actual y las fechas objetivo se actualizan solos con la fecha de hoy.",
+            "2) En el archivo de trabajo borre lo de las celdas amarillas del Cronograma que no se repite: avances semanales, fechas y observaciones (puede dejar las actividades que se repiten cada mes). Seleccione las celdas y presione Suprimir. Las hojas «Actividades» se limpian solas.",
+            "3) Listo: el mes, la fecha de inicio (primer lunes del mes), la semana actual y las semanas de cada actividad se actualizan solos con la fecha de hoy.",
             "4) Si necesita preparar o revisar otro mes, en Configuración escriba cualquier fecha de ese mes en «Mes del ciclo». Para volver al modo automático, borre lo escrito y vuelva a escribir =FECHA(AÑO(HOY());MES(HOY());1).",
         ]),
         ("Compartir el archivo con el equipo", [
@@ -1260,16 +1205,15 @@ def build_instrucciones(ws):
         ("Protección", [
             "Las celdas grises (fórmulas) están protegidas para que nadie las borre por accidente; las amarillas se pueden editar. Las hojas están protegidas sin contraseña.",
             "Para poner contraseña: Revisar > Desproteger hoja y luego Revisar > Proteger hoja; marque «Seleccionar celdas desbloqueadas», «Usar Autofiltro» y «Ordenar», y escriba la contraseña.",
-            "Importante: separar por hojas ordena el trabajo, pero en un archivo compartido cualquier persona con permiso de edición podría escribir en la hoja de otro puesto. Si se necesita impedirlo por completo, se usan cuatro archivos (uno por puesto) y este archivo los une con Power Query (Datos > Obtener datos > Desde SharePoint/carpeta, una consulta por tabla tblAct_XX y tblSem_XX, con «Actualizar al abrir»).",
+            "Importante: separar por hojas ordena el trabajo, pero en un archivo compartido cualquier persona con permiso de edición podría escribir en la hoja de otro puesto. Si se necesita impedirlo por completo, se usan cuatro archivos (uno por puesto) y este archivo los une con Power Query (Datos > Obtener datos > Desde SharePoint/carpeta, una consulta por tabla tblAct_XX, con «Actualizar al abrir»).",
         ]),
         ("Necesito más filas", [
-            "Cada Cronograma trae 100 filas y cada hoja de Actividades 20. Si necesita más: Revisar > Desproteger hoja, colóquese en la última celda de la tabla y presione Tab; las fórmulas se copian solas. Luego vuelva a proteger la hoja.",
+            "Cada Cronograma trae 100 filas (y su hoja Actividades refleja esas 100). Si necesita más: Revisar > Desproteger hoja, colóquese en la última celda de la tabla y presione Tab; las fórmulas se copian solas. Luego vuelva a proteger la hoja. Las filas nuevas después de la 100 se cuentan en el Dashboard, pero no aparecen en la hoja Actividades.",
         ]),
         ("Notas técnicas", [
             "• Archivo .xlsx sin macros, para Microsoft 365 en español (escritorio y Web). Las fórmulas se ven en español (BUSCAR, SI.ERROR, SUMAPRODUCTO, HOY…).",
             "• Fórmula del avance actual: =SI.ERROR(BUSCAR(2;1/(H5:K5<>\"\");H5:K5);0) → toma el último avance semanal escrito.",
             "• Semana actual = ENTERO((fecha de corte − fecha de inicio) / 7) + 1, entre 1 y 4. Puede forzarse con «Semana manual» en Configuración.",
-            "• Las actividades semanales propuestas son sugerencias editables; no son obligaciones institucionales aprobadas.",
         ]),
     ]
     r = 3
