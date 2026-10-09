@@ -758,7 +758,7 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
         merge_set(ws, rng_b,
                   f'=IF({n_del}=0,"Sin actividades delegadas por la jefatura este mes",'
                   f'"★ La jefatura le delegó "&{n_del}&" actividad(es) este mes · "&({n_del}-{n_rec})&'
-                  f'" pendiente(s) de agregar (elíjalas en la lista de «Actividad»)")',
+                  f'" pendiente(s) de agregar (elíjalas en la lista de «Actividad»). Cuentan en su avance del mes.")',
                   font=font(9, True), alignment=LEFT, border=BORDER)
         cf3.add(rng_b, FormulaRule(formula=[f'({n_del}-{n_rec})>0'], stopIfTrue=True,
                                    fill=fill("FFC000"), font=Font(color="3F2F00", bold=True)))
@@ -1107,6 +1107,7 @@ def build_calculos(wb, ws):
         ws[f"S{r}"] = (f'=COUNTIFS(rFLim_{code},">="&FechaRef,rFLim_{code},"<="&(FechaRef+DiasAlerta),'
                        f'rAvance_{code},"<1",{mes})')
         ws[f"T{r}"] = AREAS[i][0]
+        ws[f"U{r}"] = f'=COUNTIFS({mes},rAct_{code},"{PREFIJO_JEF.strip()}*")'   # delegadas por la jefatura
     r = 8
     ws[f"A{r}"] = "Total actividades del mes (promedio de 4 puestos)"
     ws[f"B{r}"] = "=SUM(B4:B7)"
@@ -1121,7 +1122,7 @@ def build_calculos(wb, ws):
                    f'IF(ROUND(I8,4)>=1,3,IF(ROUND(J8,4)>=1,4,"")))))')
     ws[f"L{r}"] = "=AND(E8,ROUND(N(F8),4)>=1)"
     ws[f"M{r}"] = "=AND(L8,MIN(IF(K8=\"\",4,K8),SemanaActual)<4)"
-    for col in "NOPQRS":
+    for col in "NOPQRSU":
         ws[f"{col}{r}"] = f"=SUM({col}4:{col}7)"
     ws["A9"] = "Fila 8: C = n° puestos válidos; D = avance provisional (promedio solo de puestos válidos)."
     ws["A9"].font = font(8, italic=True)
@@ -1321,7 +1322,7 @@ def build_dashboard(wb, ws):
          f'=IF({C}$E$8,"Promedio simple de los 4 puestos",IF({C}$C$8=0,"Ningún puesto con datos válidos",'
          f'"Provisional "&TEXT({C}$D$8,"0%")&" ("&{C}$C$8&" de 4 puestos válidos)"))'),
         ("Meta de cumplimiento", "=MetaFinal", "0%", "Al cierre de la Semana 4"),
-        ("Macroactividades registradas", f"={C}$B$11", "0", "En los 4 cronogramas"),
+        ("Macroactividades registradas", f"={C}$B$11", "0", f'="En los 4 cronogramas · "&{C}$U$8&" delegada(s) por la jefatura"'),
         ("Actividades completadas", f"={C}$N$8", "0",
          f'=IF({C}$B$11=0,"—",TEXT({C}$N$8/{C}$B$11,"0%")&" del total")'),
         ("Actividades en curso", f"={C}$O$8", "0", "Avance > 0% y < 100%"),
@@ -1790,6 +1791,7 @@ def build_instrucciones(ws):
             "2) Al puesto le aparece arriba de su Cronograma un aviso amarillo: «La jefatura le delegó X actividad(es)… pendiente(s) de agregar».",
             "3) El puesto, en una fila nueva de su Cronograma, abre la lista de la columna «Actividad» y elige la actividad (sale como «[Jefatura] nombre»). La FECHA DE INICIO y la FECHA LÍMITE aparecen solas: las pone la jefatura y el puesto no las puede cambiar (Excel lo impide). El puesto solo registra la FECHA DE CUMPLIMIENTO, el % de avance semanal, las observaciones y, si quiere, subactividades debajo. No debe cambiar el texto elegido.",
             "4) En la hoja Administración, las columnas «% de Avance», «Estado», «Alerta de plazo» y «Seguimiento» de esa actividad se llenan solas con lo que registra el puesto. «Seguimiento» dice «✔ Recibida por …» o «⚠ … aún no la agrega».",
+            "5) La actividad delegada CUENTA COMO TRABAJO DEL PUESTO: es una macroactividad más de su Cronograma y suma en su avance del mes, en el Dashboard y en el Historial (con el mismo peso que las demás, o el peso que el puesto le ponga).",
             "Nota: si la jefatura cambia las fechas, se actualizan solas en el puesto. Si cambia el NOMBRE de una actividad ya delegada, el puesto debe volver a elegirla en la lista.",
             "Para que SOLO la jefatura pueda escribir en la hoja Administración: en esa hoja vaya a Revisar > Desproteger hoja, seleccione las celdas grises de la tabla, Inicio > Formato > Bloquear celda, y luego Revisar > Proteger hoja con una contraseña que solo tenga la jefatura (para editar, la jefatura desprotege con su contraseña).",
             "Las vencidas y por vencer de la jefatura también aparecen en el Dashboard, en la tabla de alertas de plazo.",

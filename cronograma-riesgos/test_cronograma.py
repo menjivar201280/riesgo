@@ -378,6 +378,10 @@ check("Fechas de la jefatura en la actividad delegada (límite 18/10 aunque el p
 rf = wb[B.AREAS[2][0]]
 check("Aviso en R. Financiero (1 pendiente de agregar)", "1 pendiente" in rf[f"{K['obs']}3"].value, rf[f"{K['obs']}3"].value)
 calc = wb[B.S_CALC]
+check("La delegada CUENTA como trabajo de R. Operacional: 2 macroactividades, avance del mes 40% y 1 delegada contada",
+      (calc["B4"].value, round(calc["F4"].value, 4), calc["U4"].value, calc["U8"].value) == (2, 0.4, 1, 1),
+      (calc["B4"].value, calc["F4"].value, calc["U4"].value, calc["U8"].value))
+check("Banner del puesto indica que cuenta en su avance", "Cuentan en su avance" in banner, banner)
 rowsJ2 = [dict(act(1, ADM, None, (), ini=D(2026, 10, 5), fin=D(2026, 10, 18)), macro="SSF – Visita", deleg=RO),
           dict(act(10, RO, None, ()), macro=JEF + "SSF – Visita", ini=None, fin=None)]
 wb2 = run("J2", rowsJ2, semana=1, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
