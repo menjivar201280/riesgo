@@ -23,7 +23,8 @@ from openpyxl.formatting.rule import FormulaRule, DataBarRule, CellIsRule
 from openpyxl.worksheet.datavalidation import DataValidation
 from openpyxl.worksheet.table import Table, TableStyleInfo, TableFormula
 from openpyxl.workbook.defined_name import DefinedName
-from openpyxl.chart import BarChart, Reference
+from openpyxl.chart import BarChart, LineChart, Reference
+from openpyxl.chart.series import SeriesLabel
 from openpyxl.chart.label import DataLabelList
 from openpyxl.chart.marker import DataPoint
 from openpyxl.utils import get_column_letter
@@ -68,6 +69,7 @@ PUESTOS = [
     "Riesgo Financiero",
     "Asistente Técnico de Riesgo",
 ]
+SHORT = ["R. Operacional", "R. Normativo", "R. Financiero", "Asistente Técnico"]
 ESTADOS = ["Pendiente", "En curso", "Completado"]
 SEMANAS = ["Semana 1", "Semana 2", "Semana 3", "Semana 4"]
 
@@ -964,35 +966,47 @@ def build_historial(wb, ws):
     cf.add(rng, FormulaRule(formula=[f'C{first}="Sin datos"'], font=Font(color="7F7F7F", italic=True)))
     cf.add(f"B{first}:B{last}", FormulaRule(formula=[f'$B{first}=MesCiclo'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
 
-    # Datos numéricos auxiliares para el gráfico (columnas ocultas M–P, una por puesto)
-    for i, a in enumerate(AREAS):
-        hc = get_column_letter(13 + i)
+    # Datos auxiliares del gráfico (columnas ocultas M–Q): 6 meses que terminan en el mes mostrado
+    # (sin empezar antes del primer mes del historial), para que el gráfico no se amontone.
+    N_CH = 6
+    for hc in "MNOPQ":
         ws.column_dimensions[hc].hidden = True
-        ws[f"{hc}{hr + 1}"] = PUESTOS[i]
-        src = get_column_letter(3 + 2 * i)
-        for k in range(N_HIST):
-            r = first + k
-            ws[f"{hc}{r}"] = f"=IF(ISNUMBER({src}{r}),{src}{r},0)"
-    # Etiqueta de texto del mes (columna oculta Q) para el eje del gráfico
-    ws.column_dimensions["Q"].hidden = True
-    for k in range(N_HIST):
-        r = first + k
-        ws[f"Q{r}"] = (f'=CHOOSE(MONTH(B{r}),"ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic")'
-                       f'&" "&YEAR(B{r})')
+    ws["M5"] = "Mes (gráfico)"
+    for i in range(4):
+        ws[f"{get_column_letter(14 + i)}5"] = SHORT[i]
+    g0 = 6
+    for k in range(N_CH):
+        r = g0 + k
+        ws[f"M{r}"] = (f'=CHOOSE(MONTH(DATE(YEAR(MAX(HistInicio,EDATE(MesCiclo,-{N_CH - 1}))),'
+                       f'MONTH(MAX(HistInicio,EDATE(MesCiclo,-{N_CH - 1})))+{k},1)),'
+                       f'"ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic")&" "&'
+                       f'YEAR(DATE(YEAR(MAX(HistInicio,EDATE(MesCiclo,-{N_CH - 1}))),'
+                       f'MONTH(MAX(HistInicio,EDATE(MesCiclo,-{N_CH - 1})))+{k},1))')
+        mes_k = (f'DATE(YEAR(MAX(HistInicio,EDATE(MesCiclo,-{N_CH - 1}))),'
+                 f'MONTH(MAX(HistInicio,EDATE(MesCiclo,-{N_CH - 1})))+{k},1)')
+        for i in range(4):
+            src = get_column_letter(3 + 2 * i)
+            ws[f"{get_column_letter(14 + i)}{r}"] = (
+                f'=IFERROR(N(INDEX({src}{first}:{src}{last},MATCH({mes_k},B{first}:B{last},0))),0)')
     ch = BarChart()
     ch.type = "col"
+    ch.grouping = "clustered"
     ch.visible_cells_only = False   # graficar aunque las columnas auxiliares estén ocultas
-    ch.title = "Avance de las actividades por mes y puesto"
-    ch.add_data(Reference(ws, min_col=13, max_col=16, min_row=hr + 1, max_row=last), titles_from_data=True)
-    ch.set_categories(Reference(ws, min_col=17, min_row=first, max_row=last))
+    ch.title = "Avance por puesto – últimos 6 meses"
+    ch.add_data(Reference(ws, min_col=14, max_col=17, min_row=5, max_row=g0 + N_CH - 1), titles_from_data=True)
+    ch.set_categories(Reference(ws, min_col=13, min_row=g0, max_row=g0 + N_CH - 1))
     ch.y_axis.scaling.min = 0; ch.y_axis.scaling.max = 1
     ch.y_axis.number_format = "0%"; ch.y_axis.majorUnit = 0.25
+    ch.gapWidth = 120
+    ch.overlap = -10
     ch.legend.position = "b"
     for i, a in enumerate(AREAS):
         ch.series[i].graphicalProperties.solidFill = a[3]
+        ch.series[i].graphicalProperties.line.solidFill = a[3]
     ch.x_axis.delete = False; ch.y_axis.delete = False
-    ch.height = 8; ch.width = 30
+    ch.height = 8.5; ch.width = 26
     ws.add_chart(ch, f"B{last + 2}")
+    ws.row_breaks.append(__import__("openpyxl").worksheet.pagebreak.Break(id=last + 1))
 
     ws.freeze_panes = f"C{first}"
     ws.protection.sheet = True
@@ -1245,19 +1259,26 @@ def build_dashboard(wb, ws):
               font=font(8, italic=True, color="404040"), alignment=LEFT)
     ws.row_dimensions[note_r].height = 26
 
-    # --- Gráficos ---
+    # --- Gráficos (a todo el ancho, uno debajo del otro, sin amontonar) ---
     ch_r = note_r + 2
+    # Nombres cortos para los ejes (columna auxiliar oculta P)
+    ws.column_dimensions["P"].hidden = True
+    for i, short in enumerate(SHORT):
+        ws[f"P{16 + i}"] = short
+        ws[f"P{25 + i}"] = short
+    ws["P30"] = "Plan de referencia"
+
     bar = BarChart()
     bar.type = "bar"
-    bar.style = 10
-    bar.title = "Avance ponderado por puesto"
+    bar.title = "Avance ponderado de cada puesto en el mes"
     bar.add_data(Reference(ws, min_col=4, min_row=16, max_row=19), titles_from_data=False)
-    bar.set_categories(Reference(ws, min_col=2, min_row=16, max_row=19))
+    bar.set_categories(Reference(ws, min_col=16, min_row=16, max_row=19))
     bar.y_axis.scaling.min = 0; bar.y_axis.scaling.max = 1
     bar.y_axis.number_format = "0%"; bar.y_axis.majorUnit = 0.25
+    bar.y_axis.majorGridlines = None
     bar.x_axis.scaling.orientation = "maxMin"
+    bar.gapWidth = 60
     bar.legend = None
-    bar.series[0].graphicalProperties.solidFill = MID
     for i, a in enumerate(AREAS):
         pt = DataPoint(idx=i)
         pt.graphicalProperties.solidFill = a[3]
@@ -1266,28 +1287,44 @@ def build_dashboard(wb, ws):
     bar.dataLabels = DataLabelList(); bar.dataLabels.showVal = True; bar.dataLabels.numFmt = "0%"
     bar.dataLabels.showSerName = False; bar.dataLabels.showCatName = False
     bar.dataLabels.showLegendKey = False; bar.dataLabels.showPercent = False
+    bar.dataLabels.position = "outEnd"
+    bar.visible_cells_only = False
     bar.x_axis.delete = False; bar.y_axis.delete = False
-    bar.height = 7.2; bar.width = 15.5
+    bar.height = 7.5; bar.width = 31
     ws.add_chart(bar, f"B{ch_r}")
 
     col = BarChart()
     col.type = "col"
-    col.title = "Avance general acumulado vs plan de referencia"
-    gen_row = hdr_r + 5
-    col.add_data(Reference(ws, min_col=2, max_col=6, min_row=gen_row), titles_from_data=True, from_rows=True)
-    col.add_data(Reference(ws, min_col=2, max_col=6, min_row=gen_row + 1), titles_from_data=True, from_rows=True)
+    col.grouping = "clustered"
+    col.title = "Avance acumulado por semana de cada puesto vs plan de referencia"
+    for i in range(4):
+        col.add_data(Reference(ws, min_col=3, max_col=6, min_row=25 + i), titles_from_data=False, from_rows=True)
     col.set_categories(Reference(ws, min_col=3, max_col=6, min_row=hdr_r))
+    for i, a in enumerate(AREAS):
+        col.series[i].tx = SeriesLabel(v=SHORT[i])
+        col.series[i].graphicalProperties.solidFill = a[3]
+        col.series[i].graphicalProperties.line.solidFill = a[3]
+    col.gapWidth = 80
+    col.overlap = -10
     col.y_axis.scaling.min = 0; col.y_axis.scaling.max = 1
     col.y_axis.number_format = "0%"; col.y_axis.majorUnit = 0.25
-    col.series[0].graphicalProperties.solidFill = NAVY
-    col.series[1].graphicalProperties.solidFill = "BFBFBF"
+    plan = LineChart()
+    plan.add_data(Reference(ws, min_col=3, max_col=6, min_row=hdr_r + 6), titles_from_data=False, from_rows=True)
+    plan.series[0].tx = SeriesLabel(v="Plan de referencia")
+    plan.series[0].graphicalProperties.line.solidFill = "7F7F7F"
+    plan.series[0].graphicalProperties.line.dashStyle = "dash"
+    plan.series[0].graphicalProperties.line.width = 22000
+    plan.series[0].marker.symbol = "circle"
+    plan.series[0].marker.size = 6
+    col += plan
     col.legend.position = "b"
+    col.visible_cells_only = False
     col.x_axis.delete = False; col.y_axis.delete = False
-    col.height = 7.2; col.width = 17.5
-    ws.add_chart(col, f"H{ch_r}")
+    col.height = 8; col.width = 31
+    ws.add_chart(col, f"B{ch_r + 16}")
 
     # --- Control de calidad ---
-    r = ch_r + 16
+    r = ch_r + 33
     merge_set(ws, f"B{r}:M{r}", "Control de calidad de datos",
               font=font(12, True, "FFFFFF"), fill=fill(NAVY), alignment=LEFT)
     ws.row_dimensions[r].height = 24
@@ -1392,6 +1429,7 @@ def build_dashboard(wb, ws):
     ws.page_margins.left = ws.page_margins.right = 0.3
     ws.page_margins.top = ws.page_margins.bottom = 0.4
     ws.row_breaks.append(__import__("openpyxl").worksheet.pagebreak.Break(id=note_r + 1))
+    ws.row_breaks.append(__import__("openpyxl").worksheet.pagebreak.Break(id=ch_r + 31))
     ws.oddFooter.center.text = "Página &P de &N"
 
 
@@ -1424,8 +1462,8 @@ def build_instrucciones(ws):
             "• Colores de avisos: verde = completado · azul claro = en curso · rojo suave = pendiente o dato faltante · ámbar = por vencer o mes actual · naranja = vencida.",
         ]),
         ("Las hojas del archivo", [
-            "• Dashboard - Consolidado: resumen del MES ACTUAL. Se actualiza solo; no se llena.",
-            "• Historial mensual: avance de cada puesto mes a mes desde octubre 2026. Se actualiza solo.",
+            "• Dashboard - Consolidado: resumen del MES ACTUAL con dos gráficas (avance de cada puesto y avance por semana vs plan). Se actualiza solo; no se llena.",
+            "• Historial mensual: tabla con el avance de cada puesto mes a mes desde octubre 2026 y gráfica de los últimos 6 meses. Se actualiza sola.",
             "• Cronograma (una por puesto): la ÚNICA hoja donde cada responsable escribe sus actividades, pesos, avances y observaciones.",
             "• Actividades (una por puesto, al lado de su cronograma): muestra sola las actividades del mes, semana por semana. Está bloqueada; no se escribe nada.",
             "• Configuración: mes, semana y fecha de corte. Todo se calcula solo con la fecha de hoy.",
@@ -1442,7 +1480,7 @@ def build_instrucciones(ws):
         ("Subactividades (puede agregar todas las que necesite)", [
             "1) Escriba la macroactividad como siempre: nombre en «Macro Actividad», responsable, fechas y PESO.",
             "2) En las filas de ABAJO escriba cada subactividad en la columna «Subactividad», dejando vacía «Macro Actividad». Ponga su responsable y fechas. Las subactividades NO llevan peso.",
-            "3) El N° se pone solo: 1, 2, 3… para las macroactividades y 1.1, 1.2, 1.3… para sus subactividades.",
+            "3) El N° NO se escribe: se pone solo (la columna está bloqueada). Sale 1, 2, 3… para las macroactividades y 1.1, 1.2, 1.3… para sus subactividades. Para que una fila sea subactividad basta con escribirla en la columna «Subactividad» debajo de su macroactividad.",
             "4) Cada viernes escriba el avance de CADA SUBACTIVIDAD en la columna de esa semana (ej. 100% si ya terminó, 50% si va a la mitad).",
             "5) El avance de la macroactividad se calcula SOLO, semana por semana, como el promedio de sus subactividades. Ejemplo con 4 subactividades: si en la Semana 1 una llega a 100% y las demás están en 0%, la macroactividad queda en 25%; si en la Semana 2 ya van dos al 100%, queda en 50%. Por eso, en la fila de la macroactividad deje VACÍAS las semanas (se muestran en azul claro).",
             "6) Para agregar otra subactividad más adelante, escríbala justo debajo de la última subactividad de su macroactividad (si no hay fila libre ahí, puede ponerla en otra fila: siempre pertenece a la macroactividad que esté más arriba).",

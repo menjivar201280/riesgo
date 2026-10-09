@@ -138,10 +138,10 @@ check("Actividades: fila sin datos en Cronograma queda vacía", (v["A8"].value, 
 check("Actividades: semanas del ciclo (12/10, 19/10, 26/10, 02/11)",
       [v.cell(row=3, column=c).value.date() for c in range(7, 11)] == [D(2026, 10, 12), D(2026, 10, 19), D(2026, 10, 26), D(2026, 11, 2)],
       [v.cell(row=3, column=c).value for c in range(7, 11)])
-ent = {d[f"B{r}"].value: (d[f"F{r}"].value, d[f"G{r}"].value, d[f"H{r}"].value) for r in range(60, 80) if d[f"B{r}"].value in B.PUESTOS}
+ent = {d[f"B{r}"].value: (d[f"F{r}"].value, d[f"G{r}"].value, d[f"H{r}"].value) for r in range(40, 130) if d[f"B{r}"].value in B.PUESTOS}
 check("Dashboard entregas: RO 3/3 completadas en Semana 4; ATR 1 vencida",
       ent.get(RO) == ("3 / 3", "3 / 3", 0) and ent.get(ATR)[2] == 1, ent)
-qc = {d[f"B{r}"].value: d[f"G{r}"].value for r in range(50, 72) if d[f"B{r}"].value}
+qc = {d[f"B{r}"].value: d[f"G{r}"].value for r in range(40, 130) if d[f"B{r}"].value}
 print("   Control de calidad:", qc)
 check("QC: 1 puesto sin actividades", qc.get("Puestos sin actividades registradas") == 1, qc)
 check("QC: 1 puesto con pesos ≠100% (ATR y RO suman 100%)",
@@ -221,7 +221,7 @@ check("Sin actividades: no hay mensajes de completado",
 check("Mensaje de proyecto: no hay actividades", d["G12"].value.startswith("⚠ No hay actividades"), d["G12"].value)
 h = wb[B.AREAS[0][1]]
 check("Hoja Actividades vacía cuando el Cronograma está vacío", h["A5"].value is None and h["L5"].value is None, h["A5"].value)
-hit = [d[f"G{r}"].value for r in range(60, 80) if isinstance(d[f"G{r}"].value, str) and "/" in d[f"G{r}"].value]
+hit = [d[f"G{r}"].value for r in range(40, 130) if isinstance(d[f"G{r}"].value, str) and "/" in d[f"G{r}"].value]
 check("Resumen de entregas en Dashboard = 0 / 0 por puesto", hit == ["0 / 0"] * 4, hit)
 
 # ---------------------------------------------------------------------------
