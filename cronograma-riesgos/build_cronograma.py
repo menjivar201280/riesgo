@@ -322,6 +322,9 @@ def build_config(wb, ws, semana, fecha_ref, inicio_ciclo, mes, obs):
          "Si es «Sí», una actividad vencida sin texto en Observaciones genera alerta (explicar por qué no se cumplió).",
          "@", "ObsObligatoria", True),
         ("Meta mensual", 1, "Meta de cumplimiento de las actividades al cierre de la Semana 4 de cada mes.", "0%", "MetaFinal", False),
+        ("Primer mes del historial", dt.date(2026, 10, 1),
+         "El Historial mensual empieza en este mes (octubre 2026) y muestra 24 meses seguidos.",
+         MES_FMT, "HistInicio", True),
     ]
     for i, (lbl, val, note, fmt, nm, editable) in enumerate(params):
         r = 4 + i
@@ -339,7 +342,7 @@ def build_config(wb, ws, semana, fecha_ref, inicio_ciclo, mes, obs):
 
     dvd = DataValidation(type="date", operator="greaterThan", formula1="36526",
                          showErrorMessage=True, error="Ingrese una fecha válida (dd/mm/aaaa).")
-    for c in ("C4", "C5", "C6"):
+    for c in ("C4", "C5", "C6", "C12"):
         dvd.add(c)
     ws.add_data_validation(dvd)
     dv = DataValidation(type="whole", operator="between", formula1="1", formula2="4", allow_blank=True,
@@ -353,7 +356,7 @@ def build_config(wb, ws, semana, fecha_ref, inicio_ciclo, mes, obs):
     dvs.add("C10"); ws.add_data_validation(dvs)
 
     # Plan lineal de referencia
-    r0 = 13
+    r0 = 14
     merge_set(ws, f"B{r0}:D{r0}", "Plan de referencia (avance esperado acumulado por semana) – supuesto editable",
               font=font(10, True, "FFFFFF"), fill=fill(MID), alignment=LEFT)
     for i in range(4):
@@ -368,7 +371,7 @@ def build_config(wb, ws, semana, fecha_ref, inicio_ciclo, mes, obs):
     add_name(wb, "PlanRef", f"{q(S_CONF)}!$C${r0 + 1}:$C${r0 + 4}")
 
     # Listas
-    r1 = 19
+    r1 = 20
     merge_set(ws, f"B{r1}:D{r1}", "Listas desplegables (no editar sin actualizar las fórmulas)",
               font=font(10, True, "FFFFFF"), fill=fill(NAVY), alignment=LEFT)
     lists = [("Áreas / Puestos", PUESTOS, "ListaPuestos"),
@@ -789,9 +792,9 @@ def build_calculos(wb, ws):
 
 
 # --------------------------------------------------------------------------
-# Historial mensual: avance de cada puesto en los últimos 12 meses
+# Historial mensual: avance de cada puesto mes a mes desde el primer mes del historial (oct-2026)
 # --------------------------------------------------------------------------
-N_HIST = 12
+N_HIST = 24
 
 
 def build_historial(wb, ws):
@@ -806,7 +809,7 @@ def build_historial(wb, ws):
     ws.row_dimensions[1].height = 28
     merge_set(ws, "B2:K2",
               "HOJA AUTOMÁTICA: resume cada mes con las actividades guardadas en los Cronogramas (nada se borra al empezar un mes). "
-              "Muestra los 12 meses que terminan en el mes indicado en Configuración. «Sin datos» = el puesto no registró actividades ese mes; "
+              "Empieza en octubre 2026 y muestra 24 meses (el mes actual se resalta en amarillo). «Sin datos» = el puesto no registró actividades ese mes; "
               "«Pesos ≠ 100%» = los pesos de ese mes no suman 100%.",
               font=font(9, False, NAVY), fill=fill(LIGHT), alignment=LEFT)
     ws.row_dimensions[2].height = 32
@@ -835,7 +838,7 @@ def build_historial(wb, ws):
     first = hr + 2
     for k in range(N_HIST):
         r = first + k
-        ws[f"B{r}"] = f"=EDATE(MesCiclo,{k - (N_HIST - 1)})"
+        ws[f"B{r}"] = f"=DATE(YEAR(HistInicio),MONTH(HistInicio)+{k},1)"
         ws[f"B{r}"].number_format = MES_FMT
         for i, a in enumerate(AREAS):
             code = a[2]
@@ -889,7 +892,7 @@ def build_historial(wb, ws):
     for i, a in enumerate(AREAS):
         ch.series[i].graphicalProperties.solidFill = a[3]
     ch.x_axis.delete = False; ch.y_axis.delete = False
-    ch.height = 7.5; ch.width = 24
+    ch.height = 8; ch.width = 30
     ws.add_chart(ch, f"B{last + 2}")
 
     ws.freeze_panes = f"C{first}"
@@ -1322,7 +1325,7 @@ def build_instrucciones(ws):
         ]),
         ("Las hojas del archivo", [
             "• Dashboard - Consolidado: resumen del MES ACTUAL. Se actualiza solo; no se llena.",
-            "• Historial mensual: avance de cada puesto en los últimos 12 meses. Se actualiza solo.",
+            "• Historial mensual: avance de cada puesto mes a mes desde octubre 2026. Se actualiza solo.",
             "• Cronograma (una por puesto): la ÚNICA hoja donde cada responsable escribe sus actividades, pesos, avances y observaciones.",
             "• Actividades (una por puesto, al lado de su cronograma): muestra sola las actividades del mes, semana por semana. Está bloqueada; no se escribe nada.",
             "• Configuración: mes, semana y fecha de corte. Todo se calcula solo con la fecha de hoy.",
@@ -1350,7 +1353,7 @@ def build_instrucciones(ws):
             "2) El mes de cada actividad se asigna solo según su fecha de inicio. El Dashboard y las hojas Actividades muestran automáticamente el mes actual, con su Semana 1 a 4.",
             "3) Si una actividad se repite cada mes, cópiela en una fila nueva y cambie sus fechas al nuevo mes (y borre los avances de la copia).",
             "4) Para revisar un mes anterior: en Configuración, en «Mes que se muestra», escriba cualquier fecha de ese mes (ej. 01/09/2026). Dashboard y Actividades mostrarán ese mes. Para volver al mes actual escriba =FECHA(AÑO(HOY());MES(HOY());1).",
-            "5) La hoja «Historial mensual» muestra el avance de cada puesto en los últimos 12 meses.",
+            "5) La hoja «Historial mensual» muestra el avance de cada puesto mes a mes, desde octubre 2026 (24 meses).",
             "6) Cada Cronograma tiene 300 filas (por ejemplo, 25 actividades al mes durante un año). Si se llena, vea «Necesito más filas» o guarde una copia anual del archivo (Archivo > Guardar una copia).",
         ]),
         ("El Dashboard (resumen automático del mes)", [

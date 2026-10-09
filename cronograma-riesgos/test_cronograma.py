@@ -257,12 +257,15 @@ check("Actividades muestra solo noviembre, sin huecos",
       (v["B5"].value, v["B6"].value, v["B7"].value) == ("Actividad de prueba 3", "Actividad de prueba 4", None),
       (v["B5"].value, v["B6"].value, v["B7"].value))
 hst = wb[B.S_HIST]
-row = {hst[f"B{r}"].value.month: r for r in range(6, 18)}
+row = {(hst[f"B{r}"].value.year, hst[f"B{r}"].value.month): r for r in range(6, 30)}
+check("Historial empieza en octubre 2026 (24 meses, hasta septiembre 2027)",
+      hst["B6"].value.date() == D(2026, 10, 1) and hst["B29"].value.date() == D(2027, 9, 1), (hst["B6"].value, hst["B29"].value))
+row = {m: row[(2026, m)] for m in (10, 11, 12)}
 check("Historial: octubre RO 100% (2 / 2), RN 100%; noviembre RO 20%",
       hst[f"C{row[10]}"].value == 1 and hst[f"D{row[10]}"].value == "2 / 2" and hst[f"E{row[10]}"].value == 1
       and abs(hst[f"C{row[11]}"].value - 0.2) < 1e-9,
       (hst[f"C{row[10]}"].value, hst[f"D{row[10]}"].value, hst[f"E{row[10]}"].value, hst[f"C{row[11]}"].value))
-check("Historial: septiembre sin datos", hst[f"C{row[9]}"].value == "Sin datos", hst[f"C{row[9]}"].value)
+check("Historial: diciembre sin datos", hst[f"C{row[12]}"].value == "Sin datos", hst[f"C{row[12]}"].value)
 wb = run("H2", rowsH, mes=D(2026, 10, 15), fecha_ref=D(2026, 10, 30))
 check("Revisar mes anterior (escribiendo una fecha de octubre): RO 100% con 2 actividades",
       dash_puesto(wb, 0)["avance"] == 1 and dash_puesto(wb, 0)["total"] == 2, dash_puesto(wb, 0))

@@ -5,7 +5,7 @@ Entregable: `Cronograma_Dashboard_Riesgos.xlsx` (sin macros y sin datos de prueb
 | Hoja | Contenido |
 |---|---|
 | Dashboard - Consolidado | Resumen del mes mostrado: 8 indicadores, avance por puesto, mensajes de finalización, seguimiento semanal, 2 gráficos, control de calidad y entregas por semana |
-| Historial mensual | Avance y completadas por puesto de los últimos 12 meses (nada se borra al cambiar de mes) |
+| Historial mensual | Avance y completadas por puesto mes a mes desde octubre 2026, 24 meses (nada se borra al cambiar de mes) |
 | Cronograma R. Operacional / R. Normativo / R. Financiero / Asistente Técnico | Una hoja por puesto con su color (Operacional naranja, Normativo morado, Financiero verde, Asistente azul); celdas a llenar en gris suave, tablas `tblAct_RO`, `tblAct_RN`, `tblAct_RF`, `tblAct_ATR` (N° y Mes automáticos, 300 filas que acumulan los meses; columna auxiliar oculta) |
 | Actividades R. Operacional / R. Normativo / R. Financiero / Asistente Técnico | Vista AUTOMÁTICA y bloqueada de las actividades del mes (línea de tiempo por semana, semana de entrega, estado), tablas `tblSem_XX` |
 | Instrucciones | Uso, colaboración, protección, segregación con Power Query y limitaciones |
