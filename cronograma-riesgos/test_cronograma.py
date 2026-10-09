@@ -23,6 +23,7 @@ RECALC, TMP = sys.argv[1], sys.argv[2]
 D = dt.date
 RO, RLN, RF, ATR = B.PUESTOS
 ADM = B.ADMIN[0]
+K = B.C   # mapa clave → letra de columna del Cronograma
 FAILS = []
 
 
@@ -62,11 +63,11 @@ def dash_puesto(wb, i):
 
 def cron(wb, r, area):
     c = wb[B.AREAS[B.PUESTOS.index(area)][0]]
-    return c[f"L{r}"].value, c[f"M{r}"].value, c[f"P{r}"].value
+    return c[f"{K['av']}{r}"].value, c[f"{K['est']}{r}"].value, c[f"{K['rev']}{r}"].value
 
 
 def alerta(wb, r, area):
-    return wb[B.AREAS[B.PUESTOS.index(area)][0]][f"N{r}"].value
+    return wb[B.AREAS[B.PUESTOS.index(area)][0]][f"{K['alerta']}{r}"].value
 
 
 # ---------------------------------------------------------------------------
@@ -252,8 +253,8 @@ rowsH = [
 wb = run("H", rowsH, mes=D(2026, 11, 1), fecha_ref=D(2026, 11, 6))
 c = wb[B.AREAS[0][0]]
 check("Columna Mes automática (oct/nov) y N° reinicia por mes",
-      [(c[f"A{r}"].value, c[f"Q{r}"].value.month) for r in range(5, 9)] == [(1, 10), (2, 10), (1, 11), (2, 11)],
-      [(c[f"A{r}"].value, c[f"Q{r}"].value) for r in range(5, 9)])
+      [(c[f"A{r}"].value, c[f"{K['mes']}{r}"].value.month) for r in range(5, 9)] == [(1, 10), (2, 10), (1, 11), (2, 11)],
+      [(c[f"A{r}"].value, c[f"{K['mes']}{r}"].value) for r in range(5, 9)])
 p = dash_puesto(wb, 0)
 check("Dashboard de noviembre: RO = 20% con 2 actividades (octubre no se mezcla)",
       abs(p["avance"] - 0.2) < 1e-9 and p["total"] == 2, p)
@@ -345,8 +346,38 @@ ent = {d[f"B{r}"].value: (d[f"H{r}"].value, d[f"I{r}"].value) for r in range(40,
 check("Dashboard: RO 1 vencida y 1 por vencer; Administración 1 vencida", ent.get(RO) == (1, 1) and ent.get(ADM) == (1, 0), ent)
 adm = wb[B.ADMIN[1]]
 check("Hoja Administración: N° automático, alerta y avance",
-      (adm["A5"].value, adm["N5"].value, adm["A6"].value, adm["L6"].value) == (1, "Vencida hace 2 días", 2, 0.1),
-      (adm["A5"].value, adm["N5"].value, adm["A6"].value, adm["L6"].value))
+      (adm["A5"].value, adm[f"{K['alerta']}5"].value, adm["A6"].value, adm[f"{K['av']}6"].value) == (1, "Vencida hace 2 días", 2, 0.1),
+      (adm["A5"].value, adm[f"{K['alerta']}5"].value, adm["A6"].value, adm[f"{K['av']}6"].value))
+
+# ---------------------------------------------------------------------------
+print("Escenario J: la jefatura delega una macroactividad y sigue su avance")
+JEF = B.PREFIJO_JEF
+rowsJ = [dict(act(1, ADM, None, (), fin=D(2026, 10, 18)), macro="SSF – Visita", deleg=RO),
+         dict(act(2, ADM, None, (), fin=D(2026, 10, 20)), macro="Indicadores – Plan de recuperación", deleg=RF),
+         dict(act(3, ADM, None, (0.4,), fin=D(2026, 10, 30)), macro="Política T.C."),
+         dict(act(10, RO, None, ()), macro=JEF + "SSF – Visita", fin=D(2026, 10, 18)),
+         sub(11, (), fin=D(2026, 10, 14), cump=D(2026, 10, 14)), sub(12, (), fin=D(2026, 10, 18)),
+         act(13, RO, None, (0.3,))]
+wb = run("J", rowsJ, semana=1, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
+adm = wb[B.ADMIN[1]]
+g = lambda k, r: adm[f"{K[k]}{r}"].value
+check("Delegada y agregada por R. Operacional: avance 50% (1 de 2 subactividades), estado y alerta del puesto",
+      (g("av", 5), g("est", 5), g("alerta", 5), g("seg", 5)) == (0.5, "En curso", "Vence en 2 días", "✔ Recibida por " + RO),
+      (g("av", 5), g("est", 5), g("alerta", 5), g("seg", 5)))
+check("Delegada a R. Financiero aún no agregada → 0% y aviso",
+      (g("av", 6), g("seg", 6)) == (0, "⚠ " + RF + " aún no la agrega"), (g("av", 6), g("seg", 6)))
+check("Actividad propia de la jefatura → 'Propia' y su propio avance", (g("av", 7), g("seg", 7)) == (0.4, "Propia"),
+      (g("av", 7), g("seg", 7)))
+ro = wb[B.AREAS[0][0]]
+banner = ro[f"{K['obs']}3"].value
+check("Aviso en el Cronograma de R. Operacional (1 delegada, 0 pendientes)",
+      "le delegó 1 actividad" in banner and "0 pendiente" in banner, banner)
+rf = wb[B.AREAS[2][0]]
+check("Aviso en R. Financiero (1 pendiente de agregar)", "1 pendiente" in rf[f"{K['obs']}3"].value, rf[f"{K['obs']}3"].value)
+calc = wb[B.S_CALC]
+check("Lista desplegable de R. Financiero ofrece la actividad delegada",
+      calc["D21"].value == JEF + "Indicadores – Plan de recuperación" and calc["D22"].value in (None, ""),
+      (calc["D21"].value, calc["D22"].value))
 
 print()
 print("FALLAS:" if FAILS else "TODAS LAS PRUEBAS PASARON", FAILS if FAILS else "")

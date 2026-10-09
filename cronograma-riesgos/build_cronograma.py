@@ -99,12 +99,12 @@ LAST_RNG = 1000      # límite de los rangos con nombre que leen el Dashboard
 # Columnas de la hoja Cronograma (clave, encabezado). Las claves se usan en las fórmulas
 # para no depender de letras fijas.
 COL_SPEC = [
-    ("id", "N°"), ("tipo", "Tipo"), ("act", "Actividad"),
+    ("id", "N°"), ("tipo", "Tipo"), ("act", "Actividad"), ("deleg", "Delegar a"),
     ("ini", "Fecha de inicio"), ("lim", "Fecha límite"), ("cump", "Fecha de cumplimiento"),
     ("peso", "Peso (%) – solo macroactividad"),
     ("s1", "Avance Semana 1 (%)"), ("s2", "Avance Semana 2 (%)"), ("s3", "Avance Semana 3 (%)"),
     ("s4", "Avance Semana 4 (%)"), ("av", "% de Avance Total Actual"), ("est", "Estado"),
-    ("alerta", "Alerta de plazo"), ("obs", "Observaciones"), ("rev", "Revisión automática (alertas)"),
+    ("alerta", "Alerta de plazo"), ("seg", "Seguimiento de la delegación"), ("obs", "Observaciones"), ("rev", "Revisión automática (alertas)"),
     ("mes", "Mes"),
     # auxiliares ocultas
     ("orden", "Orden en el mes (aux)"), ("grupo", "Grupo (aux)"), ("t", "Tipo (aux)"),
@@ -112,7 +112,10 @@ COL_SPEC = [
     ("o1", "Propio S1 (aux)"), ("o2", "Propio S2 (aux)"), ("o3", "Propio S3 (aux)"), ("o4", "Propio S4 (aux)"),
     ("e1", "Efectivo S1 (aux)"), ("e2", "Efectivo S2 (aux)"), ("e3", "Efectivo S3 (aux)"), ("e4", "Efectivo S4 (aux)"),
     ("pef", "Peso efectivo (aux)"),
+    ("dfila", "Fila en el puesto (aux)"), ("dn", "N° delegada en el mes (aux)"), ("dkey", "Clave delegada (aux)"),
 ]
+ADMIN_ONLY = ("deleg", "seg")       # columnas visibles solo en la hoja Administración
+PREFIJO_JEF = "[Jefatura] "         # marca de las actividades delegadas por la jefatura
 COLS_ACT = [h for _, h in COL_SPEC]
 C = {k: get_column_letter(i + 1) for i, (k, _) in enumerate(COL_SPEC)}       # clave -> letra
 CN = {k: i + 1 for i, (k, _) in enumerate(COL_SPEC)}                          # clave -> n° de columna
@@ -229,10 +232,14 @@ def f_eff(r, w):
             f'AVERAGEIFS({col_abs(OWN[w])},{grp}),${OWN[w]}{r})))')
 
 
-def f_avance(r):
+def _avance_core(r):
     grp = f'{col_abs("grupo")},ROW(),{col_abs("t")},"Sub"'
-    return (f'=IF(NOT({reg(r)}),"",IF(ISNUMBER({X("cump", r)}),1,IF(N({X("nsub", r)})>0,'
-            f'AVERAGEIFS({col_abs("ap")},{grp}),{X("ap", r)})))')
+    return (f'IF(ISNUMBER({X("cump", r)}),1,IF(N({X("nsub", r)})>0,'
+            f'AVERAGEIFS({col_abs("ap")},{grp}),{X("ap", r)}))')
+
+
+def f_avance(r):
+    return f'=IF(NOT({reg(r)}),"",{_avance_core(r)})'
 
 
 def f_estado(r):
@@ -241,15 +248,18 @@ def f_estado(r):
             f'IF({av}>0,"En curso","Pendiente")))')
 
 
-def f_alerta(r):
+def _alerta_core(r):
     """Alerta de plazo: cumplida (a tiempo o con retraso) / vencida / vence hoy / por vencer / en plazo."""
     av, lim, cump = X("av", r), X("lim", r), X("cump", r)
     dias = lambda a, b: f'({a}-{b})&IF({a}-{b}=1," día"," días")'
-    return (f'=IF(NOT({reg(r)}),"",'
-            f'IF(ISNUMBER({cump}),IF(AND(ISNUMBER({lim}),{cump}>{lim}),"Cumplida con "&{dias(cump, lim)}&" de retraso","Cumplida"),'
+    return (f'IF(ISNUMBER({cump}),IF(AND(ISNUMBER({lim}),{cump}>{lim}),"Cumplida con "&{dias(cump, lim)}&" de retraso","Cumplida"),'
             f'IF(N({av})>=1,"Cumplida",IF(NOT(ISNUMBER({lim})),"Sin fecha límite",'
             f'IF({lim}<FechaRef,"Vencida hace "&{dias("FechaRef", lim)},'
-            f'IF({lim}=FechaRef,"Vence hoy",IF({lim}-FechaRef<=DiasAlerta,"Vence en "&{dias(lim, "FechaRef")},"En plazo")))))))')
+            f'IF({lim}=FechaRef,"Vence hoy",IF({lim}-FechaRef<=DiasAlerta,"Vence en "&{dias(lim, "FechaRef")},"En plazo"))))))')
+
+
+def f_alerta(r):
+    return f'=IF(NOT({reg(r)}),"",{_alerta_core(r)})'
 
 
 def _mes_de(ini, lim):
@@ -327,6 +337,54 @@ def f_validacion(r):
     s = "&".join(parts)
     return (f'=IF(NOT({reg(r)}),"",IF(({s})="","✔ OK",'
             f'"⚠ "&LEFT({s},LEN({s})-3)))')
+
+
+# --- Delegación (solo hoja Administración) ---
+def _por_puesto(r, fn):
+    """CHOOSE según el puesto elegido en «Delegar a»: fn(hoja) devuelve la expresión para esa hoja."""
+    opciones = ",".join(fn(q(a[0]) + "!") for a in AREAS)
+    return f'CHOOSE(MATCH({X("deleg", r)},ListaPuestos,0),{opciones})'
+
+
+def _delegada(r):
+    return f'AND({X("deleg", r)}<>"",{X("t", r)}="Macro")'
+
+
+def f_dfila(r):
+    """Fila (1…) de la actividad delegada dentro del Cronograma del puesto; 0 = el puesto aún no la agregó."""
+    clave = f'"{PREFIJO_JEF}"&{X("act", r)}'
+    return (f'=IF(NOT({_delegada(r)}),"",IFERROR('
+            f'{_por_puesto(r, lambda sh: f"MATCH({clave},{sh}{col_abs('act')},0)")},0))')
+
+
+def f_av_adm(r):
+    val = _por_puesto(r, lambda sh: f'INDEX({sh}{col_abs("av")},{X("dfila", r)})')
+    return (f'=IF(NOT({reg(r)}),"",IF({_delegada(r)},IF(N({X("dfila", r)})>0,N({val}),0),{_avance_core(r)}))')
+
+
+def f_alerta_adm(r):
+    val = _por_puesto(r, lambda sh: f'INDEX({sh}{col_abs("alerta")},{X("dfila", r)})')
+    return (f'=IF(NOT({reg(r)}),"",IF(AND({_delegada(r)},N({X("dfila", r)})>0),{val}&"",{_alerta_core(r)}))')
+
+
+def f_seg_adm(r):
+    d = X("deleg", r)
+    return (f'=IF(NOT({reg(r)}),"",IF({d}="","Propia",IF({X("t", r)}<>"Macro","Solo se delegan macroactividades",'
+            f'IF(N({X("dfila", r)})>0,"✔ Recibida por "&{d},"⚠ "&{d}&" aún no la agrega"))))')
+
+
+def f_dn(r):
+    m = X("mes", r)
+    return (f'=IF(AND({_delegada(r)},{m}=MesCiclo),COUNTIFS({col_upto("deleg", r)},{X("deleg", r)},'
+            f'{col_upto("mes", r)},MesCiclo,{col_upto("t", r)},"Macro"),"")')
+
+
+def f_dkey(r):
+    return f'=IF({X("dn", r)}="","",{X("deleg", r)}&"|"&{X("dn", r)})'
+
+
+ADMIN_FUNCS = {"av": f_av_adm, "alerta": f_alerta_adm, "seg": f_seg_adm,
+               "dfila": f_dfila, "dn": f_dn, "dkey": f_dkey}
 
 
 # Columnas calculadas (clave → función) visibles y auxiliares
@@ -601,14 +659,22 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
         sheet, _, code, color = AREAS[idx]
     else:
         puesto, sheet, code, color = area
+    es_admin = area is not None
     light = tint(color)
-    widths = {"id": 7, "tipo": 15, "act": 48, "ini": 12, "lim": 12, "cump": 14, "peso": 12,
+    funcs = CALC_FUNCS + AUX_FUNCS
+    if es_admin:
+        funcs = [(k, ADMIN_FUNCS.get(k, fn)) for k, fn in funcs] + \
+                [(k, ADMIN_FUNCS[k]) for k in ("seg", "dfila", "dn", "dkey")]
+    widths = {"id": 7, "tipo": 15, "act": 48, "deleg": 22, "seg": 30, "ini": 12, "lim": 12, "cump": 14, "peso": 12,
               "s1": 10, "s2": 10, "s3": 10, "s4": 10, "av": 12, "est": 12, "alerta": 24,
               "obs": 36, "rev": 44, "mes": 14}
     for k, w in widths.items():
         ws.column_dimensions[C[k]].width = w
     for ci in range(AUX_FIRST, N_COLS + 1):
         ws.column_dimensions[get_column_letter(ci)].hidden = True
+    if not es_admin:
+        for k in ADMIN_ONLY:
+            ws.column_dimensions[C[k]].hidden = True
 
     merge_set(ws, f"A1:{LASTV}1", f"Cronograma – {puesto}" if area is None else
               f"{puesto} – Actividades de la jefatura",
@@ -641,10 +707,26 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     cf3.add(rng3, FormulaRule(formula=[f'{venc}>0'], stopIfTrue=True, fill=fill("C00000"), font=Font(color="FFFFFF", bold=True)))
     cf3.add(rng3, FormulaRule(formula=[f'{porv}>0'], stopIfTrue=True, fill=fill("FFC000"), font=Font(color="3F2F00", bold=True)))
     cf3.add(rng3, FormulaRule(formula=['TRUE'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
+    rng_b = f"{C['obs']}3:{LASTV}3"
+    if es_admin:
+        merge_set(ws, rng_b, "En «Delegar a» elija el puesto: la actividad le llega a su Cronograma y aquí verá su avance.",
+                  font=font(9, True, NAVY), fill=fill(LIGHT), alignment=LEFT, border=BORDER)
+    else:
+        adm = lambda k: f"{q(ADMIN[1])}!{col_abs(k)}"
+        n_del = f'COUNTIFS({adm("deleg")},"{puesto}",{adm("mes")},MesCiclo,{adm("t")},"Macro")'
+        n_rec = f'COUNTIFS({adm("deleg")},"{puesto}",{adm("mes")},MesCiclo,{adm("t")},"Macro",{adm("dfila")},">0")'
+        merge_set(ws, rng_b,
+                  f'=IF({n_del}=0,"Sin actividades delegadas por la jefatura este mes",'
+                  f'"★ La jefatura le delegó "&{n_del}&" actividad(es) este mes · "&({n_del}-{n_rec})&'
+                  f'" pendiente(s) de agregar (elíjalas en la lista de «Actividad»)")',
+                  font=font(9, True), alignment=LEFT, border=BORDER)
+        cf3.add(rng_b, FormulaRule(formula=[f'({n_del}-{n_rec})>0'], stopIfTrue=True,
+                                   fill=fill("FFC000"), font=Font(color="3F2F00", bold=True)))
+        cf3.add(rng_b, FormulaRule(formula=[f'{n_del}>0'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
     ws.row_dimensions[3].height = 22
 
     hr = FIRST - 1
-    calc_cols = {CN[k] for k, _ in CALC_FUNCS} | set(range(AUX_FIRST, N_COLS + 1))
+    calc_cols = {CN[k] for k, _ in CALC_FUNCS} | {CN["seg"]} | set(range(AUX_FIRST, N_COLS + 1))
     for i, h in enumerate(COLS_ACT):
         c = ws.cell(row=hr, column=i + 1, value=h)
         c.font = font(10, True, "FFFFFF")
@@ -667,7 +749,7 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
             if col in fmt:
                 c.number_format = fmt[col]
             c.alignment = CENTER if col in centered else LEFT
-        for k, fn in CALC_FUNCS + AUX_FUNCS:
+        for k, fn in funcs:
             ws.cell(row=r, column=CN[k], value=fn(r))
         ws.cell(row=r, column=CN["rev"]).font = font(9)
 
@@ -677,7 +759,7 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
         if "sub" in row:
             ws.cell(row=r, column=CN["tipo"], value="Subactividad")
             ws.cell(row=r, column=CN["act"], value=row["sub"])
-        for key, k in [("macro", "act"), ("ini", "ini"), ("fin", "lim"), ("cump", "cump"), ("peso", "peso"),
+        for key, k in [("macro", "act"), ("deleg", "deleg"), ("ini", "ini"), ("fin", "lim"), ("cump", "cump"), ("peso", "peso"),
                        ("s1", "s1"), ("s2", "s2"), ("s3", "s3"), ("s4", "s4"), ("obs", "obs")]:
             if key in row and row[key] is not None:
                 ws.cell(row=r, column=CN[k], value=row[key])
@@ -689,7 +771,7 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     tab._initialise_columns()
     for i, col in enumerate(tab.tableColumns):
         col.name = COLS_ACT[i]
-    for k, fn in CALC_FUNCS + AUX_FUNCS:
+    for k, fn in funcs:
         tab.tableColumns[CN[k] - 1].calculatedColumnFormula = TableFormula(
             attr_text=to_structured(fn(FIRST), tname))
     ws.add_table(tab)
@@ -698,7 +780,8 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     names = [("rFLim", "lim"), ("rPeso", "pef"), ("rPesoEscrito", "peso"), ("rS1", "s1"), ("rS2", "s2"),
              ("rS3", "s3"), ("rS4", "s4"), ("rAvance", "av"), ("rEstado", "est"), ("rAlerta", "alerta"),
              ("rValid", "rev"), ("rMes", "mes"), ("rOrden", "orden"), ("rTipo", "t"),
-             ("rEf1", "e1"), ("rEf2", "e2"), ("rEf3", "e3"), ("rEf4", "e4")]
+             ("rEf1", "e1"), ("rEf2", "e2"), ("rEf3", "e3"), ("rEf4", "e4"),
+             ("rAct", "act"), ("rDeleg", "deleg"), ("rDkey", "dkey")]
     for nm, k in names:
         add_name(wb, f"{nm}_{code}", f"{q(sheet)}!{col_abs(k)}")
 
@@ -735,6 +818,20 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     dv_av.add(f"{C['s1']}{FIRST}:{C['s4']}{LAST_RNG}")
     for d in (dv_tipo, dv_date, dv_cump, dv_peso, dv_av):
         ws.add_data_validation(d)
+    if es_admin:
+        dv_del = DataValidation(type="list", formula1="ListaPuestos", allow_blank=True, showErrorMessage=True,
+                                errorTitle="Puesto no válido", error="Elija un puesto de la lista o deje vacío (actividad de la jefatura).",
+                                showInputMessage=True, promptTitle="Delegar a",
+                                prompt="Elija el puesto al que delega esta macroactividad. Vacío = la hace la jefatura.")
+        dv_del.add(R("deleg"))
+        ws.add_data_validation(dv_del)
+    else:
+        # Lista de actividades delegadas por la jefatura (también se puede escribir cualquier otro nombre)
+        dv_act = DataValidation(type="list", formula1=f"ListaDeleg_{code}", allow_blank=True, showErrorMessage=False,
+                                showInputMessage=True, promptTitle="Actividad",
+                                prompt="Escriba el nombre, o elija en la lista una actividad delegada por la jefatura.")
+        dv_act.add(R("act"))
+        ws.add_data_validation(dv_act)
 
     # Formato condicional
     F_ = FIRST
@@ -746,11 +843,16 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     cf = ws.conditional_formatting
     macro_line = Border(top=Side(style="medium", color=color))
     ABC = f"A{F_}:{C['act']}{LAST_RNG}"
+    cf.add(R("act"), FormulaRule(stopIfTrue=True, formula=[f'LEFT({x("act")},{len(PREFIJO_JEF)})="{PREFIJO_JEF}"'],
+                                 fill=fill("FFF2CC"), font=Font(bold=True, color="7F6000")))
     cf.add(ABC, FormulaRule(formula=[f'AND({x("t")}="Macro",{x("act")}="")'], stopIfTrue=True, **red))
     cf.add(ABC, FormulaRule(formula=[f'{x("t")}="Macro"'], fill=fill(light), font=Font(bold=True), border=macro_line))
     cf.add(R("act"), Rule(type="expression", formula=[f'{x("t")}="Sub"'],
                           dxf=DifferentialStyle(numFmt=NumberFormat(numFmtId=200, formatCode=SUB_NUMFMT),
                                                 font=Font(color="404040"))))
+    if es_admin:
+        cf.add(R("seg"), FormulaRule(formula=[f'LEFT({x("seg")},1)="✔"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
+        cf.add(R("seg"), FormulaRule(formula=[f'LEFT({x("seg")},1)="⚠"'], fill=fill(RED_F), font=Font(color=RED_T, bold=True)))
     cf.add(R("est"), FormulaRule(formula=[f'{x("est")}="Completado"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
     cf.add(R("est"), FormulaRule(formula=[f'{x("est")}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
     cf.add(R("est"), FormulaRule(formula=[f'{x("est")}="Pendiente"'], fill=fill(RED_F), font=Font(color=RED_T)))
@@ -987,6 +1089,17 @@ def build_calculos(wb, ws):
     # Mes mostrado normalizado al día 1 (cualquier fecha escrita en Configuración sirve)
     ws["A15"] = "Mes mostrado (día 1)"
     ws["B15"] = "=DATE(YEAR(MesEntrada),MONTH(MesEntrada),1)"
+    # Listas de actividades delegadas por la jefatura a cada puesto (mes mostrado)
+    ws["A19"] = "Actividades delegadas por la jefatura (listas desplegables de cada Cronograma)"
+    ws["A19"].font = font(9, True)
+    for i, a in enumerate(AREAS):
+        col = get_column_letter(2 + i)
+        ws[f"{col}20"] = f"=A{4 + i}"
+        for k in range(1, 41):
+            r = 20 + k
+            ws[f"{col}{r}"] = (f'=IFERROR("{PREFIJO_JEF}"&INDEX(rAct_ADM,MATCH($A${4 + i}&"|"&{k},rDkey_ADM,0)),"")')
+        add_name(wb, f"ListaDeleg_{a[2]}",
+                 f"OFFSET({q(S_CALC)}!${col}$21,0,0,MAX(1,COUNTIF({q(S_CALC)}!${col}$21:${col}$60,\"?*\")),1)")
     ws["B15"].number_format = MES_FMT
     add_name(wb, "MesCiclo", f"{q(S_CALC)}!$B$15")
     ws.protection.sheet = True
@@ -1616,9 +1729,14 @@ def build_instrucciones(ws):
             "• «En plazo» (verde claro): todavía hay tiempo.",
             "Arriba de cada hoja aparece el total del mes («X vencida(s) · Y por vencer») y el Dashboard muestra lo mismo por puesto y para la jefatura.",
         ]),
-        ("Hoja «Administración» (jefatura)", [
+        ("Hoja «Administración» (jefatura) y cómo DELEGAR actividades", [
             "Es la lista de actividades de la jefatura, con el mismo formato del Cronograma: Tipo (macroactividad / subactividad), actividad, fechas, fecha de cumplimiento, avance por semana, estado, alerta de plazo y observaciones.",
-            "En Observaciones puede anotar a quién se delegó o el detalle (ej. «presentación 9/10, información 8/10»). Sus vencidas y por vencer aparecen en el Dashboard en la tabla de alertas de plazo.",
+            "DELEGAR: 1) La jefatura escribe la macroactividad y en «Delegar a» elige el puesto (si lo deja vacío, la actividad es de la jefatura).",
+            "2) Al puesto le aparece arriba de su Cronograma un aviso amarillo: «La jefatura le delegó X actividad(es)… pendiente(s) de agregar».",
+            "3) El puesto, en una fila nueva de su Cronograma, abre la lista de la columna «Actividad» y elige la actividad (sale como «[Jefatura] nombre»). Luego pone sus fechas, su avance o fecha de cumplimiento y, si quiere, subactividades debajo. No debe cambiar el texto elegido.",
+            "4) En la hoja Administración, las columnas «% de Avance», «Estado», «Alerta de plazo» y «Seguimiento» de esa actividad se llenan solas con lo que registra el puesto. «Seguimiento» dice «✔ Recibida por …» o «⚠ … aún no la agrega».",
+            "Nota: si la jefatura cambia el nombre de una actividad ya delegada, el puesto debe volver a elegirla en la lista.",
+            "Las vencidas y por vencer de la jefatura también aparecen en el Dashboard, en la tabla de alertas de plazo.",
         ]),
         ("¿Qué es la columna «Revisión automática (alertas)»?", [
             "Es un revisor automático: revisa cada fila y avisa si algo falta o está mal. «✔ OK» = todo bien. «⚠» = hay algo que corregir y dice qué es, por ejemplo: «Sin fecha límite», «Pesos del mes suman 90%», «Pesos de sus subactividades suman 50% (deben sumar 60%)», «Avance semanal decreciente» o «Vencida».",
