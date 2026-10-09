@@ -101,7 +101,7 @@ LAST_RNG = 1000      # límite de los rangos con nombre que leen el Dashboard
 COL_SPEC = [
     ("id", "N°"), ("tipo", "Tipo"), ("act", "Actividad"), ("deleg", "Delegar a"),
     ("ini", "Fecha de inicio"), ("lim", "Fecha límite"), ("cump", "Fecha de cumplimiento"),
-    ("peso", "Peso (%) – solo macroactividad"),
+    ("peso", "Peso (%)"),
     ("s1", "Avance Semana 1 (%)"), ("s2", "Avance Semana 2 (%)"), ("s3", "Avance Semana 3 (%)"),
     ("s4", "Avance Semana 4 (%)"), ("av", "% de Avance Total Actual"), ("est", "Estado"),
     ("alerta", "Alerta de plazo"), ("seg", "Seguimiento de la delegación"), ("obs", "Observaciones"), ("rev", "Revisión automática (alertas)"),
