@@ -16,5 +16,5 @@ Regenerar y probar:
 
 ```bash
 python build_cronograma.py Cronograma_Dashboard_Riesgos.xlsx
-python test_cronograma.py <ruta>/recalc.py <directorio_temporal>   # 69 verificaciones con LibreOffice
+python test_cronograma.py <ruta>/recalc.py <directorio_temporal>   # 88 verificaciones con LibreOffice
 ```

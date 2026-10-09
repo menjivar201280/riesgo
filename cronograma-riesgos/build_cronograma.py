@@ -713,9 +713,9 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows):
     cf = ws.conditional_formatting
     macro_line = Border(top=Side(style="medium", color=color))
     # Macroactividad: línea superior del color del puesto; N°, Tipo y Actividad resaltados
-    cf.add(f"A{F_}:P{LAST_RNG}", FormulaRule(formula=[f'$S{F_}="Macro"'], border=macro_line))
     cf.add(f"A{F_}:C{LAST_RNG}", FormulaRule(formula=[f'AND($S{F_}="Macro",$C{F_}="")'], stopIfTrue=True, **red))
-    cf.add(f"A{F_}:C{LAST_RNG}", FormulaRule(formula=[f'$S{F_}="Macro"'], fill=fill(light), font=Font(bold=True)))
+    cf.add(f"A{F_}:C{LAST_RNG}", FormulaRule(formula=[f'$S{F_}="Macro"'], fill=fill(light), font=Font(bold=True),
+                                             border=macro_line))
     # Subactividad: nombre con sangría y ↳ (formato de número condicional)
     cf.add(R("CC"), Rule(type="expression", formula=[f'$S{F_}="Sub"'],
                          dxf=DifferentialStyle(numFmt=NumberFormat(numFmtId=200, formatCode=SUB_NUMFMT),
@@ -848,8 +848,8 @@ def build_vista(wb, ws, idx):
     cf.add(f"F{FIRST}:I{last}", FormulaRule(formula=[f'AND({gantt},$K{FIRST}="Vencida")'], stopIfTrue=True,
                                            fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
     cf.add(f"F{FIRST}:I{last}", FormulaRule(formula=[gantt], fill=fill(color), font=Font(color="FFFFFF", bold=True)))
-    cf.add(f"A{FIRST}:M{last}", FormulaRule(formula=[f'$O{FIRST}="Macro"'], border=Border(top=Side(style="medium", color=color))))
-    cf.add(f"A{FIRST}:B{last}", FormulaRule(formula=[f'$O{FIRST}="Macro"'], fill=fill(tint(color)), font=Font(bold=True)))
+    cf.add(f"A{FIRST}:B{last}", FormulaRule(formula=[f'$O{FIRST}="Macro"'], fill=fill(tint(color)), font=Font(bold=True),
+                                           border=Border(top=Side(style="medium", color=color))))
     cf.add(rngc("K"), FormulaRule(formula=[f'$K{FIRST}="Completado"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
     cf.add(rngc("K"), FormulaRule(formula=[f'$K{FIRST}="Vencida"'], fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
     cf.add(rngc("K"), FormulaRule(formula=[f'$K{FIRST}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
