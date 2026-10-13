@@ -101,42 +101,69 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   });
   txt(s, "Seguimiento panel", "Seguimiento: obs. 3 no superada · obs. 5 parcialmente superada", { x: M, y: 6.55, w: PW, h: 0.4, fontSize: 10.5, italic: true, color: TINT });
   const RX = PANEL + 0.5, RW = W - M - RX;
+  const OBS25S = ["Política de Operaciones Vinculadas", "Confidencialidad e inducción en actas", ["Comités sin personal ejecutivo", "seguimiento"], "Pago de dietas", ["Normativa interna desactualizada", "seguimiento"], "Soporte de Ferias de Crédito", "Declaración jurada (NRP-75)", "Manual de Compras", "Uso del Fondo de Educación"];
+  const OBS26S = ["Inducción sobre partidas de EEFF", "Certificación del Código de Conducta", "Políticas sin aprobar por el Consejo", "Sitio web de comités desactualizado", "Estatutos vs. Código de GC", "Reglamento del Fondo de Educación", "Transparencia del Fondo de Educación"];
   const rows = [
-    { y: 0.5, yr: "2025", sub: "Visita 1 · supervisión ampliada", color: NAVY, cards: [
-      { fecha: "09/04/2025", tipo: "Nombramiento de visita ampliada", no: "DS-SABAO-BCS-BC-9337", ini: ["INICIO DE VISITA", "19", "MAY 2025"], fin: ["INFORME", "05", "NOV 2025"], facts: [["Corte", "30/04/2025"], ["Alcance", "Gobierno Corporativo"]] },
-      { fecha: "05/11/2025", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-17003", ini: ["RECEPCIÓN", "05", "NOV 2025"], fin: ["DESCARGOS", "18", "NOV 2025"], facts: [["Resultado", "9 observaciones"], ["Ref. envío", "NB07-2025-974"]] }] },
-    { y: 3.72, yr: "2026", sub: "Visita 2 · supervisión ampliada", color: GREEN, cards: [
-      { fecha: "31/07/2026", tipo: "Nombramiento de visita ampliada", no: "SABAO-BCS-BC-18432", ini: ["INICIO DE VISITA", "21", "AGO 2026"], fin: ["INFORME", "09", "OCT 2026"], facts: [["Corte", "31/07/2026"], ["Alcance", "GC + seguimiento"]] },
-      { fecha: "09/10/2026", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-22741", ini: ["RECEPCIÓN", "09", "OCT 2026"], fin: ["VENCE APROX.", "23", "OCT 2026"], facts: [["Anexo A", "7 nuevas"], ["Anexo B", "obs. 3 y 5 de 2025"]] }] },
+    { y: 0.35, yr: "2025", sub: "Visita 1 · supervisión ampliada", color: NAVY, cards: [
+      { fecha: "09/04/2025", tipo: "Nombramiento de visita ampliada", no: "DS-SABAO-BCS-BC-9337", ini: ["INICIO DE VISITA", "19", "MAY 2025"], fin: ["INFORME", "05", "NOV 2025"], facts: [["Corte", "30/04/2025"], ["Alcance", "NRP-17"]] },
+      { fecha: "05/11/2025", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-17003", ini: ["RECEPCIÓN", "05", "NOV 2025"], fin: ["DESCARGOS", "18", "NOV 2025"], list: "2025" }] },
+    { y: 3.62, yr: "2026", sub: "Visita 2 · supervisión ampliada", color: GREEN, cards: [
+      { fecha: "31/07/2026", tipo: "Nombramiento de visita ampliada", no: "SABAO-BCS-BC-18432", ini: ["INICIO DE VISITA", "21", "AGO 2026"], fin: ["INFORME", "09", "OCT 2026"], facts: [["Corte", "31/07/2026"], ["Alcance", "NRP-17 + seguim."]] },
+      { fecha: "09/10/2026", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-22741", ini: ["RECEPCIÓN", "09", "OCT 2026"], fin: ["VENCE APROX.", "23", "OCT 2026"], list: "2026" }] },
   ];
-  const cw = (RW - 0.5) / 2, ch = 2.3, dw = 1.15;
+  const gapC = 0.38, cwA = 3.1, cwB = RW - cwA - gapC, ch = 2.6, dw = 1.1;
   rows.forEach(r => {
-    txt(s, "Año " + r.yr, r.yr, { x: RX, y: r.y, w: 1.3, h: 0.55, fontSize: 30, bold: true, color: r.color, fontFace: THEME.headFontFace, valign: "middle" });
-    txt(s, "Visita " + r.yr, r.sub, { x: RX + 1.35, y: r.y, w: 4, h: 0.55, fontSize: 14, color: MUTED, valign: "middle" });
+    txt(s, "Año " + r.yr, r.yr, { x: RX, y: r.y, w: 1.3, h: 0.5, fontSize: 28, bold: true, color: r.color, fontFace: THEME.headFontFace, valign: "middle" });
+    txt(s, "Visita " + r.yr, r.sub, { x: RX + 1.3, y: r.y, w: 4, h: 0.5, fontSize: 14, color: MUTED, valign: "middle" });
     r.cards.forEach((c, j) => {
-      const x = RX + j * (cw + 0.5), y = r.y + 0.7, n = `${r.yr}-${j + 1}`;
+      const cw = j ? cwB : cwA, x = RX + (j ? cwA + gapC : 0), y = r.y + 0.6, n = `${r.yr}-${j + 1}`;
       card(s, "Tarjeta " + n, x, y, cw, ch, WHITE, { line: { color: LINE_HEX, width: 1 } });
       // Bloque de fechas: inicio y final
-      const bx = x + 0.15, by = y + 0.15, bh = ch - 0.3;
+      const bx = x + 0.13, by = y + 0.13, bh = ch - 0.26;
       card(s, "Fechas fondo " + n, bx, by, dw, bh, r.color);
       [c.ini, c.fin].forEach(([lab, d, my], k) => {
-        const fy = by + 0.1 + k * (bh / 2);
+        const fy = by + 0.18 + k * (bh / 2);
         txt(s, `Fecha etiqueta ${n}-${k}`, lab, { x: bx, y: fy, w: dw, h: 0.2, fontSize: 8, bold: true, color: WHITE, align: "center", charSpacing: 1 });
-        txt(s, `Fecha día ${n}-${k}`, d, { x: bx, y: fy + 0.2, w: dw, h: 0.42, fontSize: 24, bold: true, color: WHITE, fontFace: THEME.headFontFace, align: "center", valign: "middle" });
-        txt(s, `Fecha mes ${n}-${k}`, my, { x: bx, y: fy + 0.62, w: dw, h: 0.22, fontSize: 10, bold: true, color: WHITE, align: "center", charSpacing: 1 });
+        txt(s, `Fecha día ${n}-${k}`, d, { x: bx, y: fy + 0.22, w: dw, h: 0.45, fontSize: 26, bold: true, color: WHITE, fontFace: THEME.headFontFace, align: "center", valign: "middle" });
+        txt(s, `Fecha mes ${n}-${k}`, my, { x: bx, y: fy + 0.68, w: dw, h: 0.22, fontSize: 10, bold: true, color: WHITE, align: "center", charSpacing: 1 });
       });
       s.addShape(pres.shapes.LINE, { objectName: "Fechas separador " + n, x: bx + 0.2, y: by + bh / 2, w: dw - 0.4, h: 0, line: { color: WHITE, width: 0.75, transparency: 40 } });
-      // Contenido
-      const cx = x + dw + 0.32, cww = cw - dw - 0.45;
-      txt(s, "Tipo " + n, c.tipo, { x: cx, y: y + 0.15, w: cww, h: 0.55, fontSize: 14, bold: true, valign: "middle" });
-      txt(s, "Circular " + n, [{ text: "Circular No.  ", options: { color: MUTED, fontSize: 10 } }, { text: c.fecha, options: { bold: true, color: r.color, fontSize: 10.5, breakLine: true } }, { text: c.no, options: { bold: true, color: r.color } }], { x: cx, y: y + 0.78, w: cww, h: 0.5, fontSize: 11 });
-      c.facts.forEach(([l, v], q) => {
-        const fy = y + 1.4 + q * 0.4;
-        s.addShape(pres.shapes.LINE, { objectName: `Separador ${n}-${q}`, x: cx, y: fy - 0.04, w: cww, h: 0, line: { color: LINE_HEX, width: 0.75 } });
-        txt(s, `Dato ${n}-${q}`, [{ text: l + "  ", options: { color: MUTED } }, { text: v, options: { bold: true } }], { x: cx, y: fy, w: cww, h: 0.34, fontSize: 11, valign: "middle" });
-      });
+      const cx = x + dw + 0.3, cww = cw - dw - 0.42;
+      if (!c.list) {
+        txt(s, "Tipo " + n, c.tipo, { x: cx, y: y + 0.15, w: cww, h: 0.62, fontSize: 13, bold: true, valign: "middle" });
+        txt(s, "Circular " + n, [{ text: "Circular No.  ", options: { color: MUTED, fontSize: 9.5 } }, { text: c.fecha, options: { bold: true, color: r.color, fontSize: 10, breakLine: true } }, { text: c.no, options: { bold: true, color: r.color } }], { x: cx, y: y + 0.88, w: cww, h: 0.5, fontSize: 10 });
+        c.facts.forEach(([l, v], q) => {
+          const fy = y + 1.62 + q * 0.42;
+          s.addShape(pres.shapes.LINE, { objectName: `Separador ${n}-${q}`, x: cx, y: fy - 0.04, w: cww, h: 0, line: { color: LINE_HEX, width: 0.75 } });
+          txt(s, `Dato ${n}-${q}`, [{ text: l + "  ", options: { color: MUTED } }, { text: v, options: { bold: true } }], { x: cx, y: fy, w: cww, h: 0.34, fontSize: 10.5, valign: "middle" });
+        });
+        return;
+      }
+      // Tarjeta de resultados con el listado de observaciones
+      txt(s, "Tipo " + n, c.tipo, { x: cx, y: y + 0.12, w: cww, h: 0.3, fontSize: 13, bold: true, valign: "middle" });
+      txt(s, "Circular " + n, [{ text: c.no + "  ·  " + c.fecha, options: { bold: true, color: r.color } }], { x: cx, y: y + 0.43, w: cww, h: 0.22, fontSize: 9.5 });
+      s.addShape(pres.shapes.LINE, { objectName: "Separador lista " + n, x: cx, y: y + 0.72, w: cww, h: 0, line: { color: LINE_HEX, width: 0.75 } });
+      const runs = [];
+      const head = (t, col, first) => runs.push({ text: t, options: { bold: true, color: col, fontSize: 8.5, charSpacing: 1, breakLine: true, ...(first ? {} : { paraSpaceBefore: 3 }) } });
+      const item = (num, t, col, last, tag) => {
+        runs.push({ text: num + "  ", options: { bold: true, color: col } });
+        runs.push({ text: t, options: tag ? { color: RED, bold: true } : {} });
+        if (tag) runs.push({ text: "  · " + tag, options: { color: RED, fontSize: 8.5, breakLine: !last } });
+        else runs[runs.length - 1].options.breakLine = !last;
+      };
+      if (c.list === "2025") {
+        head("9 OBSERVACIONES", NAVY, true);
+        OBS25S.forEach((o, i) => Array.isArray(o) ? item(i + 1, o[0], NAVY, i === 8, o[1]) : item(i + 1, o, NAVY, i === 8));
+      } else {
+        head("7 OBSERVACIONES NUEVAS · ANEXO A", GREEN, true);
+        OBS26S.forEach((o, i) => item(i + 1, o, GREEN, false));
+        head("2 EN SEGUIMIENTO DE 2025 · ANEXO B", RED);
+        item("Obs. 3", "Comités sin ejecutivos · No superada", RED, false);
+        item("Obs. 5", "Normativa interna · Parcialmente superada", RED, true);
+      }
+      txt(s, "Listado " + n, runs, { x: cx, y: y + 0.78, w: cww, h: ch - 0.88, fontSize: 9.5, color: INK, lineSpacingMultiple: 0.92 });
     });
-    s.addShape(pres.shapes.RIGHT_ARROW, { objectName: "Flecha " + r.yr, x: RX + cw + 0.1, y: r.y + 0.7 + ch / 2 - 0.15, w: 0.3, h: 0.3, fill: { color: r.color }, line: { color: r.color, transparency: 100 } });
+    s.addShape(pres.shapes.RIGHT_ARROW, { objectName: "Flecha " + r.yr, x: RX + cwA + 0.05, y: r.y + 0.6 + ch / 2 - 0.14, w: 0.28, h: 0.28, fill: { color: r.color }, line: { color: r.color, transparency: 100 } });
   });
   s.addNotes("Cuatro circulares de la SSF. Cada año la SSF primero notifica el nombramiento de la visita ampliada y luego remite los resultados preliminares. 2025: Circular 17003 con 9 observaciones. 2026: Circular 22741 con 7 observaciones nuevas (Anexo A) y seguimiento a 2 de las 9 observaciones de 2025 (Anexo B): la obs. 3 no superada y la obs. 5 parcialmente superada.");
 }
