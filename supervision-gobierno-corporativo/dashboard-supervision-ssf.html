@@ -1,0 +1,532 @@
+<title>Supervisión SSF · COMEDICA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Source+Sans+3:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: header de expediente + 4 pestañas tipo slider; cada panel = tabla o línea de tiempo con exportación a Gamma/Canva/PPT */
+:root {
+  --bg: #f4f6fa;
+  --surface: #ffffff;
+  --surface-2: #eef2f8;
+  --fg: #142033;
+  --muted: #586579;
+  --line: #d9e0ea;
+  --navy: #173a6e;      /* 2025 */
+  --navy-ink: #ffffff;
+  --green: #1d7a4b;     /* 2026 */
+  --green-ink: #ffffff;
+  --red: #b42318;       /* No superada */
+  --amber: #a86410;     /* Parcialmente superada */
+  --focus: #2f6fdb;
+  --f-display: "Archivo", "Segoe UI", Arial, sans-serif;
+  --f-body: "Source Sans 3", "Segoe UI", Arial, sans-serif;
+  --f-mono: "JetBrains Mono", Consolas, "Courier New", monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c131e; --surface: #141e2e; --surface-2: #1a2639; --fg: #e5ebf4; --muted: #9daabd; --line: #27364c;
+    --navy: #8bb0ec; --navy-ink: #0c131e; --green: #55c28e; --green-ink: #0c131e;
+    --red: #f27a6e; --amber: #e8b04f; --focus: #8bb0ec; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c131e; --surface: #141e2e; --surface-2: #1a2639; --fg: #e5ebf4; --muted: #9daabd; --line: #27364c;
+  --navy: #8bb0ec; --navy-ink: #0c131e; --green: #55c28e; --green-ink: #0c131e;
+  --red: #f27a6e; --amber: #e8b04f; --focus: #8bb0ec; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font: 400 16px/1.5 var(--f-body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: grid; gap: 22px; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; margin: 0; }
+.eyebrow { font: 600 12px/1.2 var(--f-body); letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.mono { font-family: var(--f-mono); font-size: .86em; letter-spacing: -.01em; }
+.num { font-variant-numeric: tabular-nums; }
+
+/* Header */
+header.top { display: grid; gap: 14px; }
+header.top h1 { font-size: clamp(26px, 4vw, 38px); font-weight: 800; line-height: 1.1; }
+header.top p { margin: 0; color: var(--muted); max-width: 68ch; }
+.kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.kpi { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.kpi b { font: 700 26px/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 13px; color: var(--muted); }
+.kpi.y25 b { color: var(--navy); } .kpi.y26 b { color: var(--green); }
+.kpi.bad b { color: var(--red); } .kpi.warn b { color: var(--amber); }
+
+/* Tabs */
+.tabs { display: flex; gap: 6px; overflow-x: auto; border-bottom: 1px solid var(--line); position: sticky; top: env(safe-area-inset-top, 0px); background: var(--bg); z-index: 5; padding-top: 6px; }
+.tab { appearance: none; border: 0; background: none; color: var(--muted); font: 600 15px/1.2 var(--f-body); padding: 12px 14px 13px; border-bottom: 3px solid transparent; cursor: pointer; white-space: nowrap; display: flex; gap: 8px; align-items: center; }
+.tab .n { font: 500 12px/1 var(--f-mono); border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; }
+.tab[aria-selected="true"] { color: var(--fg); border-bottom-color: var(--fg); }
+.tab[aria-selected="true"] .n { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.tab:hover { color: var(--fg); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+
+.panel { display: grid; gap: 20px; }
+.panel-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px; }
+.panel-head h2 { font-size: clamp(21px, 2.6vw, 28px); font-weight: 700; }
+.panel-head p { margin: 4px 0 0; color: var(--muted); max-width: 70ch; }
+.pager { display: flex; gap: 8px; }
+.btn { appearance: none; font: 600 14px/1 var(--f-body); color: var(--fg); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 12px; cursor: pointer; }
+.btn:hover { border-color: var(--muted); }
+.btn:disabled { opacity: .4; cursor: default; }
+
+/* Period blocks (slider 1) */
+.periods { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.period { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: grid; align-content: start; }
+.period > header { padding: 14px 18px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.period.y25 > header { background: var(--navy); color: var(--navy-ink); }
+.period.y26 > header { background: var(--green); color: var(--green-ink); }
+.period > header h3 { font-size: 22px; font-weight: 800; }
+.period > header span { font-size: 13px; font-weight: 600; opacity: .9; }
+.note { padding: 16px 18px; display: grid; gap: 8px; border-top: 1px solid var(--line); }
+.note:first-of-type { border-top: 0; }
+.note .row1 { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: baseline; justify-content: space-between; }
+.note .tipo { font: 700 17px/1.25 var(--f-display); }
+.note .no { color: var(--muted); }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; margin: 0; }
+.facts div { background: var(--surface-2); border-radius: 8px; padding: 8px 10px; }
+.facts dt { font-size: 12px; color: var(--muted); }
+.facts dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+/* Tables */
+.tbl-wrap { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; }
+table { width: 100%; border-collapse: collapse; min-width: 720px; }
+caption { text-align: left; padding: 14px 16px 10px; font: 700 16px/1.3 var(--f-display); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+th, td { text-align: left; vertical-align: top; padding: 12px 14px; border-top: 1px solid var(--line); }
+thead th { font: 600 12px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); background: var(--surface-2); }
+td.idx { width: 44px; font: 500 14px/1.5 var(--f-mono); color: var(--muted); }
+td.obs { font-weight: 600; width: 40%; }
+td.resp { width: 24%; color: var(--fg); }
+td .crit { display: block; color: var(--muted); font-size: 14px; margin-top: 4px; }
+tbody tr { border-left: 4px solid transparent; }
+.t25 tbody tr { border-left-color: var(--navy); }
+.t26 tbody tr { border-left-color: var(--green); }
+tbody tr.st-bad { border-left-color: var(--red); }
+tbody tr.st-warn { border-left-color: var(--amber); }
+
+.pill { display: inline-flex; align-items: center; gap: 6px; font: 700 12px/1 var(--f-body); letter-spacing: .04em; text-transform: uppercase; padding: 5px 8px; border-radius: 999px; white-space: nowrap; border: 1px solid currentColor; }
+.pill::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.pill.y25 { color: var(--navy); } .pill.y26 { color: var(--green); }
+.pill.bad { color: var(--red); background: color-mix(in srgb, var(--red) 12%, transparent); }
+.pill.warn { color: var(--amber); background: color-mix(in srgb, var(--amber) 14%, transparent); }
+.pill.soft { color: var(--muted); }
+.link-chip { display: inline-block; margin-top: 6px; font-size: 12px; font-weight: 700; color: var(--red); }
+.link-chip.warn { color: var(--amber); }
+
+.callouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+.callout { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.callout h3 { font-size: 15px; font-weight: 700; }
+.callout p { margin: 0; color: var(--muted); font-size: 15px; }
+.callout .big { font: 800 28px/1 var(--f-display); font-variant-numeric: tabular-nums; }
+.callout.y26 .big { color: var(--green); }
+.callout.warn .big { color: var(--amber); }
+
+/* Timeline (slider 4) */
+.tl-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(330px, 1fr)); gap: 16px; }
+.tl { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; display: grid; gap: 14px; align-content: start; }
+.tl > header { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.tl > header h3 { font-size: 20px; font-weight: 800; }
+.tl.y25 { --c: var(--navy); } .tl.y26 { --c: var(--green); }
+.tl > header h3 { color: var(--c); }
+.tl ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0; }
+.tl li { position: relative; padding: 0 0 18px 30px; display: grid; gap: 3px; }
+.tl li::before { content: ""; position: absolute; left: 7px; top: 6px; bottom: -6px; width: 2px; background: var(--line); }
+.tl li:last-child::before { display: none; }
+.tl li::after { content: ""; position: absolute; left: 0; top: 4px; width: 16px; height: 16px; border-radius: 50%; background: var(--surface); border: 3px solid var(--c); }
+.tl li.now::after { background: var(--c); box-shadow: 0 0 0 4px color-mix(in srgb, var(--c) 25%, transparent); }
+.tl .when { font: 500 13px/1.3 var(--f-mono); color: var(--c); }
+.tl .what { font-weight: 700; }
+.tl .sub { color: var(--muted); font-size: 14px; }
+.crit-box { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; display: grid; gap: 6px; }
+.crit-box h4 { margin: 0; font: 700 13px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.crit-box ul { margin: 0; padding-left: 18px; display: grid; gap: 3px; }
+
+.deadlines { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.dl { border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; }
+.dl b { font: 800 22px/1.1 var(--f-display); font-variant-numeric: tabular-nums; color: var(--green); }
+.dl.b15 b { color: var(--amber); }
+.dl span { font-size: 13px; color: var(--muted); }
+.note-fine { font-size: 13px; color: var(--muted); margin: 0; }
+
+.evo { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.evo > header { padding: 16px 18px 6px; }
+.evo > header h3 { font-size: 20px; font-weight: 800; }
+.evo > header p { margin: 4px 0 0; color: var(--muted); }
+.evo-row { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 40px minmax(0, 1fr); gap: 12px; align-items: center; padding: 14px 18px; border-top: 1px solid var(--line); }
+.evo-row:first-of-type { border-top: 0; }
+.evo-row .topic { font-weight: 700; }
+.evo-row .yr { display: grid; gap: 4px; font-size: 14px; color: var(--muted); }
+.evo-row .arrow { text-align: center; color: var(--muted); font-size: 20px; }
+.evo-head { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) 40px minmax(0, 1fr); gap: 12px; padding: 10px 18px; background: var(--surface-2); font: 600 12px/1.2 var(--f-body); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* Export */
+details.export { background: var(--surface); border: 1px dashed var(--line); border-radius: 12px; }
+details.export summary { cursor: pointer; padding: 12px 16px; font-weight: 700; display: flex; justify-content: space-between; gap: 10px; align-items: center; flex-wrap: wrap; }
+details.export summary span { font-weight: 400; color: var(--muted); font-size: 14px; }
+.export-body { padding: 0 16px 16px; display: grid; gap: 10px; }
+.export-body pre { margin: 0; max-height: 340px; overflow: auto; background: var(--surface-2); border-radius: 8px; padding: 12px; font: 500 12.5px/1.55 var(--f-mono); white-space: pre-wrap; word-break: break-word; }
+.export-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.copied { font-size: 14px; color: var(--green); font-weight: 600; }
+
+/* Kit de diseño */
+.kit { display: grid; gap: 14px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 18px; }
+.kit h2 { font-size: 20px; }
+.kit-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.kit-grid > div { min-width: 0; display: grid; gap: 8px; align-content: start; }
+.kit h3 { font-size: 15px; }
+.sw { display: grid; grid-template-columns: 34px 1fr; gap: 10px; align-items: center; font-size: 14px; }
+.sw i { width: 34px; height: 34px; border-radius: 8px; border: 1px solid var(--line); }
+.sw small { display: block; color: var(--muted); font-family: var(--f-mono); }
+.kit ul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+
+@media (max-width: 640px) {
+  .wrap { padding-inline: 16px; }
+  .evo-head { display: none; }
+  .evo-row { grid-template-columns: 1fr 1fr; }
+  .evo-row .topic { grid-column: 1 / -1; }
+  .evo-row .arrow { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .panel:not([hidden]) { animation: rise .25s ease-out; }
+  @keyframes rise { from { transform: translateY(6px); opacity: .6; } to { transform: none; opacity: 1; } }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div class="eyebrow">Superintendencia del Sistema Financiero · NRP-17 Gobierno Corporativo</div>
+    <h1>Supervisiones de Gobierno Corporativo a COMEDICA de R.L.</h1>
+    <p>Resultados de las visitas de supervisión ampliada 2025 y 2026: notas oficiales recibidas, observaciones por área responsable y evolución del cumplimiento.</p>
+    <div class="kpis">
+      <div class="kpi"><b class="num">4</b><span>Notas oficiales SSF</span></div>
+      <div class="kpi y25"><b class="num">9</b><span>Observaciones 2025 (Nota 17003)</span></div>
+      <div class="kpi y26"><b class="num">7 + 2</b><span>Nuevas + seguimiento 2026 (Nota 22741)</span></div>
+      <div class="kpi bad"><b class="num">1</b><span>No superada</span></div>
+      <div class="kpi warn"><b class="num">1</b><span>Parcialmente superada</span></div>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Secciones">
+    <button class="tab" role="tab" id="tab-s1" aria-controls="s1"><span class="n">1</span>Resumen de notas SSF</button>
+    <button class="tab" role="tab" id="tab-s2" aria-controls="s2"><span class="n">2</span>Observaciones 2025</button>
+    <button class="tab" role="tab" id="tab-s3" aria-controls="s3"><span class="n">3</span>Observaciones 2026</button>
+    <button class="tab" role="tab" id="tab-s4" aria-controls="s4"><span class="n">4</span>Línea de tiempo y evolución</button>
+  </nav>
+
+  <!-- SLIDER 1 -->
+  <section class="panel" id="s1" role="tabpanel" aria-labelledby="tab-s1">
+    <div class="panel-head">
+      <div><h2>Resumen y notas de notificación SSF</h2><p>Comunicados oficiales recibidos en los periodos 2025 y 2026.</p></div>
+      <div class="pager"></div>
+    </div>
+    <div class="periods" id="periods"></div>
+  </section>
+
+  <!-- SLIDER 2 -->
+  <section class="panel" id="s2" role="tabpanel" aria-labelledby="tab-s2" hidden>
+    <div class="panel-head">
+      <div><h2>Detalle de observaciones · Nota 17003 (2025)</h2><p>Nueve resultados preliminares de la visita con corte al 30/04/2025. Las filas marcadas siguen abiertas en 2026.</p></div>
+      <div class="pager"></div>
+    </div>
+    <div class="tbl-wrap"><table class="t25" id="tbl25"></table></div>
+  </section>
+
+  <!-- SLIDER 3 -->
+  <section class="panel" id="s3" role="tabpanel" aria-labelledby="tab-s3" hidden>
+    <div class="panel-head">
+      <div><h2>Detalle de observaciones · Nota 22741 (2026)</h2><p>Visita con corte al 31/07/2026. Anexo A: observaciones nuevas. Anexo B: seguimiento a visitas anteriores.</p></div>
+      <div class="pager"></div>
+    </div>
+    <div class="callouts">
+      <div class="callout y26"><span class="big num">10</span><h3>días hábiles · Anexo A</h3><p>Pruebas de descargo documentadas, vía buzón <span class="mono">DESCARGOS_OBSERVACIONES</span>.</p></div>
+      <div class="callout warn"><span class="big num">15</span><h3>días hábiles · Anexo B</h3><p>Plan de solución con acciones, responsable y plazo, más certificación del punto de acta del Consejo. Buzón <span class="mono">PLANES_SOLUC_VISITASUPERVIS</span>.</p></div>
+    </div>
+    <div class="tbl-wrap"><table class="t26" id="tbl26a"></table></div>
+    <div class="tbl-wrap"><table class="t26" id="tbl26b"></table></div>
+  </section>
+
+  <!-- SLIDER 4 -->
+  <section class="panel" id="s4" role="tabpanel" aria-labelledby="tab-s4" hidden>
+    <div class="panel-head">
+      <div><h2>Línea de tiempo comparativa 2025 vs. 2026</h2><p>Hitos de cada visita y evolución de las observaciones que persisten.</p></div>
+      <div class="pager"></div>
+    </div>
+    <div class="tl-grid">
+      <div class="tl y25">
+        <header><h3>2025</h3><span class="pill y25">Visita 1</span></header>
+        <ol>
+          <li><span class="when">09 ABR 2025</span><span class="what">Emisión de nombramiento SSF</span><span class="sub">Nota 9337 · visita con corte al 30/04/2025</span></li>
+          <li><span class="when">19 MAY 2025</span><span class="what">Inicio de la visita de supervisión en sitio</span></li>
+          <li><span class="when">05 NOV 2025</span><span class="what">Informe preliminar · Nota 17003</span><span class="sub">9 observaciones</span></li>
+        </ol>
+        <div class="crit-box">
+          <h4>Hallazgos críticos 2025</h4>
+          <ul>
+            <li>Ausencia de Política de Operaciones Vinculadas</li>
+            <li>Normativa interna desactualizada en general</li>
+            <li>Uso inapropiado del Fondo de Educación</li>
+          </ul>
+        </div>
+      </div>
+      <div class="tl y26">
+        <header><h3>2026</h3><span class="pill y26">Visita 2</span></header>
+        <ol>
+          <li><span class="when">31 JUL 2026</span><span class="what">Emisión de nombramiento SSF</span><span class="sub">Nota 18432 · visita con corte al 31/07/2026</span></li>
+          <li><span class="when">21 AGO 2026</span><span class="what">Inicio de la visita de supervisión ampliada</span></li>
+          <li><span class="when">09 OCT 2026</span><span class="what">Informe preliminar · Nota 22741</span><span class="sub">7 nuevas (Anexo A) y 2 de seguimiento (Anexo B)</span></li>
+          <li class="now"><span class="when">ACTUAL</span><span class="what">Plazos de respuesta en curso</span><span class="sub">10 días hábiles para descargos · 15 días hábiles para plan de solución</span></li>
+        </ol>
+        <div class="deadlines">
+          <div class="dl"><span>Descargos Anexo A · vence aprox.</span><b class="num" id="dlA">23/10/2026</b><span id="dlAleft"></span></div>
+          <div class="dl b15"><span>Plan de solución Anexo B · vence aprox.</span><b class="num" id="dlB">30/10/2026</b><span id="dlBleft"></span></div>
+        </div>
+        <p class="note-fine">Fechas estimadas contando días hábiles desde el 12/10/2026, sin asuetos. Validar contra la fecha de recepción registrada en el Sistema de Control de Envíos.</p>
+      </div>
+    </div>
+
+    <div class="evo">
+      <header><h3>Análisis de evolución</h3><p>Observaciones reincidentes o persistentes entre ambas visitas.</p></header>
+      <div class="evo-head"><span>Tema</span><span>2025 · Nota 17003</span><span></span><span>2026 · Nota 22741</span></div>
+      <div class="evo-row">
+        <div class="topic">Integración de comités de apoyo con personal ejecutivo</div>
+        <div class="yr"><span class="pill y25">Obs. 3</span><span>Incumple Art. 3 lit. h) NRP-17</span></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="yr"><span class="pill bad">No superada</span><span>Anexo B, obs. 8</span></div>
+      </div>
+      <div class="evo-row">
+        <div class="topic">Actualización de normativa interna</div>
+        <div class="yr"><span class="pill y25">Obs. 5</span><span>9 documentos con más de 2 años sin revisión</span></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="yr"><span class="pill warn">Parcialmente superada</span><span>Anexo B, obs. 9: RIT, Comité de Auditoría, Compras</span></div>
+      </div>
+      <div class="evo-row">
+        <div class="topic">Gobernanza del Fondo de Educación</div>
+        <div class="yr"><span class="pill y25">Obs. 9</span><span>Gastos fuera del Art. 59 Ley de Cooperativas</span></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="yr"><span class="pill warn">Reincide</span><span>Anexo A, obs. 6 y 7: Reglamento sin criterios legales y $100,774.28 sin detalle a la Asamblea</span></div>
+      </div>
+    </div>
+  </section>
+
+  <details class="export" id="export">
+    <summary>Texto para Gamma, Canva o PowerPoint <span id="exportHint">Contenido de la pestaña activa, con tarjetas separadas por ---</span></summary>
+    <div class="export-body">
+      <div class="export-actions">
+        <button class="btn" id="copyOne" type="button">Copiar pestaña activa</button>
+        <button class="btn" id="copyAll" type="button">Copiar las 4 pestañas</button>
+        <span class="copied" id="copied" role="status"></span>
+      </div>
+      <pre id="exportText" tabindex="0"></pre>
+    </div>
+  </details>
+
+  <section class="kit" aria-labelledby="kit-h">
+    <h2 id="kit-h">Kit de diseño para la presentación</h2>
+    <div class="kit-grid">
+      <div>
+        <h3>Esquema de colores</h3>
+        <div class="sw"><i style="background:#173A6E"></i><div>Azul marino corporativo · 2025<small>#173A6E</small></div></div>
+        <div class="sw"><i style="background:#1D7A4B"></i><div>Verde · hitos 2026<small>#1D7A4B</small></div></div>
+        <div class="sw"><i style="background:#B42318"></i><div>Rojo · No superada<small>#B42318</small></div></div>
+        <div class="sw"><i style="background:#D99A1E"></i><div>Amarillo/ámbar · Parcialmente superada<small>#D99A1E (fondo) · #A86410 (texto)</small></div></div>
+        <div class="sw"><i style="background:#EEF2F8"></i><div>Neutro de fondo para tarjetas<small>#EEF2F8 · texto #142033</small></div></div>
+      </div>
+      <div>
+        <h3>Tipografía</h3>
+        <ul>
+          <li><b>Títulos:</b> Archivo Bold/ExtraBold (alternativa en Canva y PowerPoint: Montserrat Bold).</li>
+          <li><b>Texto y tablas:</b> Source Sans 3 (alternativa: Open Sans o Calibri).</li>
+          <li><b>Números de nota y fechas:</b> JetBrains Mono o Consolas.</li>
+          <li>Escala sugerida en 16:9: título 36 pt, subtítulo 20 pt, tabla 14 pt, etiquetas 11 pt en mayúsculas.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Cómo llevarlo a cada herramienta</h3>
+        <ul>
+          <li><b>Gamma:</b> Crear → Pegar texto. Cada <span class="mono">---</span> genera una tarjeta. Elegir tema claro y aplicar los colores de arriba.</li>
+          <li><b>Canva:</b> plantilla de presentación 16:9; una página por bloque <span class="mono">---</span>; tablas con el elemento Tabla.</li>
+          <li><b>PowerPoint:</b> Vista → Patrón de diapositivas; crear diseños “Resumen”, “Tabla” y “Línea de tiempo” con estos colores y fuentes; pegar cada bloque.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>
+
+<script>
+const NOTES = [
+  { y: 2025, no: "DS-SABAO-BCS-BC-9337", fecha: "09/04/2025", tipo: "Nombramiento de visita ampliada", facts: [["Fecha de corte", "30/04/2025"], ["Inicio de visita", "19/05/2025"]] },
+  { y: 2025, no: "DS-SABAO-BCS-BC-17003", fecha: "05/11/2025", tipo: "Informe de resultados preliminares", facts: [["Resultados", "9 observaciones"]] },
+  { y: 2026, no: "SABAO-BCS-BC-18432", fecha: "31/07/2026", tipo: "Nombramiento de visita ampliada", facts: [["Fecha de corte", "31/07/2026"], ["Inicio de visita", "21/08/2026"]] },
+  { y: 2026, no: "DS-SABAO-BCS-BC-22741", fecha: "09/10/2026", tipo: "Informe de resultados preliminares", facts: [["Anexo A", "7 nuevas"], ["Anexo B", "2 de seguimiento"]] }
+];
+
+const OBS25 = [
+  ["Falta de Política de Operaciones Vinculadas", "Consejo de Administración / Gerencia General", "Requerida por Art. 12 NRP-17"],
+  ["Sin evidencia de firma de confidencialidad e inducción en actas", "Consejo de Administración / Secretaría", "Incumplimiento del Manual de Inducción"],
+  ["Comités de apoyo no integran personal ejecutivo", "Consejo de Administración / RRHH", "Incumplimiento Art. 3 literal h) NRP-17", "bad", "2026: No superada"],
+  ["Inconsistencia en pago de dietas (Reglamento vs. Asamblea General)", "Consejo de Administración / Asamblea", "Requiere actualización del Reglamento y autorización de Asamblea"],
+  ["Normativa interna desactualizada (más de 2 años sin revisión)", "Departamento de Procesos / Líderes de Área", "9 documentos vencidos (RIT, Auditoría, Riesgos, etc.)", "warn", "2026: Parcialmente superada"],
+  ["Falta de soporte en expedientes de créditos de Ferias de Crédito", "Gerencia de Créditos / Riesgos", "Sin acuerdos de CA ni soporte de tasas"],
+  ["Falta de información obligatoria en declaración jurada de personas relacionadas", "Directivos y Equipo Gerencial", "Incumplimiento Art. 9 NRP-75"],
+  ["Omisiones en procedimientos del Manual de Compras de Bienes y Servicios", "Servicios Generales / Área Contratante", "Cotizaciones sin sellar y falta de cláusula penal"],
+  ["Uso del Fondo de Educación en fines distintos a los legales", "Comité de Educación / Gerencia Financiera", "Gastos socio-culturales/operativos (Art. 59 Ley de Cooperativas)", "warn", "2026: Reincide (Anexo A 6 y 7)"]
+];
+
+const PLAZO_A = "Plazo de descargo: 10 días hábiles";
+const OBS26A = [
+  ["Falta de inducción sobre partidas relevantes de EEFF a nuevos miembros", "Gerencia Financiera / RRHH", "Art. 11 NRP-17"],
+  ["Falta de certificación de lectura del Código de Conducta", "Junta de Vigilancia / Comités de Apoyo", ""],
+  ["Falta de formalización y aprobación de políticas por el Consejo de Administración", "Consejo de Administración", "Políticas de Retribución y Control Interno"],
+  ["Información de comités desactualizada en sitio web institucional", "Oficialía de Cumplimiento / Comunicaciones", "Arts. 27 y 28 NRP-17"],
+  ["Incongruencia entre Estatutos y Código de Gobierno Corporativo", "Asesoría Legal / Consejo de Administración", "Restricción de cargos remunerados"],
+  ["Reglamento del Fondo de Educación incluye conceptos no delimitados por Ley", "Comité de Educación / Gerencia Financiera", "Art. 5 del Reglamento"],
+  ["Limitada transparencia en información presentada a Asamblea sobre Fondo de Educación", "Consejo de Administración / Comité de Educación", "$100,774.28 no detallados"]
+];
+const OBS26B = [
+  ["Comités de apoyo no integran personal ejecutivo", "Consejo de Administración", "No superada", "bad", "Plan de solución en 15 días hábiles"],
+  ["Normativa interna desactualizada (RIT, Comité de Auditoría, Compras)", "Departamento de Procesos", "Parcialmente superada", "warn", "Plan de solución en 15 días hábiles"]
+];
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const thead = `<thead><tr><th>#</th><th>Nombre de la observación</th><th>Responsable / área implicada</th><th>Estado actual / criterio SSF</th></tr></thead>`;
+
+// Slider 1
+document.getElementById("periods").innerHTML = [2025, 2026].map(y => `
+  <article class="period y${String(y).slice(2)}">
+    <header><h3>${y}</h3><span>${y === 2025 ? "Visita 1 · corte 30/04/2025" : "Visita 2 · corte 31/07/2026"}</span></header>
+    ${NOTES.filter(n => n.y === y).map(n => `
+      <div class="note">
+        <div class="row1"><span class="tipo">${esc(n.tipo)}</span><span class="pill soft num">${n.fecha}</span></div>
+        <span class="no mono">Nota No. ${esc(n.no)}</span>
+        <dl class="facts">${n.facts.map(([k, v]) => `<div><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`).join("")}</dl>
+      </div>`).join("")}
+  </article>`).join("");
+
+// Slider 2
+document.getElementById("tbl25").innerHTML = `<caption>Nota DS-SABAO-BCS-BC-17003 <span class="pill y25">9 observaciones</span></caption>${thead}<tbody>${
+  OBS25.map(([o, r, e, st, link], i) => `<tr class="${st ? "st-" + st : ""}"><td class="idx">${i + 1}</td><td class="obs">${esc(o)}${link ? `<span class="link-chip ${st === "warn" ? "warn" : ""}">↳ ${esc(link)}</span>` : ""}</td><td class="resp">${esc(r)}</td><td>${esc(e)}</td></tr>`).join("")
+}</tbody>`;
+
+// Slider 3
+document.getElementById("tbl26a").innerHTML = `<caption>Anexo A · Observaciones determinadas en la visita 2026 <span class="pill y26">7 nuevas</span></caption>${thead}<tbody>${
+  OBS26A.map(([o, r, c], i) => `<tr><td class="idx">${i + 1}</td><td class="obs">${esc(o)}</td><td class="resp">${esc(r)}</td><td><span class="pill y26">10 días hábiles</span>${c ? `<span class="crit">${esc(c)}</span>` : ""}</td></tr>`).join("")
+}</tbody>`;
+document.getElementById("tbl26b").innerHTML = `<caption>Anexo B · Seguimiento a observaciones de visitas anteriores <span class="pill soft">2 de seguimiento</span></caption>${thead}<tbody>${
+  OBS26B.map(([o, r, s, st, p], i) => `<tr class="st-${st}"><td class="idx">${i + 8}</td><td class="obs">${esc(o)}</td><td class="resp">${esc(r)}</td><td><span class="pill ${st}">${esc(s)}</span><span class="crit">${esc(p)}</span></td></tr>`).join("")
+}</tbody>`;
+
+// Plazos: días hábiles restantes (lun-vie, sin asuetos)
+function bizLeft(dmy) {
+  const [d, m, y] = dmy.split("/").map(Number);
+  const end = new Date(y, m - 1, d), t = new Date(); t.setHours(0, 0, 0, 0);
+  let n = 0; const c = new Date(t);
+  while (c < end) { c.setDate(c.getDate() + 1); const w = c.getDay(); if (w && w !== 6) n++; }
+  return t > end ? "Plazo vencido" : n === 0 ? "Vence hoy" : `${n} días hábiles restantes`;
+}
+document.getElementById("dlAleft").textContent = bizLeft("23/10/2026");
+document.getElementById("dlBleft").textContent = bizLeft("30/10/2026");
+
+// Texto exportable (Gamma / Canva / PowerPoint)
+const EXPORT = {
+  s1: `# Supervisiones de Gobierno Corporativo SSF a COMEDICA de R.L.
+Resumen de notas de notificación 2025 - 2026
+
+---
+
+## Periodo 2025 (Visita 1)
+${NOTES.filter(n => n.y === 2025).map(n => `- **Nota No. ${n.no}** (${n.fecha}): ${n.tipo}. ${n.facts.map(f => f.join(": ")).join(" · ")}`).join("\n")}
+
+---
+
+## Periodo 2026 (Visita 2)
+${NOTES.filter(n => n.y === 2026).map(n => `- **Nota No. ${n.no}** (${n.fecha}): ${n.tipo}. ${n.facts.map(f => f.join(": ")).join(" · ")}`).join("\n")}`,
+  s2: `# Detalle de observaciones · Nota 17003 (2025)
+
+| # | Nombre de la observación | Responsable / Área implicada | Estado actual / Criterio SSF |
+|---|---|---|---|
+${OBS25.map(([o, r, e, , l], i) => `| ${i + 1} | ${o} | ${r} | ${e}${l ? " (" + l + ")" : ""} |`).join("\n")}`,
+  s3: `# Detalle de observaciones · Nota 22741 (2026)
+
+## Anexo A · Observaciones determinadas en la visita 2026
+Plazo: 10 días hábiles para pruebas de descargo (buzón DESCARGOS_OBSERVACIONES)
+
+| # | Nombre de la observación | Responsable / Área implicada | Estado actual / Criterio SSF |
+|---|---|---|---|
+${OBS26A.map(([o, r, c], i) => `| ${i + 1} | ${o} | ${r} | ${PLAZO_A}${c ? " (" + c + ")" : ""} |`).join("\n")}
+
+---
+
+## Anexo B · Seguimiento a observaciones de visitas anteriores
+Plazo: 15 días hábiles para plan de solución (buzón PLANES_SOLUC_VISITASUPERVIS)
+
+| # | Nombre de la observación | Responsable / Área implicada | Estado actual / Criterio SSF |
+|---|---|---|---|
+${OBS26B.map(([o, r, s, , p], i) => `| ${i + 8} | ${o} | ${r} | ${s.toUpperCase()} (${p}) |`).join("\n")}`,
+  s4: `# Línea de tiempo comparativa 2025 vs. 2026
+
+---
+
+## Línea de tiempo 2025
+1. **09/Abr/2025**: Emisión de nombramiento SSF (visita con corte al 30/Abr/2025)
+2. **19/May/2025**: Inicio formal de la visita de supervisión en sitio
+3. **05/Nov/2025**: Informe preliminar (Nota 17003) con 9 observaciones
+
+**Hallazgos críticos 2025:** Ausencia de Política de Operaciones Vinculadas · Normativa interna desactualizada · Uso inapropiado del Fondo de Educación
+
+---
+
+## Línea de tiempo 2026
+1. **31/Jul/2026**: Emisión de nombramiento SSF (visita con corte al 31/Jul/2026)
+2. **21/Ago/2026**: Inicio de la visita de supervisión ampliada
+3. **09/Oct/2026**: Informe preliminar (Nota 22741) con 7 nuevas (Anexo A) y 2 de seguimiento (Anexo B)
+4. **Actual**: 10 días hábiles para descargos (aprox. 23/10/2026) y 15 días hábiles para plan de solución (aprox. 30/10/2026)
+
+---
+
+## Análisis de evolución
+- **Integración de comités con ejecutivos:** Obs. 3 (2025) → NO SUPERADA (2026)
+- **Actualización de normativa interna:** Obs. 5 (2025) → PARCIALMENTE SUPERADA (2026)
+- **Gobernanza del Fondo de Educación:** Obs. 9 (2025) → Reincide en 2026 (Reglamento sin criterios legales y $100,774.28 sin detalle a la Asamblea)`
+};
+
+// Tabs
+const ORDER = ["s1", "s2", "s3", "s4"];
+const LABELS = { s1: "Resumen", s2: "Obs. 2025", s3: "Obs. 2026", s4: "Línea de tiempo" };
+const tabs = [...document.querySelectorAll(".tab")];
+const exportText = document.getElementById("exportText");
+let current = "s1";
+function show(id, focus) {
+  if (!ORDER.includes(id)) id = "s1";
+  current = id;
+  ORDER.forEach(p => { document.getElementById(p).hidden = p !== id; });
+  tabs.forEach(t => { const on = t.getAttribute("aria-controls") === id; t.setAttribute("aria-selected", on); t.tabIndex = on ? 0 : -1; if (on && focus) t.focus(); });
+  exportText.textContent = EXPORT[id];
+  try { history.replaceState(null, "", "#" + id); } catch (e) {}
+}
+tabs.forEach((t, i) => {
+  t.addEventListener("click", () => show(t.getAttribute("aria-controls")));
+  t.addEventListener("keydown", e => {
+    const d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+    if (d) { e.preventDefault(); show(ORDER[(i + d + 4) % 4], true); }
+  });
+});
+document.querySelectorAll(".pager").forEach(p => {
+  const id = p.closest(".panel").id, i = ORDER.indexOf(id);
+  p.innerHTML = `<button class="btn" type="button" ${i === 0 ? "disabled" : ""} data-go="${ORDER[i - 1] || ""}">← ${LABELS[ORDER[i - 1]] || "Anterior"}</button><button class="btn" type="button" ${i === 3 ? "disabled" : ""} data-go="${ORDER[i + 1] || ""}">${LABELS[ORDER[i + 1]] || "Siguiente"} →</button>`;
+});
+document.addEventListener("click", e => { const b = e.target.closest("[data-go]"); if (b && b.dataset.go) { show(b.dataset.go); document.querySelector(".tabs").scrollIntoView({ block: "nearest" }); } });
+show((location.hash || "#s1").slice(1));
+
+// Copiar
+const copied = document.getElementById("copied");
+function copy(text) {
+  const done = msg => { copied.textContent = msg; setTimeout(() => copied.textContent = "", 2500); };
+  const fallback = () => { exportText.textContent = text; const r = document.createRange(); r.selectNodeContents(exportText); const s = getSelection(); s.removeAllRanges(); s.addRange(r); done("Texto seleccionado: presione Ctrl+C"); };
+  try { navigator.clipboard.writeText(text).then(() => done("Copiado"), fallback); } catch (e) { fallback(); }
+}
+document.getElementById("copyOne").addEventListener("click", () => copy(EXPORT[current]));
+document.getElementById("copyAll").addEventListener("click", () => copy(ORDER.map(k => EXPORT[k]).join("\n\n---\n\n")));
+</script>
