@@ -93,7 +93,7 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
       { fecha: "31/07/2026", tipo: "Nombramiento de visita ampliada", no: "SABAO-BCS-BC-18432", ini: ["INICIO DE VISITA", "21", "AGO 2026"], fin: ["INFORME", "09", "OCT 2026"], facts: [["Corte", "31/07/2026"], ["Norma", "NRP-17"]] },
       { fecha: "09/10/2026", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-22741", ini: ["RECEPCIÓN", "09", "OCT 2026"], fin: ["VENCE APROX.", "23", "OCT 2026"],
         groups: [
-          { t: "7 NUEVAS · ANEXO A", col: GREEN, cols: [[[1, "Inducción sobre partidas de EEFF"], [2, "Certificación del Código de Conducta"], [3, "Políticas sin aprobar por el Consejo"], [4, "Sitio web de comités desactualizado"], [5, "Estatutos vs. Código de GC"], [6, "Reglamento del Fondo de Educación"], [7, "Transparencia ante la Asamblea"]]] },
+          { t: "7 NUEVAS · ANEXO A", col: GREEN, cols: [[[1, "Inducción sobre estados financieros"], [2, "Certificación del Código de Conducta"], [3, "Políticas sin aprobar por el Consejo"], [4, "Sitio web de comités desactualizado"], [5, "Integración de Comités de Apoyo"], [6, "Reglamento del Fondo de Educación"], [7, "Transparencia ante la Asamblea"]]] },
           { t: "2 EN SEGUIMIENTO", col: RED, cols: [[["Obs. 3", "Comités sin ejecutivos", "No superada"], ["Obs. 5", "Normativa interna", "Parcialmente superada"]]] }] }] },
   ];
   const gapC = 0.42, cwA = 3.05, cwB = RW - cwA - gapC, ch = 2.62, dw = 1.08;
@@ -165,15 +165,15 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   legendDot(s, "Leyenda abierta", "En seguimiento SSF 2026", 10.85, 0.85, RED, 1.95);
   // Responsable y respuesta: Matriz de requerimientos (descargos) Circular 17003
   const O = [
-    ["Falta de Política de Operaciones Vinculadas", "ADR / Jefe de Riesgos", "Se creará la política: Comité de Riesgos y aprobación del Consejo"],
-    ["Sin evidencia de firma de confidencialidad ni fechas de inducción en actas", "ADR / Jefe de Riesgos", "Acta CA 2579 (28/04/2025): convenio sin efecto y fechas de inducción aprobadas"],
-    ["Comités de Apoyo no integran personal ejecutivo", "ADR / Jefe de Riesgos", "Integración sustentada en Estatutos (arts. 61 y 73)", "Seguimiento 2026: NO SUPERADA", RED],
-    ["Inconsistencia en pago de dietas (Reglamento vs. Asamblea General)", "Jefe de Administración de Riesgos", "Se actualizará el Reglamento de Compensaciones Económicas"],
-    ["Normativa interna desactualizada (más de 2 años sin revisión)", "ADR, Auditoría Interna, G. Financiera, Seg. de la Información y G. Administrativa", "3 de 9 documentos actualizados; el resto en proceso", "Seguimiento 2026: PARCIALMENTE SUPERADA", RED],
-    ["Falta de soporte en expedientes de créditos de Ferias de Crédito", "Gerencia de Negocios / Administración de Cartera", "Se remitieron resoluciones y acuerdos del CA de cada feria"],
-    ["Falta de información obligatoria en declaración jurada de personas relacionadas", "ADR / Jefe de Riesgos", "Se pidió a la SSF el detalle de las personas señaladas"],
-    ["Omisiones en procedimientos del Manual de Compras de Bienes y Servicios", "Gerencia Administrativa / Gerente Administrativa", "Firmas de Mercadeo y Gerencia General; contrato DLF terminado"],
-    ["Uso del Fondo de Educación en fines distintos a los legales", "Jefe de Administración de Riesgos", "CA suspendió el Comité Sociocultural (Acta 2576, 07/04/2025)"],
+    ["Falta de Política de Operaciones Vinculadas", "Gerencia General / Jefe de Administración de Riesgos", "Se creará la política para aprobación del Consejo de Administración"],
+    ["Sin evidencia de firma de confidencialidad ni fechas de inducción en actas", "Gerencia General / Jefe de Administración de Riesgos", "Acta 2579 del Consejo de Administración: fechas de inducción aprobadas"],
+    ["Comités de Apoyo no integran personal ejecutivo", "Gerencia General / Jefe de Administración de Riesgos", "Integración sustentada en Estatutos (arts. 61 y 73)", "Seguimiento 2026: NO SUPERADA", RED],
+    ["Inconsistencia en pago de dietas (Reglamento vs. Asamblea General)", "Gerencia General / Jefe de Administración de Riesgos", "Se actualizará el Reglamento de Compensaciones Económicas"],
+    ["Normativa interna desactualizada (más de 2 años sin revisión)", "Gerencia General / Jefe de Administración de Riesgos, Auditoría Interna, Gerencia de Finanzas, Seguridad de la Información y Gerencia Administrativa", "3 de 9 documentos actualizados; el resto en proceso", "Seguimiento 2026: PARCIALMENTE SUPERADA", RED],
+    ["Falta de soporte en expedientes de créditos de Ferias de Crédito", "Gerencia de Negocios / Administración de Cartera", "Se enviaron resoluciones y acuerdos del Consejo de cada feria"],
+    ["Falta de información obligatoria en declaración jurada de personas relacionadas", "Gerencia General / Jefe de Administración de Riesgos", "Se pidió a la SSF el detalle de las personas señaladas"],
+    ["Omisiones en procedimientos del Manual de Compras de Bienes y Servicios", "Gerencia Administrativa", "Firmas de Mercadeo y Gerencia General; contrato terminado"],
+    ["Uso del Fondo de Educación en fines distintos a los legales", "Gerencia General / Jefe de Administración de Riesgos", "El Consejo de Administración suspendió el Comité Sociocultural (Acta 2576)"],
   ];
   const gap = 0.15, cw = (W - 2 * M - 2 * gap) / 3, ch = 1.75, y0 = 1.45;
   O.forEach(([t, r, c, st, col], i) => {
@@ -198,13 +198,13 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   legendDot(s, "Leyenda B", "Anexo B · seguimiento 2025", 10.55, 0.85, NAVY, 2.1);
   // Responsable y respuesta: Matriz de requerimientos y Plan de solución, Circular 22741
   const A = [
-    ["Falta de inducción sobre partidas relevantes de EEFF a nuevos miembros", "Gerencia Financiera", ""],
+    ["Falta de inducción sobre estados financieros a nuevos miembros", "Gerencia Financiera", ""],
     ["Falta de Certificación de Lectura del Código de Conducta", "Gerencia de Oficialía de Cumplimiento", "6 de 7 certificaciones localizadas; se pide reconsiderar"],
-    ["Falta de formalización y aprobación de políticas", "Talento Humano · Depto. de Procesos", "Se elaborará la Política de Retribución para aprobación del CA"],
+    ["Falta de formalización y aprobación de políticas", "Talento Humano · Departamento de Procesos", "Se elaborará la Política de Retribución para aprobación del Consejo"],
     ["Información de comités desactualizada en el sitio web", "Administración de Riesgos", ""],
     ["Incongruencia entre Estatutos y Código de Gobierno Corporativo", "Gerencia General · Administración de Riesgos", ""],
-    ["Reglamento del Fondo de Educación con conceptos no delimitados por Ley", "Gerencia Administrativa · Jefe de Educación y Resp. Social", "Revisión integral del Reglamento del Fondo"],
-    ["Limitada transparencia a la Asamblea sobre el Fondo de Educación", "Gerencia Administrativa · Jefatura de Educación y Resp. Social", "Memoria de Labores 2026 con conceptos y montos"],
+    ["Reglamento del Fondo de Educación con conceptos no delimitados por Ley", "Gerencia Administrativa · Jefe de Educación y Responsabilidad Social", "Revisión integral del Reglamento del Fondo"],
+    ["Limitada transparencia a la Asamblea sobre el Fondo de Educación", "Gerencia Administrativa · Jefatura de Educación y Responsabilidad Social", "Memoria de Labores 2026 con conceptos y montos"],
   ];
   const gap = 0.12, cw = (W - 2 * M - 3 * gap) / 4, ch = 1.58;
   txt(s, "Etiqueta Anexo A", "ANEXO A · OBSERVACIONES NUEVAS DETERMINADAS EN LA VISITA 2026", { x: M, y: 1.4, w: 9, h: 0.26, fontSize: 11, bold: true, color: GREEN, charSpacing: 2 });
@@ -228,7 +228,7 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   txt(s, "Etiqueta Anexo B", "ANEXO B · SEGUIMIENTO A 2 DE LAS 9 OBSERVACIONES DE 2025 (NO SON NUEVAS)", { x: M, y: yB - 0.3, w: 9, h: 0.26, fontSize: 11, bold: true, color: AMBER_INK, charSpacing: 2 });
   const B = [
     ["Comités de Apoyo no integran personal ejecutivo", "Gerencia General · Jefe de Administración de Riesgos", "Plan de solución: acciones aún sin registrar", "NO SUPERADA", RED, 3],
-    ["Normativa interna desactualizada", "Talento Humano · Auditor Interno · Servicios Generales", "RIT y Manual de Compras en proceso · Reglamento del Comité de Auditoría aprobado (28/08/2026) y enviado al CA (05/10/2026)", "PARCIALMENTE SUPERADA", AMBER, 5],
+    ["Normativa interna desactualizada", "Talento Humano · Auditor Interno · Servicios Generales", "RIT y Manual de Compras en proceso · Reglamento del Comité de Auditoría aprobado (28/08/2026) y enviado al Consejo (05/10/2026)", "PARCIALMENTE SUPERADA", AMBER, 5],
   ];
   const bw = (W - 2 * M - cw - 2 * gap) / 2, bh = 1.45;
   B.forEach(([t, r, av, st, col, n25], i) => {
