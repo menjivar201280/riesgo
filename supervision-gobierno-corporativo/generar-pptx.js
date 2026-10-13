@@ -103,32 +103,37 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   const RX = PANEL + 0.5, RW = W - M - RX;
   const rows = [
     { y: 0.5, yr: "2025", sub: "Visita 1 · supervisión ampliada", color: NAVY, cards: [
-      { d: "09", m: "ABR", tipo: "Nombramiento de visita ampliada", no: "DS-SABAO-BCS-BC-9337", facts: [["Corte", "30/04/2025"], ["Inicio de visita", "19/05/2025"]] },
-      { d: "05", m: "NOV", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-17003", facts: [["Resultado", "9 observaciones"], ["Descargos", "18/11/2025"]] }] },
+      { fecha: "09/04/2025", tipo: "Nombramiento de visita ampliada", no: "DS-SABAO-BCS-BC-9337", ini: ["INICIO DE VISITA", "19", "MAY 2025"], fin: ["INFORME", "05", "NOV 2025"], facts: [["Corte", "30/04/2025"], ["Alcance", "Gobierno Corporativo"]] },
+      { fecha: "05/11/2025", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-17003", ini: ["RECEPCIÓN", "05", "NOV 2025"], fin: ["DESCARGOS", "18", "NOV 2025"], facts: [["Resultado", "9 observaciones"], ["Ref. envío", "NB07-2025-974"]] }] },
     { y: 3.72, yr: "2026", sub: "Visita 2 · supervisión ampliada", color: GREEN, cards: [
-      { d: "31", m: "JUL", tipo: "Nombramiento de visita ampliada", no: "SABAO-BCS-BC-18432", facts: [["Corte", "31/07/2026"], ["Inicio de visita", "21/08/2026"]] },
-      { d: "09", m: "OCT", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-22741", facts: [["Anexo A", "7 nuevas"], ["Anexo B", "obs. 3 y 5 de 2025"]] }] },
+      { fecha: "31/07/2026", tipo: "Nombramiento de visita ampliada", no: "SABAO-BCS-BC-18432", ini: ["INICIO DE VISITA", "21", "AGO 2026"], fin: ["INFORME", "09", "OCT 2026"], facts: [["Corte", "31/07/2026"], ["Alcance", "GC + seguimiento"]] },
+      { fecha: "09/10/2026", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-22741", ini: ["RECEPCIÓN", "09", "OCT 2026"], fin: ["VENCE APROX.", "23", "OCT 2026"], facts: [["Anexo A", "7 nuevas"], ["Anexo B", "obs. 3 y 5 de 2025"]] }] },
   ];
-  const cw = (RW - 0.5) / 2, ch = 2.3, dw = 1.0;
+  const cw = (RW - 0.5) / 2, ch = 2.3, dw = 1.15;
   rows.forEach(r => {
     txt(s, "Año " + r.yr, r.yr, { x: RX, y: r.y, w: 1.3, h: 0.55, fontSize: 30, bold: true, color: r.color, fontFace: THEME.headFontFace, valign: "middle" });
     txt(s, "Visita " + r.yr, r.sub, { x: RX + 1.35, y: r.y, w: 4, h: 0.55, fontSize: 14, color: MUTED, valign: "middle" });
     r.cards.forEach((c, j) => {
       const x = RX + j * (cw + 0.5), y = r.y + 0.7, n = `${r.yr}-${j + 1}`;
       card(s, "Tarjeta " + n, x, y, cw, ch, WHITE, { line: { color: LINE_HEX, width: 1 } });
-      // Bloque de fecha
-      card(s, "Fecha fondo " + n, x + 0.15, y + 0.15, dw, ch - 0.3, r.color);
-      txt(s, "Fecha día " + n, c.d, { x: x + 0.15, y: y + 0.5, w: dw, h: 0.6, fontSize: 34, bold: true, color: WHITE, fontFace: THEME.headFontFace, align: "center", valign: "middle" });
-      txt(s, "Fecha mes " + n, c.m, { x: x + 0.15, y: y + 1.12, w: dw, h: 0.3, fontSize: 14, bold: true, color: WHITE, align: "center", charSpacing: 2 });
-      txt(s, "Fecha año " + n, r.yr, { x: x + 0.15, y: y + 1.45, w: dw, h: 0.3, fontSize: 12, color: WHITE, align: "center" });
+      // Bloque de fechas: inicio y final
+      const bx = x + 0.15, by = y + 0.15, bh = ch - 0.3;
+      card(s, "Fechas fondo " + n, bx, by, dw, bh, r.color);
+      [c.ini, c.fin].forEach(([lab, d, my], k) => {
+        const fy = by + 0.1 + k * (bh / 2);
+        txt(s, `Fecha etiqueta ${n}-${k}`, lab, { x: bx, y: fy, w: dw, h: 0.2, fontSize: 8, bold: true, color: WHITE, align: "center", charSpacing: 1 });
+        txt(s, `Fecha día ${n}-${k}`, d, { x: bx, y: fy + 0.2, w: dw, h: 0.42, fontSize: 24, bold: true, color: WHITE, fontFace: THEME.headFontFace, align: "center", valign: "middle" });
+        txt(s, `Fecha mes ${n}-${k}`, my, { x: bx, y: fy + 0.62, w: dw, h: 0.22, fontSize: 10, bold: true, color: WHITE, align: "center", charSpacing: 1 });
+      });
+      s.addShape(pres.shapes.LINE, { objectName: "Fechas separador " + n, x: bx + 0.2, y: by + bh / 2, w: dw - 0.4, h: 0, line: { color: WHITE, width: 0.75, transparency: 40 } });
       // Contenido
-      const cx = x + dw + 0.35, cww = cw - dw - 0.5;
-      txt(s, "Tipo " + n, c.tipo, { x: cx, y: y + 0.18, w: cww, h: 0.55, fontSize: 14, bold: true, valign: "middle" });
-      txt(s, "Circular " + n, [{ text: "Circular No.", options: { breakLine: true, color: MUTED, fontSize: 10 } }, { text: c.no, options: { bold: true, color: r.color } }], { x: cx, y: y + 0.8, w: cww, h: 0.48, fontSize: 11 });
+      const cx = x + dw + 0.32, cww = cw - dw - 0.45;
+      txt(s, "Tipo " + n, c.tipo, { x: cx, y: y + 0.15, w: cww, h: 0.55, fontSize: 14, bold: true, valign: "middle" });
+      txt(s, "Circular " + n, [{ text: "Circular No.  ", options: { color: MUTED, fontSize: 10 } }, { text: c.fecha, options: { bold: true, color: r.color, fontSize: 10.5, breakLine: true } }, { text: c.no, options: { bold: true, color: r.color } }], { x: cx, y: y + 0.78, w: cww, h: 0.5, fontSize: 11 });
       c.facts.forEach(([l, v], q) => {
         const fy = y + 1.4 + q * 0.4;
         s.addShape(pres.shapes.LINE, { objectName: `Separador ${n}-${q}`, x: cx, y: fy - 0.04, w: cww, h: 0, line: { color: LINE_HEX, width: 0.75 } });
-        txt(s, `Dato ${n}-${q}`, [{ text: l + "  ", options: { color: MUTED } }, { text: v, options: { bold: true } }], { x: cx, y: fy, w: cww, h: 0.34, fontSize: 11.5, valign: "middle" });
+        txt(s, `Dato ${n}-${q}`, [{ text: l + "  ", options: { color: MUTED } }, { text: v, options: { bold: true } }], { x: cx, y: fy, w: cww, h: 0.34, fontSize: 11, valign: "middle" });
       });
     });
     s.addShape(pres.shapes.RIGHT_ARROW, { objectName: "Flecha " + r.yr, x: RX + cw + 0.1, y: r.y + 0.7 + ch / 2 - 0.15, w: 0.3, h: 0.3, fill: { color: r.color }, line: { color: r.color, transparency: 100 } });
