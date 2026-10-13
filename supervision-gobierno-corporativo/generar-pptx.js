@@ -84,7 +84,7 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   const RX = PANEL + 0.5, RW = W - M - RX;
   const rows = [
     { y: 0.35, yr: "2025", sub: "Visita 1 · supervisión ampliada", color: NAVY, cards: [
-      { fecha: "09/04/2025", tipo: "Nombramiento de visita ampliada", no: "DS-SABAO-BCS-BC-9337", ini: ["INICIO DE VISITA", "19", "MAY 2025"], fin: ["INFORME", "05", "NOV 2025"], facts: [["Corte", "30/04/2025"], ["Norma", "NRP-17"]] },
+      { fecha: "09/04/2025", tipo: "Nombramiento de visita ampliada", no: "DS-SABAO-BCS-BC-9337", ini: ["INICIO DE VISITA", "19", "MAY 2025"], fin: ["ACTA DE CIERRE", "04", "JUL 2025"], facts: [["Corte", "30/04/2025"], ["Norma", "NRP-17"]] },
       { fecha: "05/11/2025", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-17003", ini: ["RECEPCIÓN", "05", "NOV 2025"], fin: ["DESCARGOS", "18", "NOV 2025"],
         groups: [{ t: "9 OBSERVACIONES", col: NAVY, cols: [
           [[1, "Política de Operaciones Vinculadas"], [2, "Confidencialidad e inducción"], [3, "Comités sin personal ejecutivo", "seguimiento 2026"], [4, "Pago de dietas"], [5, "Normativa interna desactualizada", "seguimiento 2026"]],
@@ -155,7 +155,7 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
     });
     s.addShape(pres.shapes.RIGHT_ARROW, { objectName: "Flecha " + r.yr, x: RX + cwA + 0.07, y: r.y + 0.6 + ch / 2 - 0.14, w: 0.28, h: 0.28, fill: { color: r.color }, line: { color: r.color, transparency: 100 } });
   });
-  s.addNotes("Cuatro circulares de la SSF. Cada año la SSF primero notifica el nombramiento de la visita ampliada y luego remite los resultados preliminares. 2025: Circular 17003 con 9 observaciones. 2026: Circular 22741 con 7 observaciones nuevas (Anexo A) y seguimiento a 2 de las 9 observaciones de 2025 (Anexo B): la obs. 3 no superada y la obs. 5 parcialmente superada.");
+  s.addNotes("Cuatro circulares de la SSF. Cada año la SSF primero notifica el nombramiento de la visita ampliada y luego remite los resultados preliminares. 2025: visita del 19/05/2025 al 04/07/2025 (Acta de Cierre de Visita); Circular 17003 con 9 observaciones; descargos recibidos por la SSF el 18/11/2025 a las 5:19 p. m. (constancia de recepción, archivo RESPUESTA SSF NOTA DS-SABAO-BCS-BC-17003). 2026: Circular 22741 con 7 observaciones nuevas (Anexo A) y seguimiento a 2 de las 9 observaciones de 2025 (Anexo B): la obs. 3 no superada y la obs. 5 parcialmente superada.");
 }
 
 // ============ SLIDE 2 · OBSERVACIONES 2025 ============
