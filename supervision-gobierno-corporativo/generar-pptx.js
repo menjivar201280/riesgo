@@ -84,7 +84,7 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   const RX = PANEL + 0.5, RW = W - M - RX;
   const rows = [
     { y: 0.35, yr: "2025", sub: "Visita 1 · supervisión ampliada", color: NAVY, cards: [
-      { fecha: "09/04/2025", tipo: "Nombramiento de visita ampliada", no: "DS-SABAO-BCS-BC-9337", ini: ["INICIO DE VISITA", "19", "MAY 2025"], fin: ["ACTA DE CIERRE", "04", "JUL 2025"], facts: [["Corte", "30/04/2025"], ["Norma", "NRP-17"]] },
+      { fecha: "09/04/2025", tipo: "Nombramiento de visita ampliada", no: "DS-SABAO-BCS-BC-9337", ini: ["INICIO DE VISITA", "19", "MAY 2025"], fin: ["ACTA DE CIERRE", "04", "JUL 2025"], facts: [["Corte", "30/04/2025"], ["Acta de cierre", "04/07/2025"]] },
       { fecha: "05/11/2025", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-17003", ini: ["RECEPCIÓN", "05", "NOV 2025"], fin: ["DESCARGOS", "18", "NOV 2025"],
         groups: [{ t: "9 OBSERVACIONES", col: NAVY, cols: [
           [[1, "Política de Operaciones Vinculadas"], [2, "Confidencialidad e inducción"], [3, "Comités sin personal ejecutivo", "seguimiento 2026"], [4, "Pago de dietas"], [5, "Normativa interna desactualizada", "seguimiento 2026"]],
