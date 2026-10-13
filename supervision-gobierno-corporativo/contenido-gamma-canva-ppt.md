@@ -61,7 +61,7 @@ Plazo: 10 días hábiles para pruebas de descargo (buzón DESCARGOS_OBSERVACIONE
 | 1 | Falta de inducción sobre partidas relevantes de EEFF a nuevos miembros | Gerencia Financiera (imparte la inducción según el Manual) | Plazo de descargo: 10 días hábiles (Art. 11 NRP-17) |
 | 2 | Falta de certificación de lectura del Código de Conducta | Junta de Vigilancia · Comité de Créditos · Comité de Educación | Plazo de descargo: 10 días hábiles (Cap. XI Código de Conducta) |
 | 3 | Falta de formalización y aprobación de políticas por el Consejo de Administración | Consejo de Administración | Plazo de descargo: 10 días hábiles (Art. 12 lit. c) NRP-17 · Políticas de Retribución y de Control Interno) |
-| 4 | Información de comités desactualizada en sitio web institucional | La circular no asigna área (Asociación Cooperativa) | Plazo de descargo: 10 días hábiles (Arts. 27 y 28 NRP-17) |
+| 4 | Información de comités desactualizada en sitio web institucional | Administración de Riesgo | Plazo de descargo: 10 días hábiles (Arts. 27 y 28 NRP-17) |
 | 5 | Incongruencia entre Estatutos y Código de Gobierno Corporativo | Consejo de Administración (aprobó el Código, Acta 2,663) | Plazo de descargo: 10 días hábiles (Art. 3 lit. i) y Art. 20 NRP-17) |
 | 6 | Reglamento del Fondo de Educación incluye conceptos no delimitados por Ley | Comité de Educación (Reglamento, art. 5) | Plazo de descargo: 10 días hábiles (Art. 59 LGAC y Art. 69 de su Reglamento) |
 | 7 | Limitada transparencia en información presentada a Asamblea sobre Fondo de Educación | Consejo de Administración (Memoria de Labores 2025) | Plazo de descargo: 10 días hábiles (Art. 12 lit. q) NRP-17 · US$100,774.28 no detallados) |
@@ -73,8 +73,8 @@ Plazo: 15 días hábiles para plan de solución (buzón PLANES_SOLUC_VISITASUPER
 
 | # | Nombre de la observación | Responsable / Área implicada | Estado actual / Criterio SSF |
 |---|---|---|---|
-| Obs. 3 de 2025 | Comités de apoyo no integran personal ejecutivo | Consejo de Administración | NO SUPERADA (Plan de solución en 15 días hábiles) |
-| Obs. 5 de 2025 | Normativa interna desactualizada (RIT, Comité de Auditoría, Compras) | Líderes de procesos · Departamento de Procesos | PARCIALMENTE SUPERADA (Plan de solución en 15 días hábiles) |
+| Obs. 3 de 2025 | Comités de apoyo no integran personal ejecutivo | Administración de Riesgo | NO SUPERADA (Plan de solución en 15 días hábiles) |
+| Obs. 5 de 2025 | Normativa interna desactualizada (RIT, Comité de Auditoría, Compras) | Auditoría Interna, Servicios Generales y Talento Humano | PARCIALMENTE SUPERADA (Plan de solución en 15 días hábiles) |
 
 ---
 

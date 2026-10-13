@@ -135,7 +135,7 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
     ["Sin evidencia de firma de confidencialidad ni fechas de inducción en actas", "Consejo de Administración (primera sesión con nuevos miembros)", "Manual de Inducción y Capacitación"],
     ["Comités de Apoyo no integran personal ejecutivo", "Consejo de Administración", "Art. 3 literal h) NRP-17", "Seguimiento 2026: NO SUPERADA", RED],
     ["Inconsistencia en pago de dietas (Reglamento vs. Asamblea General)", "Consejo de Administración · Asamblea General de Asociados", "Arts. 12 lit. g) y q), 27 lit. a) NRP-17"],
-    ["Normativa interna desactualizada (más de 2 años sin revisión)", "Líderes de procesos · Departamento de Procesos", "Art. 12 lit. n) NRP-17 · 9 documentos", "Seguimiento 2026: PARCIALMENTE SUPERADA", AMBER_INK],
+    ["Normativa interna desactualizada (más de 2 años sin revisión)", "Líderes de procesos · Departamento de Procesos", "Art. 12 lit. n) NRP-17 · 9 documentos", "Seguimiento 2026: PARCIALMENTE SUPERADA", RED],
     ["Falta de soporte en expedientes de créditos de Ferias de Crédito", "Consejo de Administración (acuerdos de las ferias no identificados)", "Sin acuerdos ni soporte de cambios de tasa"],
     ["Falta de información obligatoria en declaración jurada de personas relacionadas", "Miembros del Consejo de Administración y equipo gerencial", "Art. 9 NRP-75"],
     ["Omisiones en procedimientos del Manual de Compras de Bienes y Servicios", "Jefe de Servicios Generales · áreas solicitantes", "Cotizaciones sin sello · sin cláusula de penalización"],
@@ -167,7 +167,7 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
     ["Falta de inducción sobre partidas relevantes de EEFF a nuevos miembros", "Gerencia Financiera (imparte la inducción según el Manual)", "Art. 11 NRP-17"],
     ["Falta de Certificación de Lectura del Código de Conducta", "Junta de Vigilancia · Comité de Créditos · Comité de Educación", "Cap. XI Código de Conducta"],
     ["Falta de formalización y aprobación de políticas", "Consejo de Administración", "Art. 12 lit. c) NRP-17"],
-    ["Información de comités desactualizada en el sitio web", "La circular no asigna área (Asociación Cooperativa)", "Arts. 27 y 28 NRP-17"],
+    ["Información de comités desactualizada en el sitio web", "Administración de Riesgo", "Arts. 27 y 28 NRP-17"],
     ["Incongruencia entre Estatutos y Código de Gobierno Corporativo", "Consejo de Administración (aprobó el Código, Acta 2,663)", "Art. 3 lit. i) y Art. 20 NRP-17"],
     ["Reglamento del Fondo de Educación con conceptos no delimitados por Ley", "Comité de Educación (Reglamento, art. 5)", "Art. 59 LGAC · Art. 69 Reglamento"],
     ["Limitada transparencia a la Asamblea sobre el Fondo de Educación", "Consejo de Administración (Memoria de Labores 2025)", "Art. 12 lit. q) NRP-17 · US$100,774.28"],
@@ -193,8 +193,8 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   const yB = 5.6;
   txt(s, "Etiqueta Anexo B", "ANEXO B · SEGUIMIENTO A 2 DE LAS 9 OBSERVACIONES DE 2025 (NO SON NUEVAS)", { x: M, y: yB - 0.32, w: 9, h: 0.26, fontSize: 11, bold: true, color: AMBER_INK, charSpacing: 2 });
   const B = [
-    ["Comités de Apoyo no integran personal ejecutivo", "Responsable: Consejo de Administración", "NO SUPERADA", RED, 3],
-    ["Normativa interna desactualizada", "Responsable: líderes de procesos · Departamento de Procesos", "PARCIALMENTE SUPERADA", AMBER, 5],
+    ["Comités de Apoyo no integran personal ejecutivo", "Responsable: Administración de Riesgo", "NO SUPERADA", RED, 3],
+    ["Normativa interna desactualizada", "Responsables: Auditoría Interna, Servicios Generales y Talento Humano", "PARCIALMENTE SUPERADA", AMBER, 5],
   ];
   const bw = (W - 2 * M - cw - 2 * gap) / 2, bh = 1.23;
   B.forEach(([t, r, st, col, n25], i) => {
@@ -202,8 +202,9 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
     card(s, "Anexo B-" + n25, x, yB, bw, bh, col, { transparency: 88 });
     pill(s, "Origen B-" + n25, "OBS. " + n25 + " DE 2025", x + 0.2, yB + 0.17, 1.45, NAVY, 10.5);
     pill(s, "Estado B-" + n25, st, x + 1.8, yB + 0.17, st.length > 12 ? 2.4 : 1.45, col, 10.5);
-    txt(s, "Título B-" + n25, t, { x: x + 0.2, y: yB + 0.58, w: bw - 0.4, h: 0.3, fontSize: 12.5, bold: true });
-    txt(s, "Responsable B-" + n25, r, { x: x + 0.2, y: yB + 0.89, w: bw - 0.4, h: 0.25, fontSize: 10.5, color: MUTED });
+    txt(s, "Título B-" + n25, t, { x: x + 0.2, y: yB + 0.55, w: bw - 0.4, h: 0.28, fontSize: 12.5, bold: true });
+    const [lab, who] = r.split(": ");
+    txt(s, "Responsable B-" + n25, [{ text: lab + ": ", options: { bold: true, color: MUTED } }, { text: who }], { x: x + 0.2, y: yB + 0.84, w: bw - 0.4, h: 0.34, fontSize: 10.5, color: INK });
   });
   {
     const x = M + 2 * (bw + gap);
@@ -212,7 +213,7 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
     txt(s, "Plazo B título", "días hábiles para plan de solución", { x: x + 1.1, y: yB + 0.07, w: cw - 1.25, h: 0.6, fontSize: 12, bold: true, color: WHITE, valign: "middle" });
     txt(s, "Plazo B detalle", "Buzón PLANES_SOLUC_VISITASUPERVIS\nVence aprox. 30/10/2026", { x: x + 0.2, y: yB + 0.73, w: cw - 0.3, h: 0.45, fontSize: 10.5, color: WHITE });
   }
-  s.addNotes("Anexo A: siete observaciones nuevas; los responsables son los que señala la Circular 22741 (en la obs. 4 la circular no asigna un área específica). Plazo de 10 días hábiles para remitir pruebas de descargo, previo conocimiento del Consejo de Administración. Anexo B: no son observaciones nuevas, es el seguimiento a las obs. 3 y 5 de 2025; plan de solución en 15 días hábiles con acciones, responsable, plazo por acción y certificación del punto de acta del Consejo. Fechas aproximadas sin asuetos.");
+  s.addNotes("Anexo A: siete observaciones nuevas; los responsables son los que señala la Circular 22741 (en la obs. 4, Administración de Riesgo). Plazo de 10 días hábiles para remitir pruebas de descargo, previo conocimiento del Consejo de Administración. Anexo B: no son observaciones nuevas, es el seguimiento a las obs. 3 y 5 de 2025; plan de solución en 15 días hábiles con acciones, responsable, plazo por acción y certificación del punto de acta del Consejo. Fechas aproximadas sin asuetos.");
 }
 
 // ============ SLIDE 4 · LÍNEA DE TIEMPO Y EVOLUCIÓN ============
