@@ -41,13 +41,13 @@ Resumen de notas de notificación 2025 - 2026
 |---|---|---|---|
 | 1 | Falta de Política de Operaciones Vinculadas | Consejo de Administración / Gerencia General | Requerida por Art. 12 NRP-17 |
 | 2 | Sin evidencia de firma de confidencialidad e inducción en actas | Consejo de Administración / Secretaría | Incumplimiento del Manual de Inducción |
-| 3 | Comités de apoyo no integran personal ejecutivo | Consejo de Administración / RRHH | Incumplimiento Art. 3 literal h) NRP-17 (2026: No superada) |
+| 3 | Comités de apoyo no integran personal ejecutivo | Consejo de Administración / RRHH | Incumplimiento Art. 3 literal h) NRP-17 (Seguimiento 2026: No superada) |
 | 4 | Inconsistencia en pago de dietas (Reglamento vs. Asamblea General) | Consejo de Administración / Asamblea | Requiere actualización del Reglamento y autorización de Asamblea |
-| 5 | Normativa interna desactualizada (más de 2 años sin revisión) | Departamento de Procesos / Líderes de Área | 9 documentos vencidos (RIT, Auditoría, Riesgos, etc.) (2026: Parcialmente superada) |
+| 5 | Normativa interna desactualizada (más de 2 años sin revisión) | Departamento de Procesos / Líderes de Área | 9 documentos vencidos (RIT, Auditoría, Riesgos, etc.) (Seguimiento 2026: Parcialmente superada) |
 | 6 | Falta de soporte en expedientes de créditos de Ferias de Crédito | Gerencia de Créditos / Riesgos | Sin acuerdos de CA ni soporte de tasas |
 | 7 | Falta de información obligatoria en declaración jurada de personas relacionadas | Directivos y Equipo Gerencial | Incumplimiento Art. 9 NRP-75 |
 | 8 | Omisiones en procedimientos del Manual de Compras de Bienes y Servicios | Servicios Generales / Área Contratante | Cotizaciones sin sellar y falta de cláusula penal |
-| 9 | Uso del Fondo de Educación en fines distintos a los legales | Comité de Educación / Gerencia Financiera | Gastos socio-culturales/operativos (Art. 59 Ley de Cooperativas) (2026: Reincide (Anexo A 6 y 7)) |
+| 9 | Uso del Fondo de Educación en fines distintos a los legales | Comité de Educación / Gerencia Financiera | Gastos socio-culturales/operativos (Art. 59 Ley de Cooperativas) |
 
 ---
 
@@ -68,13 +68,13 @@ Plazo: 10 días hábiles para pruebas de descargo (buzón DESCARGOS_OBSERVACIONE
 
 ---
 
-## Anexo B · Seguimiento a observaciones de visitas anteriores
+## Anexo B · Seguimiento a las observaciones 3 y 5 de 2025 (no son nuevas)
 Plazo: 15 días hábiles para plan de solución (buzón PLANES_SOLUC_VISITASUPERVIS)
 
 | # | Nombre de la observación | Responsable / Área implicada | Estado actual / Criterio SSF |
 |---|---|---|---|
-| 8 | Comités de apoyo no integran personal ejecutivo | Consejo de Administración | NO SUPERADA (Plan de solución en 15 días hábiles) |
-| 9 | Normativa interna desactualizada (RIT, Comité de Auditoría, Compras) | Departamento de Procesos | PARCIALMENTE SUPERADA (Plan de solución en 15 días hábiles) |
+| Obs. 3 de 2025 | Comités de apoyo no integran personal ejecutivo | Consejo de Administración | NO SUPERADA (Plan de solución en 15 días hábiles) |
+| Obs. 5 de 2025 | Normativa interna desactualizada (RIT, Comité de Auditoría, Compras) | Departamento de Procesos | PARCIALMENTE SUPERADA (Plan de solución en 15 días hábiles) |
 
 ---
 
@@ -100,6 +100,6 @@ Plazo: 15 días hábiles para plan de solución (buzón PLANES_SOLUC_VISITASUPER
 ---
 
 ## Análisis de evolución
-- **Integración de comités con ejecutivos:** Obs. 3 (2025) → NO SUPERADA (2026)
-- **Actualización de normativa interna:** Obs. 5 (2025) → PARCIALMENTE SUPERADA (2026)
-- **Gobernanza del Fondo de Educación:** Obs. 9 (2025) → Reincide en 2026 (Reglamento sin criterios legales y $100,774.28 sin detalle a la Asamblea)
+- **Integración de comités con ejecutivos:** Obs. 3 (2025) → seguimiento 2026: NO SUPERADA
+- **Actualización de normativa interna:** Obs. 5 (2025) → seguimiento 2026: PARCIALMENTE SUPERADA
+- **Fondo de Educación:** mismo tema de la Obs. 9 (2025), pero en 2026 son observaciones nuevas (Anexo A, obs. 6 y 7), no seguimiento
