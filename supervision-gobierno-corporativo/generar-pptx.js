@@ -81,12 +81,25 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
 // ============ SLIDE 1 · RESUMEN ============
 {
   const s = addSlide("RESUMEN PANEL", "1 · Resumen de circulares SSF", "SUPERVISIONES DE GOBIERNO CORPORATIVO · COMEDICA DE R.L.", "Circulares de notificación SSF 2025 – 2026");
-  const k = [["4", "circulares recibidas de la SSF"], ["9", "observaciones en 2025"], ["7", "observaciones nuevas en 2026"], ["2", "de 2025 en seguimiento: 1 no superada, 1 parcial"]];
-  k.forEach(([n, l], i) => {
-    const x = M + (i % 2) * 1.75, y = 3.45 + Math.floor(i / 2) * 1.55;
-    txt(s, "KPI valor " + (i + 1), n, { x, y, w: 1.6, h: 0.65, fontSize: 34, bold: true, color: WHITE, fontFace: THEME.headFontFace, valign: "bottom" });
-    txt(s, "KPI texto " + (i + 1), l, { x, y: y + 0.7, w: 1.6, h: 0.6, fontSize: 12, color: TINT });
+  // Cifras del panel, separadas por año
+  const groups = [
+    { y: 3.05, yr: "2025", sub: "Visita 1 · Circular 17003", color: NAVY, outline: true, k: [["2", "circulares"], ["9", "observaciones"]] },
+    { y: 4.85, yr: "2026", sub: "Visita 2 · Circular 22741", color: GREEN, k: [["2", "circulares"], ["7", "observaciones nuevas"], ["2", "de 2025 en seguimiento"]] },
+  ];
+  const PW = PANEL - 2 * M + 0.2;
+  groups.forEach(g => {
+    s.addShape(pres.shapes.LINE, { objectName: "Separador panel " + g.yr, x: M, y: g.y, w: PW, h: 0, line: { color: TINT, width: 0.75, transparency: 60 } });
+    pill(s, "Año panel " + g.yr, g.yr, M, g.y + 0.18, 0.85, g.color, 11);
+    if (g.outline) s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "Contorno panel " + g.yr, x: M, y: g.y + 0.18, w: 0.85, h: 0.3, rectRadius: 0.15, fill: { type: "none" }, line: { color: WHITE, width: 1 } });
+    txt(s, "Visita panel " + g.yr, g.sub, { x: M + 1.0, y: g.y + 0.18, w: PW - 1.0, h: 0.3, fontSize: 11, color: TINT, valign: "middle" });
+    const kw = PW / g.k.length;
+    g.k.forEach(([n, l], i) => {
+      const x = M + i * kw;
+      txt(s, `KPI ${g.yr}-${i + 1}`, n, { x, y: g.y + 0.6, w: kw - 0.1, h: 0.6, fontSize: 32, bold: true, color: WHITE, fontFace: THEME.headFontFace, valign: "bottom" });
+      txt(s, `KPI texto ${g.yr}-${i + 1}`, l, { x, y: g.y + 1.22, w: kw - 0.1, h: 0.42, fontSize: 11, color: TINT });
+    });
   });
+  txt(s, "Seguimiento panel", "Seguimiento: obs. 3 no superada · obs. 5 parcialmente superada", { x: M, y: 6.55, w: PW, h: 0.4, fontSize: 10.5, italic: true, color: TINT });
   const RX = PANEL + 0.5, RW = W - M - RX;
   const rows = [
     { y: 0.5, yr: "2025", sub: "Visita 1 · supervisión ampliada", color: NAVY, cards: [
@@ -105,10 +118,9 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
       card(s, "Tarjeta " + n, x, y, cw, ch, WHITE, { line: { color: LINE_HEX, width: 1 } });
       // Bloque de fecha
       card(s, "Fecha fondo " + n, x + 0.15, y + 0.15, dw, ch - 0.3, r.color);
-      txt(s, "Fecha día " + n, c.d, { x: x + 0.15, y: y + 0.4, w: dw, h: 0.6, fontSize: 34, bold: true, color: WHITE, fontFace: THEME.headFontFace, align: "center", valign: "middle" });
-      txt(s, "Fecha mes " + n, c.m, { x: x + 0.15, y: y + 1.0, w: dw, h: 0.3, fontSize: 14, bold: true, color: WHITE, align: "center", charSpacing: 2 });
-      txt(s, "Fecha año " + n, r.yr, { x: x + 0.15, y: y + 1.3, w: dw, h: 0.3, fontSize: 12, color: WHITE, align: "center" });
-      txt(s, "Paso " + n, "PASO " + (j + 1) + " DE 2", { x: x + 0.15, y: y + ch - 0.55, w: dw, h: 0.25, fontSize: 9.5, bold: true, color: WHITE, align: "center", charSpacing: 1 });
+      txt(s, "Fecha día " + n, c.d, { x: x + 0.15, y: y + 0.5, w: dw, h: 0.6, fontSize: 34, bold: true, color: WHITE, fontFace: THEME.headFontFace, align: "center", valign: "middle" });
+      txt(s, "Fecha mes " + n, c.m, { x: x + 0.15, y: y + 1.12, w: dw, h: 0.3, fontSize: 14, bold: true, color: WHITE, align: "center", charSpacing: 2 });
+      txt(s, "Fecha año " + n, r.yr, { x: x + 0.15, y: y + 1.45, w: dw, h: 0.3, fontSize: 12, color: WHITE, align: "center" });
       // Contenido
       const cx = x + dw + 0.35, cww = cw - dw - 0.5;
       txt(s, "Tipo " + n, c.tipo, { x: cx, y: y + 0.18, w: cww, h: 0.55, fontSize: 14, bold: true, valign: "middle" });
