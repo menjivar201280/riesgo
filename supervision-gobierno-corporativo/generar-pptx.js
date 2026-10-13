@@ -59,9 +59,9 @@ const content = (section, eyebrow, title) => {
 const box = (s, name, x, y, w, h, fill, opts = {}) =>
   s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: name, x, y, w, h, rectRadius: 0.08, fill: { color: fill }, line: { color: fill }, ...opts });
 const txt = (s, name, text, o) => s.addText(text, { objectName: name, isTextBox: true, margin: 0, fontSize: 14, color: C.text1, valign: "top", ...o });
-const pill = (s, name, text, x, y, w, color) => {
+const pill = (s, name, text, x, y, w, color, fs = 11) => {
   s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: name + " fondo", x, y, w, h: 0.34, rectRadius: 0.17, fill: { color }, line: { color } });
-  s.addText(text, { objectName: name, isTextBox: true, x, y, w, h: 0.34, margin: 0, align: "center", valign: "middle", fontSize: 11, bold: true, color: C.background1, charSpacing: 1 });
+  s.addText(text, { objectName: name, isTextBox: true, x, y, w, h: 0.34, margin: 0, align: "center", valign: "middle", fontSize: fs, bold: true, color: C.background1, charSpacing: 1 });
 };
 
 // ---------- Tabla de observaciones ----------
@@ -88,23 +88,10 @@ function obsTable(s, name, rows, startNo, headColor, y, opts = {}) {
   });
 }
 
-// ============ 1. PORTADA ============
-pres.addSection({ title: "Portada" });
-{
-  const s = pres.addSlide({ masterName: "PORTADA", sectionTitle: "Portada" });
-  s.addText("Supervisiones de Gobierno Corporativo SSF a COMEDICA de R.L.", { placeholder: "title" });
-  s.addText("Resultados de las visitas de supervisión ampliada 2025 y 2026 · Notas oficiales, observaciones y evolución del cumplimiento", { placeholder: "body" });
-  txt(s, "Etiqueta", "SUPERINTENDENCIA DEL SISTEMA FINANCIERO · NRP-17", { x: M, y: 1.45, w: 9, h: 0.4, fontSize: 13, bold: true, color: C.background2, charSpacing: 3 });
-  pill(s, "Etiqueta 2025", "2025 · NOTA 17003", M, 5.75, 2.3, NAVY);
-  s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "Contorno 2025", x: M, y: 5.75, w: 2.3, h: 0.34, rectRadius: 0.17, fill: { type: "none" }, line: { color: C.background2, width: 1 } });
-  pill(s, "Etiqueta 2026", "2026 · NOTA 22741", M + 2.5, 5.75, 2.3, GREEN);
-  s.addNotes("Presentación de resultados de las supervisiones de Gobierno Corporativo realizadas por la SSF a COMEDICA de R.L. en 2025 y 2026. Estructura: 1) notas oficiales, 2) observaciones 2025, 3) observaciones 2026, 4) línea de tiempo y evolución.");
-}
-
-// ============ 2. SLIDER 1 · RESUMEN ============
+// ============ SLIDER 1 · RESUMEN ============
 pres.addSection({ title: "1 · Resumen de notas SSF" });
 {
-  const s = content("1 · Resumen de notas SSF", "1 · RESUMEN EJECUTIVO", "Notas de notificación SSF recibidas 2025 - 2026");
+  const s = content("1 · Resumen de notas SSF", "1 · SUPERVISIONES DE GOBIERNO CORPORATIVO SSF A COMEDICA DE R.L.", "Notas de notificación SSF 2025 - 2026");
   // KPIs
   const kpis = [["4", "notas oficiales SSF", C.text1], ["9", "observaciones 2025", NAVY], ["7 + 2", "nuevas + seguimiento 2026", GREEN], ["1 / 1", "no superada / parcial", RED]];
   const kw = (W - 2 * M - 3 * 0.3) / 4;
@@ -140,7 +127,7 @@ pres.addSection({ title: "1 · Resumen de notas SSF" });
   s.addNotes("Cuatro comunicados oficiales: en cada año la SSF primero notifica el nombramiento de la visita ampliada y luego remite el informe de resultados preliminares. 2025: 9 observaciones. 2026: 7 nuevas y 2 de seguimiento.");
 }
 
-// ============ 3-4. SLIDER 2 · OBS 2025 ============
+// ============ SLIDER 2 · OBS 2025 ============
 const OBS25 = [
   { obs: "Falta de Política de Operaciones Vinculadas", resp: "Consejo de Administración / Gerencia General", estado: "Requerida por Art. 12 NRP-17" },
   { obs: "Sin evidencia de firma de confidencialidad e inducción en actas", resp: "Consejo de Administración / Secretaría", estado: "Incumplimiento del Manual de Inducción" },
@@ -154,147 +141,95 @@ const OBS25 = [
 ];
 pres.addSection({ title: "2 · Observaciones 2025" });
 {
-  const s = content("2 · Observaciones 2025", "2 · NOTA DS-SABAO-BCS-BC-17003 · AÑO 2025", "Detalle de observaciones 2025 (1 de 2)");
-  obsTable(s, "Tabla observaciones 2025 1-5", OBS25.slice(0, 5), 1, NAVY, 1.65);
-  s.addNotes("Observaciones 1 a 5 de la Nota 17003. Las observaciones 3 y 5 se volvieron a señalar en la visita 2026 (Anexo B).");
-}
-{
-  const s = content("2 · Observaciones 2025", "2 · NOTA DS-SABAO-BCS-BC-17003 · AÑO 2025", "Detalle de observaciones 2025 (2 de 2)");
-  obsTable(s, "Tabla observaciones 2025 6-9", OBS25.slice(5), 6, NAVY, 1.65);
-  // Callout de persistencia
-  const y = 5.55, cw = (W - 2 * M - 0.6) / 3;
-  [["Obs. 3 · Comités sin ejecutivos", "NO SUPERADA en 2026", RED], ["Obs. 5 · Normativa desactualizada", "PARCIALMENTE SUPERADA en 2026", AMBER_INK], ["Obs. 9 · Fondo de Educación", "REINCIDE en 2026", AMBER_INK]].forEach(([a, b, c], i) => {
-    const x = M + i * (cw + 0.3);
-    box(s, "Persistencia " + (i + 1), x, y, cw, 1.05, C.background2);
-    txt(s, "Persistencia título " + (i + 1), a, { x: x + 0.2, y: y + 0.15, w: cw - 0.4, h: 0.35, fontSize: 14, bold: true });
-    txt(s, "Persistencia estado " + (i + 1), b, { x: x + 0.2, y: y + 0.55, w: cw - 0.4, h: 0.35, fontSize: 14, bold: true, color: c });
-  });
-  s.addNotes("Observaciones 6 a 9. Abajo, las tres observaciones de 2025 que siguen abiertas en la visita 2026.");
+  const s = content("2 · Observaciones 2025", "2 · NOTA DS-SABAO-BCS-BC-17003 · AÑO 2025", "Detalle de observaciones 2025");
+  obsTable(s, "Tabla observaciones 2025", OBS25, 1, NAVY, 1.6, { fontSize: 12, margin: [0.05, 0.1, 0.05, 0.1] });
+  s.addNotes("Nueve observaciones de la Nota 17003 (visita con corte al 30/04/2025). Las observaciones 3, 5 y 9 siguen abiertas en la visita 2026: comités sin ejecutivos (no superada), normativa desactualizada (parcialmente superada) y Fondo de Educación (reincide).");
 }
 
-// ============ 5-6. SLIDER 3 · OBS 2026 ============
-const PLAZO = { label: "DESCARGO · 10 DÍAS HÁBILES", color: GREEN };
+// ============ SLIDER 3 · OBS 2026 (Anexo A + B) ============
 const OBS26A = [
-  { obs: "Falta de inducción sobre partidas relevantes de EEFF a nuevos miembros", resp: "Gerencia Financiera / RRHH", estado: "Art. 11 NRP-17" },
-  { obs: "Falta de Certificación de Lectura del Código de Conducta", resp: "Junta de Vigilancia / Comités de Apoyo", estado: "Código de Conducta" },
-  { obs: "Falta de formalización y aprobación de Políticas por el Consejo de Administración", resp: "Consejo de Administración", estado: "Políticas de Retribución y Control Interno" },
-  { obs: "Información de comités desactualizada en sitio web institucional", resp: "Oficialía de Cumplimiento / Comunicaciones", estado: "Arts. 27 y 28 NRP-17" },
-  { obs: "Incongruencia entre Estatutos y Código de Gobierno Corporativo", resp: "Asesoría Legal / Consejo de Administración", estado: "Restricción de cargos remunerados" },
-  { obs: "Reglamento del Fondo de Educación incluye conceptos no delimitados por Ley", resp: "Comité de Educación / Gerencia Financiera", estado: "Art. 5 del Reglamento" },
-  { obs: "Limitada transparencia en información presentada a Asamblea sobre Fondo de Educación", resp: "Consejo de Administración / Comité de Educación", estado: "$100,774.28 no detallados" },
-].map(r => ({ ...r, status: PLAZO }));
+  ["Falta de inducción sobre partidas relevantes de EEFF a nuevos miembros", "Gerencia Financiera / RRHH", "Art. 11 NRP-17"],
+  ["Falta de Certificación de Lectura del Código de Conducta", "Junta de Vigilancia / Comités de Apoyo", "Código de Conducta"],
+  ["Falta de formalización y aprobación de Políticas por el Consejo de Administración", "Consejo de Administración", "Políticas de Retribución y Control Interno"],
+  ["Información de comités desactualizada en sitio web institucional", "Oficialía de Cumplimiento / Comunicaciones", "Arts. 27 y 28 NRP-17"],
+  ["Incongruencia entre Estatutos y Código de Gobierno Corporativo", "Asesoría Legal / Consejo de Administración", "Restricción de cargos remunerados"],
+  ["Reglamento del Fondo de Educación incluye conceptos no delimitados por Ley", "Comité de Educación / Gerencia Financiera", "Art. 5 del Reglamento"],
+  ["Limitada transparencia en información presentada a Asamblea sobre Fondo de Educación", "Consejo de Administración / Comité de Educación", "$100,774.28 no detallados"],
+];
+const OBS26B = [
+  ["Comités de Apoyo no integran personal ejecutivo", "Consejo de Administración", "NO SUPERADA", RED],
+  ["Normativa interna desactualizada (RIT, Comité de Auditoría, Compras)", "Departamento de Procesos", "PARCIALMENTE SUPERADA", AMBER_INK],
+];
 pres.addSection({ title: "3 · Observaciones 2026" });
 {
-  const s = content("3 · Observaciones 2026", "3 · NOTA DS-SABAO-BCS-BC-22741 · ANEXO A", "Anexo A: observaciones nuevas de la visita 2026");
-  obsTable(s, "Tabla Anexo A", OBS26A, 1, GREEN, 1.6, { fontSize: 13, margin: [0.06, 0.1, 0.06, 0.1] });
-  s.addNotes("Siete observaciones nuevas. Para todas, el plazo es de 10 días hábiles contados desde el día hábil siguiente a la recepción de la nota, para remitir pruebas de descargo documentadas por el buzón DESCARGOS_OBSERVACIONES, previo conocimiento del Consejo de Administración.");
-}
-{
-  const s = content("3 · Observaciones 2026", "3 · NOTA DS-SABAO-BCS-BC-22741 · ANEXO B", "Anexo B: seguimiento a observaciones anteriores");
-  obsTable(s, "Tabla Anexo B", [
-    { obs: "Comités de Apoyo no integran personal ejecutivo", resp: "Consejo de Administración", estado: "Plan de solución en 15 días hábiles", status: { label: "NO SUPERADA", color: RED } },
-    { obs: "Normativa interna desactualizada (RIT, Comité de Auditoría, Compras)", resp: "Departamento de Procesos", estado: "Plan de solución en 15 días hábiles", status: { label: "PARCIALMENTE SUPERADA", color: AMBER_INK } },
-  ], 8, GREEN, 1.65);
-  const y = 3.85, cw = (W - 2 * M - 0.4) / 2;
-  [
-    { n: "10", t: "días hábiles · Anexo A", d: "Pruebas de descargo documentadas\nBuzón: DESCARGOS_OBSERVACIONES\nVence aprox. 23/10/2026", c: GREEN },
-    { n: "15", t: "días hábiles · Anexo B", d: "Plan de solución: acciones, responsable y plazo por acción, con certificación del punto de acta del Consejo\nBuzón: PLANES_SOLUC_VISITASUPERVIS\nVence aprox. 30/10/2026", c: AMBER_INK },
-  ].forEach((k, i) => {
-    const x = M + i * (cw + 0.4);
-    box(s, "Plazo " + k.n, x, y, cw, 2.65, C.background2);
-    txt(s, "Plazo número " + k.n, k.n, { x: x + 0.3, y: y + 0.2, w: 1.4, h: 0.95, fontSize: 54, bold: true, color: k.c, fontFace: THEME.headFontFace, valign: "middle" });
-    txt(s, "Plazo título " + k.n, k.t, { x: x + 1.75, y: y + 0.35, w: cw - 2.0, h: 0.65, fontSize: 18, bold: true, valign: "middle" });
-    txt(s, "Plazo detalle " + k.n, k.d, { x: x + 0.3, y: y + 1.25, w: cw - 0.6, h: 1.3, fontSize: 13, color: C.text1, paraSpaceAfter: 4 });
+  const s = content("3 · Observaciones 2026", "3 · NOTA DS-SABAO-BCS-BC-22741 · AÑO 2026", "Detalle de observaciones 2026");
+  const cell = (text, i, o = {}) => ({ text, options: { fill: { color: i % 2 ? C.background1 : C.background2 }, ...o } });
+  const sec = (text, color) => [{ text, options: { colspan: 4, bold: true, color: C.background1, fill: { color }, fontSize: 11 } }];
+  const rows = [
+    HEAD.map(t => ({ text: t, options: { bold: true, color: C.text1, fill: { color: "D9E0EA" }, fontSize: 11 } })),
+    sec("ANEXO A · OBSERVACIONES DETERMINADAS EN LA VISITA 2026 · Descargo en 10 días hábiles (buzón DESCARGOS_OBSERVACIONES, vence aprox. 23/10/2026)", GREEN),
+    ...OBS26A.map(([o, r, c], i) => [
+      cell(String(i + 1), i, { bold: true, color: MUTED, align: "center" }), cell(o, i, { bold: true }), cell(r, i),
+      cell([{ text: "Descargo 10 días hábiles", options: { bold: true, color: GREEN, breakLine: true } }, { text: c }], i),
+    ]),
+    sec("ANEXO B · SEGUIMIENTO A OBSERVACIONES DE VISITAS ANTERIORES · Plan de solución en 15 días hábiles (buzón PLANES_SOLUC_VISITASUPERVIS, vence aprox. 30/10/2026)", NAVY),
+    ...OBS26B.map(([o, r, st, col], i) => [
+      cell(String(i + 8), i, { bold: true, color: MUTED, align: "center" }), cell(o, i, { bold: true }), cell(r, i),
+      cell([{ text: st, options: { bold: true, color: col, breakLine: true } }, { text: "Plan de solución en 15 días hábiles" }], i),
+    ]),
+  ];
+  s.addTable(rows, {
+    objectName: "Tabla observaciones 2026", x: M, y: 1.55, w: W - 2 * M, colW: COLW, fontFace: THEME.bodyFontFace, fontSize: 11.5, color: C.text1,
+    valign: "middle", margin: [0.04, 0.1, 0.04, 0.1], border: { type: "solid", pt: 0.75, color: "D9E0EA" }, autoPage: false,
   });
-  txt(s, "Nota de fechas", "Fechas estimadas en días hábiles desde el 12/10/2026, sin asuetos. Validar con la fecha de recepción del Sistema de Control de Envíos.", { x: M, y: 6.6, w: W - 2 * M, h: 0.3, fontSize: 10, color: MUTED, italic: true });
-  s.addNotes("Dos observaciones de visitas anteriores siguen abiertas: la integración de comités con personal ejecutivo (no superada) y la normativa interna desactualizada (parcialmente superada). Para ambas se exige un plan de solución en 15 días hábiles.");
+  s.addNotes("Anexo A: siete observaciones nuevas; plazo de 10 días hábiles desde el día hábil siguiente a la recepción para remitir pruebas de descargo documentadas, previo conocimiento del Consejo de Administración. Anexo B: dos observaciones de visitas anteriores siguen abiertas; plan de solución en 15 días hábiles con acciones, responsable, plazo por acción y certificación del punto de acta del Consejo. Fechas aproximadas sin asuetos; validar con el Sistema de Control de Envíos.");
 }
 
-// ============ 7-8. SLIDER 4 · LÍNEA DE TIEMPO ============
+// ============ SLIDER 4 · LÍNEA DE TIEMPO Y EVOLUCIÓN ============
 pres.addSection({ title: "4 · Línea de tiempo y evolución" });
 {
-  const s = content("4 · Línea de tiempo y evolución", "4 · LÍNEA DE TIEMPO COMPARATIVA", "Línea de tiempo 2025 vs. 2026");
-  const lineW = 7.3;
+  const s = content("4 · Línea de tiempo y evolución", "4 · LÍNEA DE TIEMPO COMPARATIVA Y EVOLUCIÓN DEL CUMPLIMIENTO", "Línea de tiempo 2025 vs. 2026");
+  const x0 = M + 1.2, lineW = 6.9, sx = x0 + lineW + 0.35, sw = W - M - sx;
   const blocks = [
     { y: 1.75, year: "2025", color: NAVY, hitos: [["09 ABR 2025", "Nombramiento SSF", "Nota 9337 · corte 30/04"], ["19 MAY 2025", "Inicio de visita en sitio", ""], ["05 NOV 2025", "Informe preliminar", "Nota 17003 · 9 obs."]],
       side: { t: "Hallazgos críticos 2025", items: ["Sin Política de Operaciones Vinculadas", "Normativa interna desactualizada", "Uso inapropiado del Fondo de Educación"] } },
-    { y: 4.35, year: "2026", color: GREEN, hitos: [["31 JUL 2026", "Nombramiento SSF", "Nota 18432 · corte 31/07"], ["21 AGO 2026", "Inicio de visita ampliada", ""], ["09 OCT 2026", "Informe preliminar", "Nota 22741 · 7 + 2 obs."], ["ACTUAL", "Plazos en curso", "10 y 15 días hábiles"]],
-      side: { t: "Plazos de respuesta", items: ["Descargos (Anexo A): 10 días hábiles, aprox. 23/10/2026", "Plan de solución (Anexo B): 15 días hábiles, aprox. 30/10/2026"] } },
+    { y: 3.3, year: "2026", color: GREEN, hitos: [["31 JUL 2026", "Nombramiento SSF", "Nota 18432 · corte 31/07"], ["21 AGO 2026", "Inicio de visita ampliada", ""], ["09 OCT 2026", "Informe preliminar", "Nota 22741 · 7 + 2 obs."], ["ACTUAL", "Plazos en curso", "Vencen 23/10 y 30/10"]],
+      side: { t: "Plazos de respuesta", items: ["Descargos Anexo A: 10 días hábiles", "Plan de solución Anexo B: 15 días hábiles"] } },
   ];
   blocks.forEach(b => {
-    pill(s, "Año línea " + b.year, b.year, M, b.y, 0.95, b.color);
-    const x0 = M + 1.25, lineY = b.y + 0.17;
-    s.addShape(pres.shapes.LINE, { objectName: "Eje " + b.year, x: x0, y: lineY, w: lineW, h: 0, line: { color: b.color, width: 2.5 } });
-    const n = b.hitos.length, step = lineW / n;
+    pill(s, "Año línea " + b.year, b.year, M, b.y - 0.17, 0.95, b.color);
+    s.addShape(pres.shapes.LINE, { objectName: "Eje " + b.year, x: x0, y: b.y, w: lineW, h: 0, line: { color: b.color, width: 2.5 } });
+    const step = lineW / b.hitos.length;
     b.hitos.forEach(([d, t, sub], i) => {
-      const cx = x0 + step * i + 0.1;
-      const last = d === "ACTUAL";
-      s.addShape(pres.shapes.OVAL, { objectName: `Hito ${b.year}-${i + 1}`, x: cx, y: lineY - 0.14, w: 0.28, h: 0.28, fill: { color: last ? b.color : C.background1 }, line: { color: b.color, width: 3 } });
-      txt(s, `Hito fecha ${b.year}-${i + 1}`, d, { x: cx, y: lineY + 0.32, w: step - 0.25, h: 0.3, fontSize: 12, bold: true, color: b.color, fontFace: "Courier New" });
-      txt(s, `Hito texto ${b.year}-${i + 1}`, t, { x: cx, y: lineY + 0.65, w: step - 0.25, h: 0.6, fontSize: 14, bold: true });
-      if (sub) txt(s, `Hito detalle ${b.year}-${i + 1}`, sub, { x: cx, y: lineY + 1.25, w: step - 0.25, h: 0.5, fontSize: 12, color: MUTED });
+      const cx = x0 + step * i + 0.05, tw = step - 0.15;
+      s.addShape(pres.shapes.OVAL, { objectName: `Hito ${b.year}-${i + 1}`, x: cx, y: b.y - 0.13, w: 0.26, h: 0.26, fill: { color: d === "ACTUAL" ? b.color : C.background1 }, line: { color: b.color, width: 3 } });
+      txt(s, `Hito fecha ${b.year}-${i + 1}`, d, { x: cx, y: b.y + 0.25, w: tw, h: 0.25, fontSize: 11, bold: true, color: b.color, fontFace: "Courier New" });
+      txt(s, `Hito texto ${b.year}-${i + 1}`, t, { x: cx, y: b.y + 0.52, w: tw, h: 0.45, fontSize: 13, bold: true });
+      if (sub) txt(s, `Hito detalle ${b.year}-${i + 1}`, sub, { x: cx, y: b.y + 0.97, w: tw, h: 0.3, fontSize: 10.5, color: MUTED });
     });
-    const sx = x0 + lineW + 0.3, sw = W - M - sx;
-    box(s, "Recuadro " + b.year, sx, b.y - 0.1, sw, 2.25, C.background2);
-    txt(s, "Recuadro título " + b.year, b.side.t, { x: sx + 0.2, y: b.y + 0.05, w: sw - 0.4, h: 0.35, fontSize: 14, bold: true, color: b.color });
+    box(s, "Recuadro " + b.year, sx, b.y - 0.25, sw, 1.45, C.background2);
+    txt(s, "Recuadro título " + b.year, b.side.t, { x: sx + 0.2, y: b.y - 0.12, w: sw - 0.4, h: 0.3, fontSize: 13, bold: true, color: b.color });
     s.addText(b.side.items.map((t, i, a) => ({ text: t, options: { bullet: true, breakLine: i < a.length - 1 } })),
-      { objectName: "Recuadro lista " + b.year, isTextBox: true, x: sx + 0.2, y: b.y + 0.45, w: sw - 0.4, h: 1.6, fontSize: 13, color: C.text1, valign: "top", margin: 0, paraSpaceAfter: 5 });
+      { objectName: "Recuadro lista " + b.year, isTextBox: true, x: sx + 0.2, y: b.y + 0.22, w: sw - 0.4, h: 0.9, fontSize: 12, color: C.text1, valign: "top", margin: 0, paraSpaceAfter: 2 });
   });
-  s.addNotes("Ambas visitas siguieron el mismo ciclo: nombramiento, inicio de visita e informe preliminar. En 2026 la entidad está ahora dentro de los plazos de respuesta: 10 días hábiles para descargos del Anexo A y 15 días hábiles para el plan de solución del Anexo B.");
-}
-{
-  const s = content("4 · Línea de tiempo y evolución", "4 · ANÁLISIS DE EVOLUCIÓN", "Observaciones reincidentes y persistentes");
-  const rows = [
-    ["Integración de Comités de Apoyo con personal ejecutivo", "Obs. 3 · Art. 3 lit. h) NRP-17", "NO SUPERADA", "Anexo B, obs. 8", RED],
-    ["Actualización de normativa interna", "Obs. 5 · 9 documentos vencidos", "PARCIALMENTE SUPERADA", "Anexo B, obs. 9: RIT, Comité de Auditoría, Compras", AMBER_INK],
-    ["Gobernanza del Fondo de Educación", "Obs. 9 · Art. 59 Ley de Cooperativas", "REINCIDE", "Anexo A, obs. 6 y 7: Reglamento sin criterios legales y $100,774.28 sin detalle a la Asamblea", AMBER_INK],
+  // Evolución
+  txt(s, "Evolución título", "ANÁLISIS DE EVOLUCIÓN · OBSERVACIONES REINCIDENTES Y PERSISTENTES", { x: M, y: 4.85, w: W - 2 * M, h: 0.3, fontSize: 12, bold: true, color: MUTED, charSpacing: 2 });
+  const evo = [
+    ["Integración de comités con ejecutivos", "Obs. 3", "NO SUPERADA", RED, "Anexo B, obs. 8"],
+    ["Actualización de normativa interna", "Obs. 5", "PARCIALMENTE SUPERADA", AMBER_INK, "Anexo B, obs. 9: RIT, Comité de Auditoría, Compras"],
+    ["Gobernanza del Fondo de Educación", "Obs. 9", "REINCIDE", AMBER_INK, "Reglamento sin criterios legales y $100,774.28 sin detalle a la Asamblea"],
   ];
-  const xT = M, wT = 3.9, x25 = M + 4.15, w25 = 3.1, xA = x25 + w25 + 0.15, x26 = xA + 0.6, w26 = W - M - x26;
-  txt(s, "Encabezado tema", "TEMA", { x: xT, y: 1.6, w: wT, h: 0.3, fontSize: 12, bold: true, color: MUTED, charSpacing: 2 });
-  txt(s, "Encabezado 2025", "2025 · NOTA 17003", { x: x25, y: 1.6, w: w25, h: 0.3, fontSize: 12, bold: true, color: NAVY, charSpacing: 2 });
-  txt(s, "Encabezado 2026", "2026 · NOTA 22741", { x: x26, y: 1.6, w: w26, h: 0.3, fontSize: 12, bold: true, color: GREEN, charSpacing: 2 });
-  rows.forEach(([tema, a, st, b, c], i) => {
-    const y = 2.05 + i * 1.6, h = 1.4;
-    box(s, "Fila evolución " + (i + 1), M, y, W - 2 * M, h, C.background2);
-    txt(s, "Tema " + (i + 1), tema, { x: xT + 0.25, y, w: wT - 0.3, h, fontSize: 17, bold: true, fontFace: THEME.headFontFace, valign: "middle" });
-    pill(s, "Estado 2025 " + (i + 1), "OBSERVADA", x25, y + 0.3, 1.6, NAVY);
-    txt(s, "Detalle 2025 " + (i + 1), a, { x: x25, y: y + 0.75, w: w25, h: 0.45, fontSize: 13, color: C.text1 });
-    s.addShape(pres.shapes.RIGHT_ARROW, { objectName: "Flecha " + (i + 1), x: xA, y: y + 0.5, w: 0.45, h: 0.4, fill: { color: MUTED }, line: { color: MUTED } });
-    pill(s, "Estado 2026 " + (i + 1), st, x26, y + 0.3, st.length > 12 ? 2.9 : 1.9, c);
-    txt(s, "Detalle 2026 " + (i + 1), b, { x: x26, y: y + 0.75, w: w26 - 0.2, h: 0.6, fontSize: 13, color: C.text1 });
+  const cw = (W - 2 * M - 0.6) / 3, cy = 5.22;
+  evo.forEach(([t, a, st, col, d], i) => {
+    const x = M + i * (cw + 0.3);
+    box(s, "Evolución " + (i + 1), x, cy, cw, 1.6, C.background2);
+    txt(s, "Evolución tema " + (i + 1), t, { x: x + 0.2, y: cy + 0.12, w: cw - 0.4, h: 0.3, fontSize: 14, bold: true, fontFace: THEME.headFontFace });
+    pill(s, "Evolución 2025 " + (i + 1), a.toUpperCase(), x + 0.2, cy + 0.55, 0.9, NAVY);
+    s.addShape(pres.shapes.RIGHT_ARROW, { objectName: "Evolución flecha " + (i + 1), x: x + 1.22, y: cy + 0.6, w: 0.32, h: 0.24, fill: { color: MUTED }, line: { color: MUTED } });
+    pill(s, "Evolución 2026 " + (i + 1), st, x + 1.66, cy + 0.55, st.length > 12 ? cw - 1.86 : 1.3, col, st.length > 12 ? 10 : 11);
+    txt(s, "Evolución detalle " + (i + 1), d, { x: x + 0.2, y: cy + 1.0, w: cw - 0.4, h: 0.5, fontSize: 11.5, color: C.text1 });
   });
-  s.addNotes("Tres temas persisten entre visitas. Comités con ejecutivos: no superada. Normativa interna: parcialmente superada. Fondo de Educación: reincide con hallazgos de falta de transparencia ($100,774.28 no detallados a la Asamblea) y conceptos no delimitados por ley en su Reglamento.");
-}
-
-// ============ 9. ANEXO · KIT DE DISEÑO ============
-pres.addSection({ title: "Anexo · Kit de diseño" });
-{
-  const s = content("Anexo · Kit de diseño", "ANEXO · GUÍA VISUAL", "Paleta, tipografía y uso de la plantilla");
-  const sw = [["173A6E", NAVY, "Azul marino corporativo", "Hitos y tablas 2025"], ["1D7A4B", GREEN, "Verde", "Hitos y tablas 2026"], ["B42318", RED, "Rojo", "Estado NO SUPERADA"], ["D99A1E", AMBER, "Amarillo / ámbar", "PARCIALMENTE SUPERADA y reincidencias"], ["EEF2F8", C.background2, "Gris azulado claro", "Fondo de tarjetas"]];
-  sw.forEach(([hex, c, n, u], i) => {
-    const y = 1.65 + i * 0.95;
-    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "Muestra " + n, x: M, y, w: 0.75, h: 0.75, rectRadius: 0.08, fill: { color: c }, line: { color: "D9E0EA", width: 1 } });
-    txt(s, "Color " + n, [{ text: n + "  ", options: { bold: true } }, { text: "#" + hex, options: { color: MUTED, fontFace: "Courier New" } }], { x: M + 0.95, y: y + 0.05, w: 4.6, h: 0.32, fontSize: 14 });
-    txt(s, "Uso " + n, u, { x: M + 0.95, y: y + 0.4, w: 4.6, h: 0.3, fontSize: 13, color: MUTED });
-  });
-  const x = 6.6, w = W - M - x;
-  box(s, "Tipografía", x, 1.65, w, 2.1, C.background2);
-  txt(s, "Tipografía título", "Tipografía", { x: x + 0.25, y: 1.8, w: w - 0.5, h: 0.35, fontSize: 16, bold: true });
-  s.addText([
-    { text: "Títulos: Cambria Bold, 30-40 pt", options: { bullet: true, breakLine: true } },
-    { text: "Texto y tablas: Calibri, 13-16 pt", options: { bullet: true, breakLine: true } },
-    { text: "Números de nota y fechas: Courier New", options: { bullet: true, breakLine: true } },
-    { text: "Etiquetas: 11-12 pt en MAYÚSCULAS con espaciado", options: { bullet: true } },
-  ], { objectName: "Tipografía lista", isTextBox: true, x: x + 0.25, y: 2.2, w: w - 0.5, h: 1.45, fontSize: 14, color: C.text1, valign: "top", margin: 0, paraSpaceAfter: 4 });
-  box(s, "Uso plantilla", x, 3.95, w, 2.2, C.background2);
-  txt(s, "Uso plantilla título", "Cómo editar en PowerPoint", { x: x + 0.25, y: 4.1, w: w - 0.5, h: 0.35, fontSize: 16, bold: true });
-  s.addText([
-    { text: "Diseño > Variantes > Colores: el tema “SSF Gobierno Corporativo” controla toda la paleta", options: { bullet: true, breakLine: true } },
-    { text: "Vista > Patrón de diapositivas: diseños PORTADA y CONTENIDO", options: { bullet: true, breakLine: true } },
-    { text: "Las secciones 1 a 4 corresponden a las 4 pestañas del dashboard", options: { bullet: true, breakLine: true } },
-    { text: "Para Canva o Gamma: importar este .pptx directamente", options: { bullet: true } },
-  ], { objectName: "Uso plantilla lista", isTextBox: true, x: x + 0.25, y: 4.5, w: w - 0.5, h: 1.55, fontSize: 14, color: C.text1, valign: "top", margin: 0, paraSpaceAfter: 4 });
-  s.addNotes("Guía de colores y fuentes para mantener la consistencia si se agregan diapositivas o se migra la presentación a Canva o Gamma.");
+  s.addNotes("Ambas visitas siguieron el mismo ciclo: nombramiento, inicio de visita e informe preliminar. En 2026 la entidad está dentro de los plazos de respuesta. Tres temas persisten: comités con ejecutivos (no superada), normativa interna (parcialmente superada) y Fondo de Educación (reincide). Paleta: azul marino #173A6E para 2025, verde #1D7A4B para 2026, rojo #B42318 no superada, ámbar #D99A1E parcial.");
 }
 
 (async () => {
