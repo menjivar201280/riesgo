@@ -39,15 +39,15 @@ Resumen de circulares de notificación 2025 - 2026
 
 | # | Nombre de la observación | Responsable / Área implicada | Estado actual / Criterio SSF |
 |---|---|---|---|
-| 1 | Falta de Política de Operaciones Vinculadas | Consejo de Administración | Art. 12 literal c) NRP-17 |
-| 2 | Sin evidencia de firma de confidencialidad ni fechas de inducción en actas | Consejo de Administración (primera sesión con nuevos miembros) | Manual de Inducción y Capacitación |
-| 3 | Comités de apoyo no integran personal ejecutivo | Consejo de Administración | Art. 3 literal h) NRP-17 (Seguimiento 2026: No superada) |
-| 4 | Inconsistencia en pago de dietas (Reglamento vs. Asamblea General) | Consejo de Administración · Asamblea General de Asociados | Arts. 12 lit. g) y q), 27 lit. a) NRP-17: actualizar el Reglamento y autorización de Asamblea |
-| 5 | Normativa interna desactualizada (más de 2 años sin revisión) | Líderes de procesos · Departamento de Procesos | Art. 12 lit. n) NRP-17 · 9 documentos vencidos (Seguimiento 2026: Parcialmente superada) |
-| 6 | Falta de soporte en expedientes de créditos de Ferias de Crédito | Consejo de Administración (acuerdos de las ferias no identificados) | Sin acuerdos ni soporte de cambios de tasa (Ley Contra la Usura) |
-| 7 | Falta de información obligatoria en declaración jurada de personas relacionadas | Miembros del Consejo de Administración y equipo gerencial | Art. 9 NRP-75 |
-| 8 | Omisiones en procedimientos del Manual de Compras de Bienes y Servicios | Jefe de Servicios Generales · áreas solicitantes | Cotizaciones sin sello y sin cláusula de penalización |
-| 9 | Uso del Fondo de Educación en fines distintos a los legales | Comité de Educación · Comité Socio Cultural | Art. 59 Ley General de Asociaciones Cooperativas y Art. 69 de su Reglamento |
+| 1 | Falta de Política de Operaciones Vinculadas | ADR / Jefe de Riesgos | Art. 12 literal c) NRP-17 |
+| 2 | Sin evidencia de firma de confidencialidad ni fechas de inducción en actas | ADR / Jefe de Riesgos | Manual de Inducción y Capacitación |
+| 3 | Comités de apoyo no integran personal ejecutivo | ADR / Jefe de Riesgos | Art. 3 literal h) NRP-17 (Seguimiento 2026: No superada) |
+| 4 | Inconsistencia en pago de dietas (Reglamento vs. Asamblea General) | Jefe de Administración de Riesgos | Arts. 12 lit. g) y q), 27 lit. a) NRP-17: actualizar el Reglamento y autorización de Asamblea |
+| 5 | Normativa interna desactualizada (más de 2 años sin revisión) | ADR, Auditoría Interna, Gerencia Financiera, Seguridad de la Información y Gerencia Administrativa | Art. 12 lit. n) NRP-17 · 9 documentos vencidos (Seguimiento 2026: Parcialmente superada) |
+| 6 | Falta de soporte en expedientes de créditos de Ferias de Crédito | Gerencia de Negocios / Administración de Cartera | Sin acuerdos ni soporte de cambios de tasa (Ley Contra la Usura) |
+| 7 | Falta de información obligatoria en declaración jurada de personas relacionadas | ADR / Jefe de Riesgos | Art. 9 NRP-75 |
+| 8 | Omisiones en procedimientos del Manual de Compras de Bienes y Servicios | Gerencia Administrativa / Gerente Administrativa | Cotizaciones sin sello y sin cláusula de penalización |
+| 9 | Uso del Fondo de Educación en fines distintos a los legales | Jefe de Administración de Riesgos | Art. 59 Ley General de Asociaciones Cooperativas y Art. 69 de su Reglamento |
 
 ---
 
@@ -58,13 +58,13 @@ Plazo: 10 días hábiles para pruebas de descargo (buzón DESCARGOS_OBSERVACIONE
 
 | # | Nombre de la observación | Responsable / Área implicada | Estado actual / Criterio SSF |
 |---|---|---|---|
-| 1 | Falta de inducción sobre partidas relevantes de EEFF a nuevos miembros | Gerencia Financiera (imparte la inducción según el Manual) | Plazo de descargo: 10 días hábiles (Art. 11 NRP-17) |
-| 2 | Falta de certificación de lectura del Código de Conducta | Junta de Vigilancia · Comité de Créditos · Comité de Educación | Plazo de descargo: 10 días hábiles (Cap. XI Código de Conducta) |
-| 3 | Falta de formalización y aprobación de políticas por el Consejo de Administración | Consejo de Administración | Plazo de descargo: 10 días hábiles (Art. 12 lit. c) NRP-17 · Políticas de Retribución y de Control Interno) |
-| 4 | Información de comités desactualizada en sitio web institucional | Administración de Riesgo | Plazo de descargo: 10 días hábiles (Arts. 27 y 28 NRP-17) |
-| 5 | Incongruencia entre Estatutos y Código de Gobierno Corporativo | Consejo de Administración (aprobó el Código, Acta 2,663) | Plazo de descargo: 10 días hábiles (Art. 3 lit. i) y Art. 20 NRP-17) |
-| 6 | Reglamento del Fondo de Educación incluye conceptos no delimitados por Ley | Comité de Educación (Reglamento, art. 5) | Plazo de descargo: 10 días hábiles (Art. 59 LGAC y Art. 69 de su Reglamento) |
-| 7 | Limitada transparencia en información presentada a Asamblea sobre Fondo de Educación | Consejo de Administración (Memoria de Labores 2025) | Plazo de descargo: 10 días hábiles (Art. 12 lit. q) NRP-17 · US$100,774.28 no detallados) |
+| 1 | Falta de inducción sobre partidas relevantes de EEFF a nuevos miembros | Gerencia Financiera | Plazo de descargo: 10 días hábiles (Art. 11 NRP-17) |
+| 2 | Falta de certificación de lectura del Código de Conducta | Gerencia de Oficialía de Cumplimiento | Plazo de descargo: 10 días hábiles (Cap. XI Código de Conducta) |
+| 3 | Falta de formalización y aprobación de políticas por el Consejo de Administración | Talento Humano · Departamento de Procesos | Plazo de descargo: 10 días hábiles (Art. 12 lit. c) NRP-17 · Políticas de Retribución y de Control Interno) |
+| 4 | Información de comités desactualizada en sitio web institucional | Administración de Riesgos | Plazo de descargo: 10 días hábiles (Arts. 27 y 28 NRP-17) |
+| 5 | Incongruencia entre Estatutos y Código de Gobierno Corporativo | Gerencia General · Administración de Riesgos | Plazo de descargo: 10 días hábiles (Art. 3 lit. i) y Art. 20 NRP-17) |
+| 6 | Reglamento del Fondo de Educación incluye conceptos no delimitados por Ley | Gerencia Administrativa · Jefe de Educación y Responsabilidad Social | Plazo de descargo: 10 días hábiles (Art. 59 LGAC y Art. 69 de su Reglamento) |
+| 7 | Limitada transparencia en información presentada a Asamblea sobre Fondo de Educación | Gerencia Administrativa · Jefatura de Educación y Responsabilidad Social | Plazo de descargo: 10 días hábiles (Art. 12 lit. q) NRP-17 · US$100,774.28 no detallados) |
 
 ---
 
@@ -73,8 +73,8 @@ Plazo: 15 días hábiles para plan de solución (buzón PLANES_SOLUC_VISITASUPER
 
 | # | Nombre de la observación | Responsable / Área implicada | Estado actual / Criterio SSF |
 |---|---|---|---|
-| Obs. 3 de 2025 | Comités de apoyo no integran personal ejecutivo | Administración de Riesgo | NO SUPERADA (Plan de solución en 15 días hábiles) |
-| Obs. 5 de 2025 | Normativa interna desactualizada (RIT, Comité de Auditoría, Compras) | Auditoría Interna, Servicios Generales y Talento Humano | PARCIALMENTE SUPERADA (Plan de solución en 15 días hábiles) |
+| Obs. 3 de 2025 | Comités de apoyo no integran personal ejecutivo | Gerencia General · Jefe de Administración de Riesgos | NO SUPERADA (Plan de solución en 15 días hábiles) |
+| Obs. 5 de 2025 | Normativa interna desactualizada (RIT, Comité de Auditoría, Compras) | Jefatura de Talento Humano · Auditor Interno · Jefe de Servicios Generales | PARCIALMENTE SUPERADA (Plan de solución en 15 días hábiles) |
 
 ---
 

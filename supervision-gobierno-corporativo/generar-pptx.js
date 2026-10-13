@@ -104,7 +104,7 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   const rows = [
     { y: 0.5, yr: "2025", sub: "Visita 1 · supervisión ampliada", color: NAVY, cards: [
       { d: "09", m: "ABR", tipo: "Nombramiento de visita ampliada", no: "DS-SABAO-BCS-BC-9337", facts: [["Corte", "30/04/2025"], ["Inicio de visita", "19/05/2025"]] },
-      { d: "05", m: "NOV", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-17003", facts: [["Resultado", "9 observaciones"], ["Descargos", "10 días hábiles"]] }] },
+      { d: "05", m: "NOV", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-17003", facts: [["Resultado", "9 observaciones"], ["Descargos", "18/11/2025"]] }] },
     { y: 3.72, yr: "2026", sub: "Visita 2 · supervisión ampliada", color: GREEN, cards: [
       { d: "31", m: "JUL", tipo: "Nombramiento de visita ampliada", no: "SABAO-BCS-BC-18432", facts: [["Corte", "31/07/2026"], ["Inicio de visita", "21/08/2026"]] },
       { d: "09", m: "OCT", tipo: "Resultados preliminares", no: "DS-SABAO-BCS-BC-22741", facts: [["Anexo A", "7 nuevas"], ["Anexo B", "obs. 3 y 5 de 2025"]] }] },
@@ -141,17 +141,17 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   const s = addSlide("CONTENIDO", "2 · Observaciones 2025", "CIRCULAR DS-SABAO-BCS-BC-17003 · VISITA CON CORTE AL 30/04/2025", "Observaciones 2025");
   legendDot(s, "Leyenda 2025", "Observación 2025", 9.35, 0.85, NAVY, 1.4);
   legendDot(s, "Leyenda abierta", "En seguimiento SSF 2026", 10.85, 0.85, RED, 1.95);
-  // Responsables: órganos y cargos que señala la propia circular 17003
+  // Responsable y respuesta: Matriz de requerimientos (descargos) Circular 17003
   const O = [
-    ["Falta de Política de Operaciones Vinculadas", "Consejo de Administración", "Art. 12 literal c) NRP-17"],
-    ["Sin evidencia de firma de confidencialidad ni fechas de inducción en actas", "Consejo de Administración (primera sesión con nuevos miembros)", "Manual de Inducción y Capacitación"],
-    ["Comités de Apoyo no integran personal ejecutivo", "Consejo de Administración", "Art. 3 literal h) NRP-17", "Seguimiento 2026: NO SUPERADA", RED],
-    ["Inconsistencia en pago de dietas (Reglamento vs. Asamblea General)", "Consejo de Administración · Asamblea General de Asociados", "Arts. 12 lit. g) y q), 27 lit. a) NRP-17"],
-    ["Normativa interna desactualizada (más de 2 años sin revisión)", "Líderes de procesos · Departamento de Procesos", "Art. 12 lit. n) NRP-17 · 9 documentos", "Seguimiento 2026: PARCIALMENTE SUPERADA", RED],
-    ["Falta de soporte en expedientes de créditos de Ferias de Crédito", "Consejo de Administración (acuerdos de las ferias no identificados)", "Sin acuerdos ni soporte de cambios de tasa"],
-    ["Falta de información obligatoria en declaración jurada de personas relacionadas", "Miembros del Consejo de Administración y equipo gerencial", "Art. 9 NRP-75"],
-    ["Omisiones en procedimientos del Manual de Compras de Bienes y Servicios", "Jefe de Servicios Generales · áreas solicitantes", "Cotizaciones sin sello · sin cláusula de penalización"],
-    ["Uso del Fondo de Educación en fines distintos a los legales", "Comité de Educación · Comité Socio Cultural", "Art. 59 LGAC y Art. 69 de su Reglamento"],
+    ["Falta de Política de Operaciones Vinculadas", "ADR / Jefe de Riesgos", "Se creará la política: Comité de Riesgos y aprobación del Consejo"],
+    ["Sin evidencia de firma de confidencialidad ni fechas de inducción en actas", "ADR / Jefe de Riesgos", "Acta CA 2579 (28/04/2025): convenio sin efecto y fechas de inducción aprobadas"],
+    ["Comités de Apoyo no integran personal ejecutivo", "ADR / Jefe de Riesgos", "Integración sustentada en Estatutos (arts. 61 y 73)", "Seguimiento 2026: NO SUPERADA", RED],
+    ["Inconsistencia en pago de dietas (Reglamento vs. Asamblea General)", "Jefe de Administración de Riesgos", "Se actualizará el Reglamento de Compensaciones Económicas"],
+    ["Normativa interna desactualizada (más de 2 años sin revisión)", "ADR, Auditoría Interna, G. Financiera, Seg. de la Información y G. Administrativa", "3 de 9 documentos actualizados; el resto en proceso", "Seguimiento 2026: PARCIALMENTE SUPERADA", RED],
+    ["Falta de soporte en expedientes de créditos de Ferias de Crédito", "Gerencia de Negocios / Administración de Cartera", "Se remitieron resoluciones y acuerdos del CA de cada feria"],
+    ["Falta de información obligatoria en declaración jurada de personas relacionadas", "ADR / Jefe de Riesgos", "Se pidió a la SSF el detalle de las personas señaladas"],
+    ["Omisiones en procedimientos del Manual de Compras de Bienes y Servicios", "Gerencia Administrativa / Gerente Administrativa", "Firmas de Mercadeo y Gerencia General; contrato DLF terminado"],
+    ["Uso del Fondo de Educación en fines distintos a los legales", "Jefe de Administración de Riesgos", "CA suspendió el Comité Sociocultural (Acta 2576, 07/04/2025)"],
   ];
   const gap = 0.15, cw = (W - 2 * M - 2 * gap) / 3, ch = 1.75, y0 = 1.45;
   O.forEach(([t, r, c, st, col], i) => {
@@ -161,12 +161,12 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
     txt(s, "Título 2025-" + (i + 1), t, { x: x + 0.75, y: y + 0.13, w: cw - 0.95, h: 0.62, fontSize: 12.5, bold: true, valign: "middle" });
     const lines = [
       { text: "Responsable  ", options: { bold: true, color: MUTED } }, { text: r, options: { breakLine: true } },
-      { text: "Criterio  ", options: { bold: true, color: MUTED } }, { text: c, options: st ? { breakLine: true } : {} },
+      { text: "Descargo  ", options: { bold: true, color: MUTED } }, { text: c, options: st ? { breakLine: true } : {} },
     ];
     if (st) lines.push({ text: "↳ " + st, options: { bold: true, color: col } });
-    txt(s, "Detalle 2025-" + (i + 1), lines, { x: x + 0.2, y: y + 0.84, w: cw - 0.4, h: ch - 0.92, fontSize: 10.5, paraSpaceAfter: 1 });
+    txt(s, "Detalle 2025-" + (i + 1), lines, { x: x + 0.2, y: y + 0.82, w: cw - 0.4, h: ch - 0.88, fontSize: 10, paraSpaceAfter: 1 });
   });
-  s.addNotes("Nueve observaciones de la Circular 17003. Los responsables son los órganos y cargos que señala la propia circular. En rojo y ámbar, las 2 observaciones a las que la SSF dio seguimiento en la visita 2026 (Anexo B): obs. 3 (no superada) y obs. 5 (parcialmente superada).");
+  s.addNotes("Nueve observaciones de la Circular 17003. Responsable y descargo según la Matriz de requerimientos enviada a la SSF el 18/11/2025 (ref. NB07-2025-974, buzón DESCARGOS_OBSERVACIONES). Obs. 5: actualizados el Reglamento del Comité de Finanzas (21/07/2025), la Política de Seguridad de la Información (02/06/2025) y el Manual de Inducción (25/08/2025). En rojo, las 2 observaciones con seguimiento en 2026 (Anexo B): obs. 3 no superada y obs. 5 parcialmente superada.");
 }
 
 // ============ SLIDE 3 · OBSERVACIONES 2026 ============
@@ -174,58 +174,58 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
   const s = addSlide("CONTENIDO", "3 · Observaciones 2026", "CIRCULAR DS-SABAO-BCS-BC-22741 · VISITA CON CORTE AL 31/07/2026", "Observaciones 2026");
   legendDot(s, "Leyenda A", "Anexo A · nuevas", 8.8, 0.85, GREEN, 1.5);
   legendDot(s, "Leyenda B", "Anexo B · seguimiento 2025", 10.55, 0.85, NAVY, 2.1);
-  // Responsables: órganos y cargos que señala la propia circular 22741
+  // Responsable y respuesta: Matriz de requerimientos y Plan de solución, Circular 22741
   const A = [
-    ["Falta de inducción sobre partidas relevantes de EEFF a nuevos miembros", "Gerencia Financiera (imparte la inducción según el Manual)", "Art. 11 NRP-17"],
-    ["Falta de Certificación de Lectura del Código de Conducta", "Junta de Vigilancia · Comité de Créditos · Comité de Educación", "Cap. XI Código de Conducta"],
-    ["Falta de formalización y aprobación de políticas", "Consejo de Administración", "Art. 12 lit. c) NRP-17"],
-    ["Información de comités desactualizada en el sitio web", "Administración de Riesgo", "Arts. 27 y 28 NRP-17"],
-    ["Incongruencia entre Estatutos y Código de Gobierno Corporativo", "Consejo de Administración (aprobó el Código, Acta 2,663)", "Art. 3 lit. i) y Art. 20 NRP-17"],
-    ["Reglamento del Fondo de Educación con conceptos no delimitados por Ley", "Comité de Educación (Reglamento, art. 5)", "Art. 59 LGAC · Art. 69 Reglamento"],
-    ["Limitada transparencia a la Asamblea sobre el Fondo de Educación", "Consejo de Administración (Memoria de Labores 2025)", "Art. 12 lit. q) NRP-17 · US$100,774.28"],
+    ["Falta de inducción sobre partidas relevantes de EEFF a nuevos miembros", "Gerencia Financiera", ""],
+    ["Falta de Certificación de Lectura del Código de Conducta", "Gerencia de Oficialía de Cumplimiento", "6 de 7 certificaciones localizadas; se pide reconsiderar"],
+    ["Falta de formalización y aprobación de políticas", "Talento Humano · Depto. de Procesos", "Se elaborará la Política de Retribución para aprobación del CA"],
+    ["Información de comités desactualizada en el sitio web", "Administración de Riesgos", ""],
+    ["Incongruencia entre Estatutos y Código de Gobierno Corporativo", "Gerencia General · Administración de Riesgos", ""],
+    ["Reglamento del Fondo de Educación con conceptos no delimitados por Ley", "Gerencia Administrativa · Jefe de Educación y Resp. Social", "Revisión integral del Reglamento del Fondo"],
+    ["Limitada transparencia a la Asamblea sobre el Fondo de Educación", "Gerencia Administrativa · Jefatura de Educación y Resp. Social", "Memoria de Labores 2026 con conceptos y montos"],
   ];
-  const gap = 0.15, cw = (W - 2 * M - 3 * gap) / 4, ch = 1.62;
-  txt(s, "Etiqueta Anexo A", "ANEXO A · OBSERVACIONES NUEVAS DETERMINADAS EN LA VISITA 2026", { x: M, y: 1.42, w: 9, h: 0.28, fontSize: 11, bold: true, color: GREEN, charSpacing: 2 });
-  const cell = (i) => ({ x: M + (i % 4) * (cw + gap), y: 1.75 + Math.floor(i / 4) * (ch + gap) });
+  const gap = 0.12, cw = (W - 2 * M - 3 * gap) / 4, ch = 1.58;
+  txt(s, "Etiqueta Anexo A", "ANEXO A · OBSERVACIONES NUEVAS DETERMINADAS EN LA VISITA 2026", { x: M, y: 1.4, w: 9, h: 0.26, fontSize: 11, bold: true, color: GREEN, charSpacing: 2 });
+  const cell = (i) => ({ x: M + (i % 4) * (cw + gap), y: 1.72 + Math.floor(i / 4) * (ch + gap) });
   A.forEach(([t, r, c], i) => {
     const { x, y } = cell(i);
     card(s, "Anexo A-" + (i + 1), x, y, cw, ch, TINT);
     badge(s, "Número A-" + (i + 1), i + 1, x + 0.16, y + 0.14, 0.36, GREEN);
-    txt(s, "Criterio A-" + (i + 1), c, { x: x + 0.62, y: y + 0.12, w: cw - 0.75, h: 0.4, fontSize: 10, bold: true, color: GREEN, valign: "middle" });
-    txt(s, "Título A-" + (i + 1), t, { x: x + 0.16, y: y + 0.58, w: cw - 0.32, h: 0.58, fontSize: 11.5, bold: true });
-    txt(s, "Responsable A-" + (i + 1), [{ text: "Responsable: ", options: { bold: true, color: MUTED } }, { text: r }], { x: x + 0.16, y: y + 1.15, w: cw - 0.32, h: 0.42, fontSize: 10, color: INK });
+    txt(s, "Responsable A-" + (i + 1), [{ text: "Responsable", options: { bold: true, color: GREEN, breakLine: true, fontSize: 9.5 } }, { text: r }], { x: x + 0.62, y: y + 0.08, w: cw - 0.72, h: 0.5, fontSize: 10, color: INK, valign: "middle" });
+    txt(s, "Título A-" + (i + 1), t, { x: x + 0.16, y: y + 0.64, w: cw - 0.32, h: 0.55, fontSize: 11.5, bold: true });
+    txt(s, "Respuesta A-" + (i + 1), c ? "Respuesta: " + c : "Respuesta: sin comentario en la matriz", { x: x + 0.16, y: y + 1.18, w: cw - 0.32, h: 0.36, fontSize: 9.5, italic: true, color: MUTED });
   });
   {
     const { x, y } = cell(7);
     card(s, "Plazo Anexo A", x, y, cw, ch, GREEN);
-    txt(s, "Plazo A número", "10", { x: x + 0.2, y: y + 0.12, w: 0.9, h: 0.7, fontSize: 40, bold: true, color: WHITE, fontFace: THEME.headFontFace, valign: "middle" });
-    txt(s, "Plazo A título", "días hábiles para descargos", { x: x + 1.1, y: y + 0.17, w: cw - 1.25, h: 0.6, fontSize: 12, bold: true, color: WHITE, valign: "middle" });
-    txt(s, "Plazo A detalle", "Buzón DESCARGOS_OBSERVACIONES\nVence aprox. 23/10/2026", { x: x + 0.2, y: y + 0.9, w: cw - 0.35, h: 0.55, fontSize: 10.5, color: WHITE });
+    txt(s, "Plazo A número", "10", { x: x + 0.2, y: y + 0.1, w: 0.9, h: 0.7, fontSize: 40, bold: true, color: WHITE, fontFace: THEME.headFontFace, valign: "middle" });
+    txt(s, "Plazo A título", "días hábiles para descargos", { x: x + 1.1, y: y + 0.15, w: cw - 1.25, h: 0.6, fontSize: 12, bold: true, color: WHITE, valign: "middle" });
+    txt(s, "Plazo A detalle", "Buzón DESCARGOS_OBSERVACIONES\nVence aprox. 23/10/2026", { x: x + 0.2, y: y + 0.88, w: cw - 0.35, h: 0.55, fontSize: 10.5, color: WHITE });
   }
-  const yB = 5.6;
-  txt(s, "Etiqueta Anexo B", "ANEXO B · SEGUIMIENTO A 2 DE LAS 9 OBSERVACIONES DE 2025 (NO SON NUEVAS)", { x: M, y: yB - 0.32, w: 9, h: 0.26, fontSize: 11, bold: true, color: AMBER_INK, charSpacing: 2 });
+  const yB = 5.4;
+  txt(s, "Etiqueta Anexo B", "ANEXO B · SEGUIMIENTO A 2 DE LAS 9 OBSERVACIONES DE 2025 (NO SON NUEVAS)", { x: M, y: yB - 0.3, w: 9, h: 0.26, fontSize: 11, bold: true, color: AMBER_INK, charSpacing: 2 });
   const B = [
-    ["Comités de Apoyo no integran personal ejecutivo", "Responsable: Administración de Riesgo", "NO SUPERADA", RED, 3],
-    ["Normativa interna desactualizada", "Responsables: Auditoría Interna, Servicios Generales y Talento Humano", "PARCIALMENTE SUPERADA", AMBER, 5],
+    ["Comités de Apoyo no integran personal ejecutivo", "Gerencia General · Jefe de Administración de Riesgos", "Plan de solución: acciones aún sin registrar", "NO SUPERADA", RED, 3],
+    ["Normativa interna desactualizada", "Talento Humano · Auditor Interno · Servicios Generales", "RIT y Manual de Compras en proceso · Reglamento del Comité de Auditoría aprobado (28/08/2026) y enviado al CA (05/10/2026)", "PARCIALMENTE SUPERADA", AMBER, 5],
   ];
-  const bw = (W - 2 * M - cw - 2 * gap) / 2, bh = 1.23;
-  B.forEach(([t, r, st, col, n25], i) => {
+  const bw = (W - 2 * M - cw - 2 * gap) / 2, bh = 1.45;
+  B.forEach(([t, r, av, st, col, n25], i) => {
     const x = M + i * (bw + gap);
     card(s, "Anexo B-" + n25, x, yB, bw, bh, col, { transparency: 88 });
-    pill(s, "Origen B-" + n25, "OBS. " + n25 + " DE 2025", x + 0.2, yB + 0.17, 1.45, NAVY, 10.5);
-    pill(s, "Estado B-" + n25, st, x + 1.8, yB + 0.17, st.length > 12 ? 2.4 : 1.45, col, 10.5);
-    txt(s, "Título B-" + n25, t, { x: x + 0.2, y: yB + 0.55, w: bw - 0.4, h: 0.28, fontSize: 12.5, bold: true });
-    const [lab, who] = r.split(": ");
-    txt(s, "Responsable B-" + n25, [{ text: lab + ": ", options: { bold: true, color: MUTED } }, { text: who }], { x: x + 0.2, y: yB + 0.84, w: bw - 0.4, h: 0.34, fontSize: 10.5, color: INK });
+    pill(s, "Origen B-" + n25, "OBS. " + n25 + " DE 2025", x + 0.2, yB + 0.14, 1.45, NAVY, 10.5);
+    pill(s, "Estado B-" + n25, st, x + 1.8, yB + 0.14, st.length > 12 ? 2.4 : 1.45, col, 10.5);
+    txt(s, "Título B-" + n25, t, { x: x + 0.2, y: yB + 0.5, w: bw - 0.4, h: 0.28, fontSize: 12.5, bold: true });
+    txt(s, "Responsable B-" + n25, [{ text: "Responsable: ", options: { bold: true, color: MUTED } }, { text: r }], { x: x + 0.2, y: yB + 0.78, w: bw - 0.4, h: 0.24, fontSize: 10, color: INK });
+    txt(s, "Avance B-" + n25, [{ text: "Avance: ", options: { bold: true, color: MUTED } }, { text: av }], { x: x + 0.2, y: yB + 1.02, w: bw - 0.4, h: 0.4, fontSize: 9.5, color: INK });
   });
   {
     const x = M + 2 * (bw + gap);
     card(s, "Plazo Anexo B", x, yB, cw, bh, AMBER_INK);
-    txt(s, "Plazo B número", "15", { x: x + 0.2, y: yB + 0.02, w: 0.9, h: 0.7, fontSize: 40, bold: true, color: WHITE, fontFace: THEME.headFontFace, valign: "middle" });
-    txt(s, "Plazo B título", "días hábiles para plan de solución", { x: x + 1.1, y: yB + 0.07, w: cw - 1.25, h: 0.6, fontSize: 12, bold: true, color: WHITE, valign: "middle" });
-    txt(s, "Plazo B detalle", "Buzón PLANES_SOLUC_VISITASUPERVIS\nVence aprox. 30/10/2026", { x: x + 0.2, y: yB + 0.73, w: cw - 0.3, h: 0.45, fontSize: 10.5, color: WHITE });
+    txt(s, "Plazo B número", "15", { x: x + 0.2, y: yB + 0.08, w: 0.9, h: 0.7, fontSize: 40, bold: true, color: WHITE, fontFace: THEME.headFontFace, valign: "middle" });
+    txt(s, "Plazo B título", "días hábiles para plan de solución", { x: x + 1.1, y: yB + 0.13, w: cw - 1.25, h: 0.6, fontSize: 12, bold: true, color: WHITE, valign: "middle" });
+    txt(s, "Plazo B detalle", "Buzón PLANES_SOLUC_VISITASUPERVIS\nVence aprox. 30/10/2026", { x: x + 0.2, y: yB + 0.85, w: cw - 0.3, h: 0.5, fontSize: 10.5, color: WHITE });
   }
-  s.addNotes("Anexo A: siete observaciones nuevas; los responsables son los que señala la Circular 22741 (en la obs. 4, Administración de Riesgo). Plazo de 10 días hábiles para remitir pruebas de descargo, previo conocimiento del Consejo de Administración. Anexo B: no son observaciones nuevas, es el seguimiento a las obs. 3 y 5 de 2025; plan de solución en 15 días hábiles con acciones, responsable, plazo por acción y certificación del punto de acta del Consejo. Fechas aproximadas sin asuetos.");
+  s.addNotes("Anexo A: siete observaciones nuevas. Responsable y respuesta según la Matriz de requerimientos de la Circular 22741 (las obs. 1, 4 y 5 aún no tienen comentario en la matriz). Anexo B: seguimiento a las obs. 3 y 5 de 2025; responsable y avance según el Plan de solución. Obs. 5: Reglamento Interno de Trabajo en proceso; Reglamento del Comité de Auditoría aprobado por el Comité el 28/08/2026 y remitido el 05/10/2026 al Consejo de Administración para ratificación; Manual de Compras en proceso. Plazos: 10 días hábiles para descargos y 15 días hábiles para el plan de solución (fechas aproximadas sin asuetos).");
 }
 
 // ============ SLIDE 4 · LÍNEA DE TIEMPO Y EVOLUCIÓN ============
@@ -237,16 +237,17 @@ const legendDot = (s, name, text, x, y, color, w = 2.2) => {
     ["09 OCT 2026", "Informe preliminar · Circular 22741", "7 nuevas (Anexo A) + seguimiento a obs. 3 y 5 de 2025 (Anexo B)", GREEN],
     ["21 AGO 2026", "Inicio de la visita de supervisión ampliada", "", GREEN],
     ["31 JUL 2026", "Nombramiento SSF · Circular 18432", "Visita con corte al 31/07/2026", GREEN],
+    ["18 NOV 2025", "Envío de descargos a la SSF", "Matriz de pruebas de descargo · ref. NB07-2025-974", NAVY],
     ["05 NOV 2025", "Informe preliminar · Circular 17003", "9 observaciones", NAVY],
     ["19 MAY 2025", "Inicio formal de la visita en sitio", "", NAVY],
     ["09 ABR 2025", "Nombramiento SSF · Circular 9337", "Visita con corte al 30/04/2025", NAVY],
   ];
-  const ax = M + 1.2, y0 = 1.6, step = 0.74, gapYear = 0.22, tx = ax + 0.35, tw = 5.0;
+  const ax = M + 1.2, y0 = 1.58, step = 0.655, gapYear = 0.2, tx = ax + 0.35, tw = 5.0;
   const ys = H.map((_, i) => y0 + i * step + (i >= 4 ? gapYear : 0));
   // Eje: 2026 verde, pausa punteada, 2025 azul
   s.addShape(pres.shapes.LINE, { objectName: "Eje 2026", x: ax, y: ys[0], w: 0, h: ys[3] - ys[0], line: { color: GREEN, width: 3 } });
   s.addShape(pres.shapes.LINE, { objectName: "Pausa entre visitas", x: ax, y: ys[3] + 0.2, w: 0, h: ys[4] - ys[3] - 0.4, line: { color: MUTED, width: 1.5, dashType: "dash" } });
-  s.addShape(pres.shapes.LINE, { objectName: "Eje 2025", x: ax, y: ys[4], w: 0, h: ys[6] - ys[4], line: { color: NAVY, width: 3 } });
+  s.addShape(pres.shapes.LINE, { objectName: "Eje 2025", x: ax, y: ys[4], w: 0, h: ys[7] - ys[4], line: { color: NAVY, width: 3 } });
   pill(s, "Año 2026", "2026", M, ys[0] - 0.04, 0.85, GREEN, 11);
   pill(s, "Año 2025", "2025", M, ys[4] - 0.04, 0.85, NAVY, 11);
   txt(s, "Pausa texto", "8 meses", { x: M - 0.05, y: (ys[3] + ys[4]) / 2 - 0.1, w: 1.0, h: 0.22, fontSize: 10, italic: true, color: MUTED, align: "center" });
