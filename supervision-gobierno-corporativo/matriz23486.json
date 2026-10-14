@@ -1,0 +1,182 @@
+[
+ {
+  "obs": "A.1  Deficiencias en la conformación y actualización de expedientes de clientes.",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento",
+  "slide": 0
+ },
+ {
+  "obs": "A.2  Deficiencias en la identificación de la actividad económica realizada por clientes.",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento",
+  "slide": 0
+ },
+ {
+  "obs": "B.1  Falta de actualización de Metodología y matriz de riesgo LA/FT/FPADM de la Entidad",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento",
+  "slide": 0
+ },
+ {
+  "obs": "B.2  Falta de actualización de Metodología y matriz de riesgo LA/FT/FPADM Clientes o asociados",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento",
+  "slide": 0
+ },
+ {
+  "obs": "B.3  Falta de automatización en el proceso de remisión de reportería regulada a la Web Service de UIF.",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento",
+  "slide": 0
+ },
+ {
+  "obs": "B.4  Falta de Automatización de la herramienta de validación de Listas de Cautela",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento",
+  "slide": 0
+ },
+ {
+  "obs": "B.5  Falta de evidencia en los porcentajes de avance comunicados en el cronograma",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento",
+  "slide": 0
+ },
+ {
+  "obs": "B.6  Revisión documentación conforme artículo22 de la NRP-23",
+  "com": "Se anexa informe elaborado en fecha 13 de diciembre de 2024, sobre proyecto de implementación de un nuevo sistema de monitoreo de LDA/FT/FPADM y del sistema de fraude de canales digitales.",
+  "resp": "Jefe de Riesgos",
+  "slide": 0
+ },
+ {
+  "obs": "B.7  Debilidades en el contrato del servicio de software",
+  "com": "Se adjuntará la propuesta de la Gerencia Legal por medio de correo de fecha 09 de octubre 2026, envió propuesta a la Gerencia de Cumplimiento y Seguridad de la Información para la modificación del contrato.\nPendiente",
+  "resp": "Gerencia de Cumplimiento\n/ Gerencia Legal",
+  "slide": 0
+ },
+ {
+  "obs": "B.8  Debilidad en el Alcance de las Pruebas Continuidad del Negocio",
+  "com": "Plan de acción: proveedor critico\nPendiente\nSe identificarán los servicios tecnológicos tercerizados críticos y se incorporarán en el alcance de las pruebas de continuidad del negocio. Asimismo, se solicitarán a los proveedores los resultados y evidencias de las pruebas realizadas, con el fin de validar la efectividad de los controles implementados.",
+  "resp": "Administración de Riesgos/Gerencia de sistemas/Seguridad de la información",
+  "slide": 0
+ },
+ {
+  "obs": "B.9  Deficiencia en los procedimientos de Respaldos.",
+  "com": "Plan de acción\nPendiente",
+  "resp": "Gerencia de Cumplimiento\n/ Gerencia de Sistemas",
+  "slide": 0
+ },
+ {
+  "obs": "B.10  Deficiencia en la hora del sistema y la herramienta de Monitoreo",
+  "com": "Descargo correos de gestión\nPendiente",
+  "resp": "Gerencia de Cumplimiento",
+  "slide": 0
+ },
+ {
+  "obs": "B.11  Verificación de las condiciones en ACRM",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento",
+  "slide": 0
+ },
+ {
+  "obs": "B.12  Limitante de Accesos a los Datos de COMEDICA, alojada en la Herramienta de Monitoreo.",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento\n/ Seguridad de la información",
+  "slide": 0
+ },
+ {
+  "obs": "B.13  Limitante para identificar la base de datos de CRM",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento\n/ Seguridad de la información",
+  "slide": 0
+ },
+ {
+  "obs": "B.14  Falta de documentación que dé cumplimiento a lo requerido por el artículo 22 de la NRP-23 correspondiente a la adquisición del sistema CRM.",
+  "com": "Pendiente",
+  "resp": "Gerencia de Cumplimiento\n/Seguridad de la Información",
+  "slide": 0
+ },
+ {
+  "obs": "B.15  Servicios tercerizados",
+  "com": "Como parte del fortalecimiento de los controles de seguridad asociados al servicio tercerizado del módulo ACRM, la Unidad de Seguridad de la Información y Ciberseguridad realizará una reevaluación de los riesgos de seguridad de la información y ciberseguridad, mediante la actualización de la matriz de riesgos y la revisión de los controles existentes, con el propósito de identificar oportunidades de mejora y definir las medidas adicionales de tratamiento que correspondan, en coordinación con el área responsable de la solución el proveedor.\nFecha de cumplimiento: 30 de noviembre de 2026.",
+  "resp": "Seguridad de la Información",
+  "slide": 0
+ },
+ {
+  "sec": "Dar seguimiento a observaciones de visitas anteriores con referencia al 31 de mayo de 2026\nEvaluación de la gestión de los Riesgos de Crédito, Operacional y Tecnológico, con referencia al 31 de enero de 2025; resultados preliminares comunicados mediante nota No. DS-SABAO-BCS-BC-16572 del 10 de septiembre de 2025.\nC.1.1. Gestión del Riesgo de Crédito.",
+  "slide": 1
+ },
+ {
+  "obs": "Observación 2: Falta de eficacia en la subsanación de observaciones determinadas por el Departamento de Auditoría Interna.\nSeguimiento realizado en la presente visita de supervisión:\nComentarios COMEDICA: en el Plan de Auditoría interna 2026 se incluyó seguimientos trimestrales como actividad 44 para solventar la observación.\nEstado: parcialmente superada",
+  "com": "AI 28 2024 y AI 45 2024 Otorgamiento de Préstamos.\nSe realizó el seguimiento correspondiente a los informes AI 44-2025, AI 64-2025 y AI 20-2026. Como resultado, las observaciones quedaron solventadas. (Se anexan los informes).\nAI 21 2024 y AI 26 2024 Otorgamiento de Tarjeta de Crédito.\nSe realizó el seguimiento correspondiente en los informes AI 14 2025 y AI 69 2025. Como resultado, las observaciones quedaron solventadas. (Se anexan los informes).\nInformes AI 32 2024; AI 37 2024 y AI 52 2024.\nSe continuará con el seguimiento, solicitando nuevamente planes de acción con fechas plazo, a cada unidad responsable.\nPlazo: 30/11/2026",
+  "resp": "Auditoría interna",
+  "slide": 1
+ },
+ {
+  "obs": "Observación 3: Seguimiento inoportuno de las observaciones por parte de Auditoría Interna.\nSeguimiento realizado en la presente visita de supervisión:\nComentarios COMEDICA de R.L.: En el Plan de Auditoría Interna 2026 se incluyó seguimientos trimestrales como actividad 44 para solventar la observación.\nEstado: No superada.",
+  "com": "Para dar seguimiento a los informes se ha elaborado una matriz con las observaciones de todos los informes, la matriz es actualizada trimestralmente.\nSe anexa la matriz de seguimiento de informes.",
+  "resp": "Auditoría interna",
+  "slide": 1
+ },
+ {
+  "sec": "C.1.2. Gestión de Riesgo Operacional y Tecnológico",
+  "slide": 1
+ },
+ {
+  "obs": "Observación 2: Seguimiento a informes de observaciones del Comité de Auditoría y de Auditoría Interna durante el período 2023.\nEstado de la observación : Parciamente superada",
+  "com": "Se realizará nuevamente el seguimiento de las observaciones pendientes de solventar en las Actas: 173 y 175;\nPlazo: 30/11/2026",
+  "resp": "Auditoría interna",
+  "slide": 1
+ },
+ {
+  "sec": "Verificación de las Normas Técnicas para la Gestión de los Riesgos de Lavado de Dinero y de Activos, Financiación del Terrorismo y la Financiación de la Proliferación de Armas de Destrucción Masiva (NRP-36), con referencia al 31 de mayo de 2025, comunicadas mediante nota No. DS-SABAO-BCS-BC-18445 del 30 de octubre de 2025.",
+  "slide": 1
+ },
+ {
+  "obs": "Observación 1. Falta de aplicación del factor de riesgo empleados.\nSeguimiento realizado en la presente visita de supervisión:\nEstado: No superada",
+  "com": "Sin comentarios ni documentación",
+  "resp": "Gerencia de Oficialía de Cumplimiento",
+  "slide": 1
+ },
+ {
+  "obs": "Observación 4. Seguimiento de observaciones de Auditoría Interna de años anteriores no subsanadas.\nSeguimiento realizado en la presente visita de supervisión:\nEstado: Parcialmente Superada.",
+  "com": "Se gestionará con la Gerencia de Oficialía de Cumplimiento un nuevo Plan de Acción. Auditoría Interna dará seguimiento.\nPlazo: 30/11/2026",
+  "resp": "Auditoría interna",
+  "slide": 1
+ },
+ {
+  "sec": "C.3. Evaluación de Guías de Calidad de la Gestión de Riesgos Específicos, con el propósito evaluar la gestión de los riesgos de liquidez, mercado, operacional y tecnológico, de lavado de dinero y de activos, financiación del terrorismo y la financiación de la proliferación de armas de destrucción masiva (LDA/FT/FPADM), con referencia al 30 de septiembre de 2025, comunicadas mediante nota DS-SABAO-BCS-29295 de fecha 03 de diciembre de 2025.",
+  "slide": 1
+ },
+ {
+  "sec": "C.3.1. Gestión de riesgo de Liquidez",
+  "slide": 1
+ },
+ {
+  "obs": "Observación 1: Falta de elementos en el plan de contingencia.\nSeguimiento realizado en la presente visita de supervisión:\nEstado de la observación: No superada.",
+  "com": "Se trabajará en modificar el Plan de Contingencia de Liquidez para subsanar las observaciones indicadas por la SSF.\nFecha de finalización: 16 de noviembre de 2026",
+  "resp": "Gerencia Financiera",
+  "slide": 1
+ },
+ {
+  "obs": "Observación 2: Inconsistencia en los roles y responsabilidades asignados en la elaboración del Plan de Contingencia de Liquidez\nEstado de la observación: No superada.",
+  "com": "Se trabajará en modificar el Plan de Contingencia de Liquidez para subsanar las observaciones indicadas por la SSF.\nFecha de finalización: 16 de noviembre de 2026.",
+  "resp": "Gerencia Financiera",
+  "slide": 1
+ },
+ {
+  "sec": "C.3.2. Gestión de riesgo Operacional y Tecnológico.",
+  "slide": 1
+ },
+ {
+  "obs": "Observación 1: Falta de actualización de normativa interna relacionada la gestión de Riesgo Operacional y Tecnológico\nSeguimiento realizado en la presente visita de supervisión:\nEstado de la observación: Parcialmente superada.",
+  "com": "Se agrega documentos actualizados, según detalle:\nPolítica de Gestión de Riesgo Operacional\nManual de Administración de Riesgo Tecnológico.\nPendiente de presentar al Comité de Riesgos: Política de contratación de servicios críticos tercerizados.",
+  "resp": "Administración de Riesgos",
+  "slide": 1
+ },
+ {
+  "obs": "Observación 2: Omisión de la presentación del objetivo mínimo de continuidad de negocio (MBCO) en BIA con referencia al 31 de agosto del 2024.\nEstado de la observación: No superada",
+  "com": "Programado actualizar el BIA en noviembre 2026, siendo esa fecha en la que se incorporará lo solicitado.",
+  "resp": "Administración de Riesgos",
+  "slide": 1
+ }
+]
