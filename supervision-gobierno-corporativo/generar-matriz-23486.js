@@ -40,17 +40,18 @@ kpis.forEach(([n, l, col], i) => {
   kx += w + 0.08;
 });
 
-const BORDER = { type: "solid", pt: 0.5, color: "D9E0EA" };
-const head = (col) => ["Observación", "Comentarios", "Responsable"].map(t => ({ text: t, options: { bold: true, color: WHITE, fill: { color: col }, fontSize: 8.5 } }));
-const sec = (t, col) => [{ text: t, options: { colspan: 3, bold: true, color: col, fill: { color: TINT }, fontSize: 8, charSpacing: 1 } }];
+const BORDER = [{ type: "none" }, { type: "none" }, { type: "solid", pt: 0.75, color: "D9E0EA" }, { type: "none" }];
+const head = (col) => ["Observación", "Comentarios", "Responsable"].map(t => ({ text: t.toUpperCase(), options: { bold: true, color: WHITE, fill: { color: col }, fontSize: 8, charSpacing: 1 } }));
+const sec = (t, col) => [{ text: t, options: { colspan: 3, bold: true, color: col, fill: { color: TINT }, fontSize: 7.5, charSpacing: 1 } }];
 const row = (i, obs, com, resp, estado) => {
   const z = i % 2 ? TINT : WHITE;
   const o = [{ text: obs, options: { bold: true, color: INK } }];
   if (estado) o.push({ text: "\n" + estado.toUpperCase(), options: { bold: true, fontSize: 7, color: /no superada/i.test(estado) ? RED : AMBER_INK } });
+  const tint = estado ? (/no superada/i.test(estado) ? "FBEAE8" : "FDF4E3") : "FFFFFF";
   return [
-    { text: o, options: { fill: { color: WHITE } } },
-    { text: com, options: { color: INK, fill: { color: WHITE } } },
-    { text: resp, options: { color: MUTED, fill: { color: WHITE } } },
+    { text: o, options: { fill: { color: tint } } },
+    { text: com, options: { color: INK, fill: { color: "FFFFFF" } } },
+    { text: resp, options: { color: NAVY, bold: true, fill: { color: "FFFFFF" } } },
   ];
 };
 const COMP = "Compromiso al 14/10/2026";
@@ -98,11 +99,22 @@ const right = [
 ];
 
 const PWL = 6.75, PWR = W - 2 * M - 0.25 - PWL, TY = 1.42, PW = PWL;
-s.addText([{ text: "OBSERVACIONES NUEVAS DE LA VISITA", options: { bold: true, color: NAVY } }, { text: "   ·   todas con compromiso al 14/10/2026", options: { color: MUTED, charSpacing: 0, italic: true } }], { objectName: "Etiqueta nuevas", isTextBox: true, x: M, y: 1.13, w: PW, h: 0.24, fontSize: 9.5, charSpacing: 2, margin: 0 });
+s.addText([{ text: "OBSERVACIONES NUEVAS DE LA VISITA", options: { bold: true, color: NAVY } }], { objectName: "Etiqueta nuevas", isTextBox: true, x: M, y: 1.13, w: PW, h: 0.24, fontSize: 9.5, charSpacing: 2, margin: 0 });
 s.addText([{ text: "SEGUIMIENTO A OBSERVACIONES DE VISITAS ANTERIORES", options: { bold: true, color: RED } }], { objectName: "Etiqueta seguimiento", isTextBox: true, x: M + PWL + 0.25, y: 1.13, w: PWR, h: 0.24, fontSize: 9.5, charSpacing: 2, margin: 0 });
 const opts = (x, colW) => ({ x, y: TY, w: colW.reduce((a, b) => a + b, 0), colW, fontFace: THEME.bodyFontFace, fontSize: 7.5, valign: "middle", margin: [0.025, 0.05, 0.025, 0.05], border: BORDER, autoPage: false });
 s.addTable(left, { objectName: "Tabla observaciones nuevas", ...opts(M, [2.5, 2.0, PWL - 4.5]) });
 s.addTable(right, { objectName: "Tabla seguimiento", ...opts(M + PWL + 0.25, [2.05, 2.25, PWR - 4.3]) });
+
+s.addText("Todas con compromiso al 14/10/2026", { objectName: "Nota compromiso", isTextBox: true, x: M + PWL - 2.6, y: 1.13, w: 2.6, h: 0.24, fontSize: 8.5, italic: true, color: MUTED, align: "right", margin: 0 });
+// Próximos vencimientos
+const vx = M + PWL + 0.25, vy = 6.32, vw = PWR;
+s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "Vencimientos fondo", x: vx, y: vy, w: vw, h: 0.78, rectRadius: 0.08, fill: { color: TINT }, line: { color: TINT, transparency: 100 } });
+s.addText("PRÓXIMOS VENCIMIENTOS", { objectName: "Vencimientos título", isTextBox: true, x: vx + 0.15, y: vy + 0.08, w: 3, h: 0.2, fontSize: 8, bold: true, color: NAVY, charSpacing: 2, margin: 0 });
+[["16 NOV 2026", "Plan de Contingencia de Liquidez"], ["30 NOV 2026", "Auditoría Interna y servicio ACRM"], ["NOV 2026", "Actualización del BIA"]].forEach(([d, t], i) => {
+  const cw = (vw - 0.3 - 0.2) / 3, cx = vx + 0.15 + i * (cw + 0.1);
+  s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "Vence " + i, x: cx, y: vy + 0.32, w: cw, h: 0.38, rectRadius: 0.06, fill: { color: WHITE }, line: { color: "D9E0EA", width: 0.75 } });
+  s.addText([{ text: d, options: { bold: true, color: RED, fontSize: 8.5, breakLine: true } }, { text: t, options: { color: INK, fontSize: 7.5 } }], { objectName: "Vence texto " + i, isTextBox: true, x: cx + 0.08, y: vy + 0.33, w: cw - 0.16, h: 0.36, margin: 0, valign: "middle" });
+});
 
 s.addNotes("Matriz de requerimientos de la Circular DS-SABAO-BCS-BC-23486 (versión corta). Izquierda: 17 observaciones nuevas (A. Gestión de riesgo de LDA/FT/FPADM y B. Implementación de la herramienta de monitoreo); en la matriz todas tienen 'Comentario CA: 14/10/2026 Compromiso'. Derecha: 9 observaciones de visitas anteriores en seguimiento: 5 no superadas y 4 parcialmente superadas. La redacción se adaptó a un lenguaje sencillo sin cambiar el contenido.");
 
