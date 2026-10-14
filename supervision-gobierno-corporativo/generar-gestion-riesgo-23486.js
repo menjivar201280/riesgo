@@ -115,35 +115,62 @@ function grid(items, cols, y0, y1, heightOf, draw) {
   return k;
 }
 
-// ============ 2–3. OBSERVACIONES NUEVAS ============
-function nuevasSlide(list, eyebrow, title, cols, fs0) {
+// ============ 2–3. OBSERVACIONES NUEVAS (A y B separadas) ============
+const parseN = r => { const m = /^([AB]\.\d+)\s+([\s\S]*)$/.exec(r.obs); return { num: m[1], t: m[2], r }; };
+const SECT = { A: ["A. Gestión de Riesgo de LDA/FT/FPADM", TEAL], B: ["B. Proceso de implementación de la Herramienta de Monitoreo", GREEN] };
+function nuevasSlide(groups, eyebrow, title, fs0) {
   const s = pres.addSlide({ masterName: "CONTENIDO" });
   header(s, eyebrow, title);
-  const parse = r => { const m = /^([AB]\.\d+)\s+([\s\S]*)$/.exec(r.obs); return { num: m[1], t: m[2], r }; };
-  const items = list.map(parse);
+  const gap = 0.14, BAND = 0.36, top = 1.32, bottom = 7.0;
+  const cwOf = cols => (W - 2 * M - (cols - 1) * gap) / cols;
   const hdrH = (it, cw) => Math.max(0.56, 0.2 + linesOf(it.r.resp, 10, cw - 0.84) * 0.17);
   const hF = (it, cw, fs) => hdrH(it, cw) + 0.16 + linesOf(it.t, fs, cw - 0.32) * fs * 0.0175 + 0.12 + linesOf("Comentarios  " + it.r.com.replace(/\n/g, " "), fs - 1, cw - 0.32) * (fs - 1) * 0.0172 + 0.18;
-  const fs = fitFs(items, cols, 1.35, 7.0, hF, fs0); const hOf = (it, cw) => hF(it, cw, fs);
-  const k = grid(items, cols, 1.35, 7.0, hOf, (it, x, y, cw, h) => {
-    const { num, t, r } = it, col = num[0] === "A" ? TEAL : GREEN;
-    card(s, "Obs " + num, x, y, cw, h, TINT);
-    badge(s, "Número " + num, num, x + 0.12, y + 0.12, 0.5, col, 11);
-    const hh = hdrH(it, cw);
-    txt(s, "Responsable " + num, [{ text: "RESPONSABLE", options: { bold: true, color: MUTED, fontSize: 8.5, breakLine: true } }, { text: r.resp, options: { fontSize: 10 } }], { x: x + 0.72, y: y + 0.08, w: cw - 0.84, h: hh, valign: "middle" });
-    const th = linesOf(t, fs, cw - 0.32) * fs * 0.0175 + 0.04, ty = y + 0.08 + hh + 0.1;
-    txt(s, "Título " + num, t, { x: x + 0.16, y: ty, w: cw - 0.32, h: th, fontSize: fs, bold: true, color: NAVY, align: "justify" });
-    const pend = r.com.trim() === "Pendiente";
-    txt(s, "Comentario " + num, [{ text: "Comentarios  ", options: { bold: true, color: MUTED } }, { text: r.com.replace(/\n/g, " "), options: { color: pend ? AMBER_INK : INK, bold: pend } }],
-      { x: x + 0.16, y: ty + th + 0.08, w: cw - 0.32, h: y + h - (ty + th + 0.08) - 0.1, fontSize: fs - 1, align: "justify" });
+  const rowsOf = g => { const out = []; for (let i = 0; i < g.items.length; i += g.cols) out.push(g.items.slice(i, i + g.cols)); return out; };
+  const fixed = groups.length * (BAND + 0.08) + (groups.length - 1) * 0.16;
+  let fs = fs0;
+  for (; fs > 7; fs -= 0.25) {
+    let need = 0, nRows = 0;
+    groups.forEach(g => rowsOf(g).forEach(r => { need += Math.max(...r.map(it => hF(it, cwOf(g.cols), fs))); nRows++; }));
+    if (need <= bottom - top - fixed - gap * (nRows - groups.length)) break;
+  }
+  let need = 0, nRows = 0;
+  groups.forEach(g => rowsOf(g).forEach(r => { need += Math.max(...r.map(it => hF(it, cwOf(g.cols), fs))); nRows++; }));
+  const k = (bottom - top - fixed - gap * (nRows - groups.length)) / need;
+  let y = top;
+  groups.forEach((g, gi) => {
+    const [label, col] = SECT[g.key];
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { objectName: "Banda " + g.key, x: M, y, w: W - 2 * M, h: BAND, rectRadius: 0.06, fill: { color: col }, line: { color: col, transparency: 100 } });
+    txt(s, "Banda texto " + g.key + gi, label + (g.cont ? " (continuación)" : ""), { x: M + 0.18, y, w: W - 2 * M - 0.36, h: BAND, fontSize: 13, bold: true, color: WHITE, valign: "middle" });
+    y += BAND + 0.08;
+    const cw = cwOf(g.cols);
+    rowsOf(g).forEach(row => {
+      const h = Math.max(...row.map(it => hF(it, cw, fs))) * k;
+      row.forEach((it, ci) => {
+        const x = M + ci * (cw + gap), { num, t, r } = it;
+        card(s, "Obs " + num, x, y, cw, h, TINT);
+        badge(s, "Número " + num, num, x + 0.12, y + 0.12, 0.5, col, 11);
+        const hh = hdrH(it, cw);
+        txt(s, "Responsable " + num, [{ text: "RESPONSABLE", options: { bold: true, color: MUTED, fontSize: 8.5, breakLine: true } }, { text: r.resp, options: { fontSize: 10 } }], { x: x + 0.72, y: y + 0.08, w: cw - 0.84, h: hh, valign: "middle" });
+        const th = linesOf(t, fs, cw - 0.32) * fs * 0.0175 + 0.04, ty = y + 0.08 + hh + 0.1;
+        txt(s, "Título " + num, t, { x: x + 0.16, y: ty, w: cw - 0.32, h: th, fontSize: fs, bold: true, color: NAVY, align: "justify" });
+        const pend = r.com.trim() === "Pendiente";
+        txt(s, "Comentario " + num, [{ text: "Comentarios  ", options: { bold: true, color: MUTED } }, { text: r.com.replace(/\n/g, " "), options: { color: pend ? AMBER_INK : INK, bold: pend } }],
+          { x: x + 0.16, y: ty + th + 0.08, w: cw - 0.32, h: y + h - (ty + th + 0.08) - 0.1, fontSize: fs - 1, align: "justify" });
+      });
+      y += h + gap;
+    });
+    y += 0.16 - gap;
   });
   console.log("nuevas", title, "fs", fs, "k", k.toFixed(2));
   return s;
 }
-const iB8 = nuevas.findIndex(r => r.obs.startsWith("B.8"));
-const s2 = nuevasSlide(nuevas.slice(0, iB8), "CIRCULAR " + CODE + " · OBSERVACIONES NUEVAS", "A. LDA/FT/FPADM y B. Herramienta de Monitoreo", 3, 13);
-s2.addNotes("A. Gestión de Riesgo de LDA/FT/FPADM (A.1–A.2) y B. Proceso de implementación de la Herramienta de Monitoreo (B.1–B.7). Texto de la matriz.");
-const s3 = nuevasSlide(nuevas.slice(iB8), "CIRCULAR " + CODE + " · OBSERVACIONES NUEVAS", "B. Herramienta de Monitoreo (continuación)", 4, 13);
-s3.addNotes("B. Proceso de implementación de la Herramienta de Monitoreo (B.8–B.15). Texto de la matriz.");
+const NA = nuevas.map(parseN).filter(x => x.num[0] === "A"), NB = nuevas.map(parseN).filter(x => x.num[0] === "B");
+const s2 = nuevasSlide([{ key: "A", items: NA, cols: 2 }, { key: "B", items: NB.slice(0, 6), cols: 3 }], "CIRCULAR " + CODE + " · OBSERVACIONES NUEVAS", "Observaciones nuevas", 13);
+s2.addNotes("A. Gestión de Riesgo de LDA/FT/FPADM (A.1–A.2) y B. Proceso de implementación de la Herramienta de Monitoreo (B.1–B.6). Texto de la matriz.");
+const s3 = nuevasSlide([{ key: "B", items: NB.slice(6, 11), cols: 3, cont: true }], "CIRCULAR " + CODE + " · OBSERVACIONES NUEVAS", "Observaciones nuevas", 13);
+s3.addNotes("B. Proceso de implementación de la Herramienta de Monitoreo (B.7–B.11). Texto de la matriz.");
+const s3b = nuevasSlide([{ key: "B", items: NB.slice(11), cols: 2, cont: true }], "CIRCULAR " + CODE + " · OBSERVACIONES NUEVAS", "Observaciones nuevas", 13);
+s3b.addNotes("B. Proceso de implementación de la Herramienta de Monitoreo (B.12–B.15). Texto de la matriz.");
 
 // ============ 4–5. SEGUIMIENTO ============
 function segSlide(list, title, cols, fs0) {
