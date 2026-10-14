@@ -52,11 +52,11 @@ const split3 = BODY.findIndex(r => r.length === 1 && r[0].startsWith("C.3. Evalu
   const rows = [HEAD.map(t => ({ text: t.replace(/\n/g, " "), options: { bold: true, color: WHITE, fill: { color: NAVY }, fontSize: 11 } }))];
   let letter = "", n = 0;
   BODY.slice(0, splitAt).forEach(r => {
-    if (r.length === 1) { letter = r[0].trim()[0]; n = 0; rows.push([{ text: r[0], options: { colspan: 3, bold: true, color: WHITE, fill: { color: letter === "A" ? NAVY : C.accent2 }, fontSize: 11.5 } }]); return; }
+    if (r.length === 1) { letter = r[0].trim()[0]; n = 0; rows.push([{ text: r[0], options: { colspan: 3, bold: true, color: WHITE, fill: { color: letter === "A" ? "0E7490" : C.accent2 }, fontSize: 11.5 } }]); return; }
     n++;
     const c = corto(r[1]);
     rows.push([
-      { text: [{ text: letter + "." + n + "  ", options: { bold: true, color: letter === "A" ? NAVY : C.accent2 } }, { text: r[0], options: { bold: true, color: INK } }] },
+      { text: [{ text: letter + "." + n + "  ", options: { bold: true, color: letter === "A" ? "0E7490" : C.accent2 } }, { text: r[0], options: { bold: true, color: INK } }] },
       { text: c.length > 60 ? c.slice(0, 57).trim() + "… (ver anexo)" : c, options: { color: INK } },
       { text: r[2].replace(/\n/g, " "), options: { bold: true, color: NAVY } },
     ]);
