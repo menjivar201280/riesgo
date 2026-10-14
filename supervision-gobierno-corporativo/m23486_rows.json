@@ -47,7 +47,7 @@
  ],
  [
   "Revisión documentación conforme artículo22 de la NRP-23",
-  "Comentario CA: 14/10/2026 Compromiso\nAdjuntar evidencia de fecha de matriz de riesgos.",
+  "Se anexa informe elaborado en fecha 13 de diciembre de 2024, sobre proyecto de implementación de un nuevo sistema de monitoreo de LDA/FT/FPADM y del sistema de fraude de canales digitales.",
   "Jefe de Riesgos"
  ],
  [
@@ -57,8 +57,8 @@
  ],
  [
   "Debilidad en el Alcance de las Pruebas Continuidad del Negocio",
-  "Plan de acción: proveedor critico\nComentario CA: 14/10/2026 Compromiso",
-  "Seguridad de la información"
+  "Plan de acción: proveedor critico\nComentario CA: 14/10/2026 Compromiso\nSe identificarán los servicios tecnológicos tercerizados críticos y se incorporarán en el alcance de las pruebas de continuidad del negocio. Asimismo, se solicitarán a los proveedores los resultados y evidencias de las pruebas realizadas, con el fin de validar la efectividad de los controles implementados.",
+  "Administración de Riesgos/Gerencia de sistemas/Seguridad de la información"
  ],
  [
   "Deficiencia en los procedimientos de Respaldos.",

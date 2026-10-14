@@ -29,13 +29,13 @@ function toRow(r) {
   return [
     { text: oRuns, options: { fill: { color: tint } } },
     { text: lines(c), options: { color: INK } },
-    { text: lines(f), options: { color: NAVY, bold: true } },
+    { text: lines(f), options: { color: NAVY, bold: true, align: "left" } },
   ];
 }
 function slide(title, rows, col, colW, fs) {
   const s = pres.addSlide({ masterName: "MATRIZ" });
   s.addText(title, { placeholder: "title" });
-  s.addTable([head(col), ...rows.map(toRow)], { objectName: "Tabla matriz", x: M, y: 0.8, w: W - 2 * M, colW, fontFace: THEME.bodyFontFace, fontSize: fs, valign: "middle", margin: [0.02, 0.06, 0.02, 0.06], border: BORDER, autoPage: false });
+  s.addTable([head(col), ...rows.map(toRow)], { objectName: "Tabla matriz", x: M, y: 0.8, w: W - 2 * M, colW, fontFace: THEME.bodyFontFace, fontSize: fs, valign: "middle", align: "justify", margin: [0.02, 0.06, 0.02, 0.06], border: BORDER, autoPage: false });
   return s;
 }
 const s1 = slide("Matriz de requerimientos DS-SABAO-BCS-BC-23486", BODY.slice(0, splitAt), NAVY, [4.9, 5.6, 1.93], 7.5);
