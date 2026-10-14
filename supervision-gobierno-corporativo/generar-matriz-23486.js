@@ -44,9 +44,31 @@ function slide(title, rows, col, colW, fs) {
   return s;
 }
 const split3 = BODY.findIndex(r => r.length === 1 && r[0].startsWith("C.3. Evaluación"));
+// Diapositiva 1 (para proyectar): A y B con comentario corto; texto completo en anexo oculto
+{
+  const p1 = pres.addSlide({ masterName: "MATRIZ" });
+  p1.addText(TITLE, { placeholder: "title" });
+  const corto = c => { const l = c.split("\n"); const p = l.filter(x => x !== "Pendiente"); return (p.length ? p[0] : "") + (l.includes("Pendiente") ? (p.length ? " · " : "") + "Pendiente" : ""); };
+  const rows = [HEAD.map(t => ({ text: t.replace(/\n/g, " "), options: { bold: true, color: WHITE, fill: { color: NAVY }, fontSize: 11 } }))];
+  let letter = "", n = 0;
+  BODY.slice(0, splitAt).forEach(r => {
+    if (r.length === 1) { letter = r[0].trim()[0]; n = 0; rows.push([{ text: r[0], options: { colspan: 3, bold: true, color: WHITE, fill: { color: letter === "A" ? NAVY : C.accent2 }, fontSize: 11.5 } }]); return; }
+    n++;
+    const c = corto(r[1]);
+    rows.push([
+      { text: [{ text: letter + "." + n + "  ", options: { bold: true, color: letter === "A" ? NAVY : C.accent2 } }, { text: r[0], options: { bold: true, color: INK } }] },
+      { text: c.length > 60 ? c.slice(0, 57).trim() + "… (ver anexo)" : c, options: { color: INK } },
+      { text: r[2].replace(/\n/g, " "), options: { bold: true, color: NAVY } },
+    ]);
+  });
+  p1.addTable(rows, { objectName: "Tabla A y B", x: M, y: 0.82, w: W - 2 * M, colW: [6.2, 3.7, 2.53], fontFace: THEME.bodyFontFace, fontSize: 11, valign: "middle", margin: [0.02, 0.06, 0.02, 0.06], border: BORDER, autoPage: false });
+  p1.addNotes("Versión para proyectar. El texto completo de las secciones A y B está en la diapositiva oculta del anexo, al final del archivo.");
+}
+const s2 = slide(TITLE, BODY.slice(splitAt), RED, [5.4, 5.53, 1.5], FS2);
+s2.addNotes("Texto tal como aparece en la Matriz de requerimientos DS-SABAO-BCS-BC-23486 (versión corta). Seguimiento a observaciones de visitas anteriores.");
 // Diapositiva 1: secciones A y B en cuadros separados y numerados
-const s1 = pres.addSlide({ masterName: "MATRIZ" });
-s1.addText(TITLE, { placeholder: "title" });
+const s1 = pres.addSlide({ masterName: "MATRIZ" }); s1.hidden = true;
+s1.addText(TITLE + " · Anexo A y B (texto completo)", { placeholder: "title" });
 const secIdx = BODY.slice(0, splitAt).map((r, i) => r.length === 1 ? i : -1).filter(i => i >= 0);
 const tableOpts = { x: M, w: W - 2 * M, colW: [4.35, 6.33, 1.75], fontFace: THEME.bodyFontFace, fontSize: FS1, valign: "middle", align: "justify", margin: [0.015, 0.06, 0.015, 0.06], border: BORDER, autoPage: false };
 let y = 0.76;
@@ -59,6 +81,4 @@ secIdx.forEach((si, k) => {
   y += 0.3 + SECH[letter] + 0.12;
 });
 s1.addNotes("Matriz de requerimientos DS-SABAO-BCS-BC-23486 (versión corta). Secciones A y B. 'Comentario CA: 14/10/2026 Compromiso' se muestra como 'Pendiente'.");
-const s2 = slide(TITLE, BODY.slice(splitAt), RED, [5.4, 5.53, 1.5], FS2);
-s2.addNotes("Texto tal como aparece en la Matriz de requerimientos DS-SABAO-BCS-BC-23486 (versión corta). Seguimiento a observaciones de visitas anteriores.");
 (async () => { await pres.writeFile({ fileName: OUT }); await applyTheme(OUT, THEME); console.log("written", OUT); })();
