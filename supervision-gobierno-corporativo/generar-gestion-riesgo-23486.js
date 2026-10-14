@@ -94,7 +94,7 @@ const parcial = seg.length - noSup;
 }
 
 // ============ Utilidades de cuadrícula con altura variable ============
-const CH = fs => fs * 0.0072;           // ancho medio de carácter (pulgadas) en Calibri
+const CH = fs => fs * 0.0064;           // ancho medio de carácter (pulgadas) en Calibri
 const linesOf = (t, fs, w) => t.split("\n").reduce((a, l) => a + Math.max(1, Math.ceil(l.length * CH(fs) / w)), 0);
 function fitFs(items, cols, y0, y1, hOfFs, start) {
   const gap = 0.14, cw = (W - 2 * M - (cols - 1) * gap) / cols;
@@ -121,18 +121,20 @@ function nuevasSlide(list, eyebrow, title, cols, fs0) {
   header(s, eyebrow, title);
   const parse = r => { const m = /^([AB]\.\d+)\s+([\s\S]*)$/.exec(r.obs); return { num: m[1], t: m[2], r }; };
   const items = list.map(parse);
-  const hF = (it, cw, fs) => 0.72 + linesOf(it.t, fs, cw - 0.32) * fs * 0.0175 + 0.12 + linesOf("Comentarios  " + it.r.com.replace(/\n/g, " "), fs - 1, cw - 0.32) * (fs - 1) * 0.0172 + 0.18;
+  const hdrH = (it, cw) => Math.max(0.56, 0.2 + linesOf(it.r.resp, 10, cw - 0.84) * 0.17);
+  const hF = (it, cw, fs) => hdrH(it, cw) + 0.16 + linesOf(it.t, fs, cw - 0.32) * fs * 0.0175 + 0.12 + linesOf("Comentarios  " + it.r.com.replace(/\n/g, " "), fs - 1, cw - 0.32) * (fs - 1) * 0.0172 + 0.18;
   const fs = fitFs(items, cols, 1.35, 7.0, hF, fs0); const hOf = (it, cw) => hF(it, cw, fs);
   const k = grid(items, cols, 1.35, 7.0, hOf, (it, x, y, cw, h) => {
     const { num, t, r } = it, col = num[0] === "A" ? TEAL : GREEN;
     card(s, "Obs " + num, x, y, cw, h, TINT);
     badge(s, "Número " + num, num, x + 0.12, y + 0.12, 0.5, col, 11);
-    txt(s, "Responsable " + num, [{ text: "RESPONSABLE", options: { bold: true, color: MUTED, fontSize: 8.5, breakLine: true } }, { text: r.resp, options: { fontSize: 10 } }], { x: x + 0.72, y: y + 0.08, w: cw - 0.84, h: 0.56, valign: "middle" });
-    const th = linesOf(t, fs, cw - 0.32) * fs * 0.0175 + 0.04;
-    txt(s, "Título " + num, t, { x: x + 0.16, y: y + 0.72, w: cw - 0.32, h: th, fontSize: fs, bold: true, color: NAVY, align: "justify" });
+    const hh = hdrH(it, cw);
+    txt(s, "Responsable " + num, [{ text: "RESPONSABLE", options: { bold: true, color: MUTED, fontSize: 8.5, breakLine: true } }, { text: r.resp, options: { fontSize: 10 } }], { x: x + 0.72, y: y + 0.08, w: cw - 0.84, h: hh, valign: "middle" });
+    const th = linesOf(t, fs, cw - 0.32) * fs * 0.0175 + 0.04, ty = y + 0.08 + hh + 0.1;
+    txt(s, "Título " + num, t, { x: x + 0.16, y: ty, w: cw - 0.32, h: th, fontSize: fs, bold: true, color: NAVY, align: "justify" });
     const pend = r.com.trim() === "Pendiente";
     txt(s, "Comentario " + num, [{ text: "Comentarios  ", options: { bold: true, color: MUTED } }, { text: r.com.replace(/\n/g, " "), options: { color: pend ? AMBER_INK : INK, bold: pend } }],
-      { x: x + 0.16, y: y + 0.72 + th + 0.08, w: cw - 0.32, h: h - 0.72 - th - 0.14, fontSize: fs - 1, align: "justify" });
+      { x: x + 0.16, y: ty + th + 0.08, w: cw - 0.32, h: y + h - (ty + th + 0.08) - 0.1, fontSize: fs - 1, align: "justify" });
   });
   console.log("nuevas", title, "fs", fs, "k", k.toFixed(2));
   return s;
@@ -140,7 +142,7 @@ function nuevasSlide(list, eyebrow, title, cols, fs0) {
 const iB8 = nuevas.findIndex(r => r.obs.startsWith("B.8"));
 const s2 = nuevasSlide(nuevas.slice(0, iB8), "CIRCULAR " + CODE + " · OBSERVACIONES NUEVAS", "A. LDA/FT/FPADM y B. Herramienta de Monitoreo", 3, 13);
 s2.addNotes("A. Gestión de Riesgo de LDA/FT/FPADM (A.1–A.2) y B. Proceso de implementación de la Herramienta de Monitoreo (B.1–B.7). Texto de la matriz.");
-const s3 = nuevasSlide(nuevas.slice(iB8), "CIRCULAR " + CODE + " · OBSERVACIONES NUEVAS", "B. Herramienta de Monitoreo (continuación)", 4, 12);
+const s3 = nuevasSlide(nuevas.slice(iB8), "CIRCULAR " + CODE + " · OBSERVACIONES NUEVAS", "B. Herramienta de Monitoreo (continuación)", 4, 13);
 s3.addNotes("B. Proceso de implementación de la Herramienta de Monitoreo (B.8–B.15). Texto de la matriz.");
 
 // ============ 4–5. SEGUIMIENTO ============
