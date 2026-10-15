@@ -270,7 +270,8 @@ def _avance_core(r):
 
 
 def f_avance(r):
-    return f'=IF(NOT({reg(r)}),"",{_avance_core(r)})'
+    # Las subactividades no muestran % total, estado ni alerta: su avance solo completa la macroactividad
+    return f'=IF(OR(NOT({reg(r)}),{X("t", r)}="Sub"),"",{_avance_core(r)})'
 
 
 def f_estado(r):
@@ -290,7 +291,7 @@ def _alerta_core(r):
 
 
 def f_alerta(r):
-    return f'=IF(NOT({reg(r)}),"",{_alerta_core(r)})'
+    return f'=IF(OR(NOT({reg(r)}),{X("t", r)}="Sub"),"",{_alerta_core(r)})'
 
 
 def _mes_de(ini, lim):
@@ -339,6 +340,7 @@ def checks(r):
     act, ini, lim, cump, peso = (X(k, r) for k in ("act", "ief", "lef", "cump", "peso"))
     ini_t, lim_t = X("ini", r), X("lim", r)
     s1, s2, s3, s4, av, obs = (X(k, r) for k in ("s1", "s2", "s3", "s4", "av", "obs"))
+    avn = f'IF({X("t", r)}="Sub",N({X("ap", r)}),N({av}))'   # las subactividades no muestran % propio
     t, grupo, nsub = X("t", r), X("grupo", r), X("nsub", r)
     macro, sub = f'{t}="Macro"', f'{t}="Sub"'
     return [
@@ -357,8 +359,8 @@ def checks(r):
          "Avance fuera de rango 0-100%"),
         (f'OR(AND({s2}<>"",{s2}<{s1}),AND({s3}<>"",{s3}<MAX({s1}:{s2})),AND({s4}<>"",{s4}<MAX({s1}:{s3})))',
          "Avance semanal decreciente"),
-        (f'AND(ISNUMBER({lim}),{lim}<FechaRef,N({av})<1)', "Vencida"),
-        (f'AND(ObsObligatoria="Sí",ISNUMBER({lim}),{lim}<FechaRef,N({av})<1,{obs}="")',
+        (f'AND(ISNUMBER({lim}),{lim}<FechaRef,{avn}<1)', "Vencida"),
+        (f'AND(ObsObligatoria="Sí",ISNUMBER({lim}),{lim}<FechaRef,{avn}<1,{obs}="")',
          "Vencida sin observación"),
     ]
 
@@ -1776,11 +1778,11 @@ def build_instrucciones(ws):
             "2) El N° NO se escribe: sale solo 1.1, 1.2, 1.3… (la columna está bloqueada).",
             "3) Las subactividades NO llevan peso: todas valen lo mismo dentro de su macroactividad. Excel no deja escribir un peso en una fila «Subactividad» (muestra un aviso).",
             "4) Cuando termine una subactividad, escriba su FECHA DE CUMPLIMIENTO (queda al 100%). También puede anotar avances parciales por semana.",
-            "5) El % de la macroactividad se calcula SOLO: es el promedio de sus subactividades. Ejemplo con 4 subactividades: si cumple 1 → 25%; si cumple 2 → 50%; si cumple las 4 → 100%. En la fila de la macroactividad deje VACÍAS las semanas (se ven en azul claro).",
+            "5) La subactividad NO tiene % total, estado ni alerta propios: su avance solo sirve para completar su macroactividad. El % de la macroactividad se calcula SOLO: es el promedio de sus subactividades. Ejemplo con 4 subactividades: si cumple 1 → 25%; si cumple 2 → 50%; si cumple las 4 → 100%. En la fila de la macroactividad deje VACÍAS las semanas (se ven en azul claro).",
             "6) Para agregar otra subactividad más adelante, escríbala debajo de las demás subactividades de su macroactividad: siempre pertenece a la macroactividad que esté más arriba.",
         ]),
         ("Alerta de plazo (vencidas y por vencer)", [
-            "La columna «Alerta de plazo» (en el Cronograma, la hoja Actividades y Administración) dice en cada actividad y subactividad:",
+            "La columna «Alerta de plazo» (en el Cronograma, la hoja Actividades y Administración) dice en cada macroactividad (las subactividades no llevan alerta; la lleva su macroactividad):",
             "• «Cumplida» (verde): tiene fecha de cumplimiento o llegó al 100%. Si se cumplió después de la fecha límite dice «Cumplida con X días de retraso».",
             "• «Vencida hace X días» (rojo): pasó la fecha límite y no tiene fecha de cumplimiento. Escriba en Observaciones por qué no se cumplió.",
             "• «Vence hoy» o «Vence en X días» (amarillo): la fecha límite está cerca (el número de días se cambia en Configuración).",

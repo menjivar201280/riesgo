@@ -298,7 +298,8 @@ L1, M1, P1 = cron(wb, 5, RO)
 check("Macro 1 = promedio de subactividades (100%+60%+0%)/3 = 53%, En curso, sin alertas",
       abs(L1 - 1.6 / 3) < 1e-9 and M1 == "En curso" and P1 == "✔ OK", (L1, M1, P1))
 L2, M2, P2 = cron(wb, 6, RO)
-check("Subactividad 1.1 al 100% = Completado; no exige peso", (L2, M2, P2) == (1, "Completado", "✔ OK"), (L2, M2, P2))
+check("Subactividad 1.1: sin % total, estado ni alerta propios (solo completa su macro); no exige peso",
+      (L2, M2, P2, alerta(wb, 6, RO)) == (None, None, "✔ OK", None), (L2, M2, P2, alerta(wb, 6, RO)))
 L3, M3, P3 = cron(wb, 9, RO)
 check("Macro 2 con subactividad agregada: avance = promedio subactividades (100%)", L3 == 1, (L3, M3, P3))
 check("Macro 2 con semanas escritas y subactividades → aviso", "deje vacías las semanas" in P3, P3)
@@ -328,11 +329,15 @@ rowsW = [act(1, RO, None, ()),                                                  
          dict(act(91, ADM, None, (0.1,), fin=D(2026, 10, 20)), macro="Indicadores – Plan de recuperación")]
 wb = run("W", rowsW, semana=1, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
 L, M, P = cron(wb, 6, RO)
-check("Subactividad con fecha de cumplimiento = 100% Completado y 'Cumplida'",
-      (L, M, alerta(wb, 6, RO)) == (1, "Completado", "Cumplida"), (L, M, alerta(wb, 6, RO)))
-check("Cumplida después de la fecha límite → 'Cumplida con 1 día de retraso' (no vencida)",
-      alerta(wb, 7, RO) == "Cumplida con 1 día de retraso" and "Vencida" not in cron(wb, 7, RO)[2],
-      (alerta(wb, 7, RO), cron(wb, 7, RO)[2]))
+check("Subactividad con fecha de cumplimiento: sin % ni alerta propios y sin aviso",
+      (L, M, alerta(wb, 6, RO), P) == (None, None, None, "✔ OK"), (L, M, alerta(wb, 6, RO), P))
+check("Subactividad cumplida después de su fecha límite → no aparece como vencida",
+      "Vencida" not in cron(wb, 7, RO)[2], cron(wb, 7, RO)[2])
+rowsW2 = [act(1, RO, None, (), fin=D(2026, 10, 14), cump=D(2026, 10, 15))]
+wbw2 = run("W2", rowsW2, semana=1, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
+check("Macro cumplida después de la fecha límite → 'Cumplida con 1 día de retraso' (no vencida)",
+      alerta(wbw2, 5, RO) == "Cumplida con 1 día de retraso" and "Vencida" not in cron(wbw2, 5, RO)[2],
+      (alerta(wbw2, 5, RO), cron(wbw2, 5, RO)[2]))
 L1 = cron(wb, 5, RO)[0]
 check("Macro = promedio de 4 subactividades (2 cumplidas) = 50%", abs(L1 - 0.5) < 1e-9, L1)
 check("Por vencer: fin 18/10, corte 16/10 → 'Vence en 2 días'", alerta(wb, 10, RO) == "Vence en 2 días", alerta(wb, 10, RO))
