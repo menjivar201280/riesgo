@@ -307,9 +307,9 @@ check("Dashboard RO = 60%×53% + 40%×100% = 72% (2 macroactividades)", abs(p["a
 d = wb[B.S_DASH]
 check("Semana 1 RO = 60%×(50%+0+0)/3 + 40%×100% = 50%", abs(d["C25"].value - (0.6 * 0.5 / 3 + 0.4)) < 1e-9, d["C25"].value)
 v = wb[B.AREAS[0][1]]
-check("Hoja Actividades muestra macro y subactividades con ↳",
-      v["B5"].value == "Actividad de prueba 1" and v["B6"].value.strip() == "↳  Subactividad de prueba 11"
-      and str(v["A6"].value) == "1.1", (v["A5"].value, v["B5"].value, v["A6"].value, v["B6"].value))
+check("Hoja Actividades muestra SOLO macroactividades (1 y 2, sin subactividades)",
+      (v["B5"].value, str(v["A6"].value), v["B7"].value in (None, "")) == ("Actividad de prueba 1", "2", True),
+      (v["A5"].value, v["B5"].value, v["A6"].value, v["B6"].value, v["B7"].value))
 check("Actividades: semana 1 de la macro = 17% (promedio de subactividades)", abs(v["F5"].value - 0.5 / 3) < 1e-9, v["F5"].value)
 rowsS2 = [sub(1, (0.5,)), act(2, RO, 1.0, (0.5,)), dict(sub(3, (0.2,)), peso=0.3)]
 wb = run("S2", rowsS2, semana=1, fecha_ref=D(2026, 10, 16))

@@ -308,9 +308,10 @@ def f_mes(r):
 
 
 def f_orden(r):
-    """Auxiliar: posición de la fila dentro del mes mostrado (para la hoja Actividades)."""
+    """Auxiliar: posición de la MACROACTIVIDAD dentro del mes mostrado (la hoja Actividades muestra solo macroactividades)."""
     m = X("mes", r)
-    return f'=IF(OR({m}="",{m}<>MesCiclo),"",COUNTIF({col_upto("mes", r)},MesCiclo))'
+    return (f'=IF(OR({m}="",{m}<>MesCiclo,{X("t", r)}<>"Macro"),"",'
+            f'COUNTIFS({col_upto("mes", r)},MesCiclo,{col_upto("t", r)},"Macro"))')
 
 
 def f_pef(r):
@@ -967,7 +968,7 @@ def build_vista(wb, ws, idx):
     ws.row_dimensions[1].height = 28
     merge_set(ws, "A2:M2",
               f"HOJA AUTOMÁTICA Y BLOQUEADA: muestra solo las actividades del mes indicado abajo, tomadas de «{sheet}». No hay que escribir nada aquí. "
-              "Cada macroactividad (resaltada) va seguida de sus subactividades (↳). La barra de color marca las semanas en que cada actividad "
+              "Muestra SOLO las macroactividades (sus subactividades se ven en el Cronograma; su avance ya está incluido). La barra de color marca las semanas en que cada actividad "
               "está programada y dentro aparece el avance de esa semana. La columna «Alerta de plazo» indica lo vencido y lo que está por vencer.",
               font=font(9, True, NAVY), fill=fill(LIGHT), alignment=LEFT)
     ws.row_dimensions[2].height = 34
@@ -1047,8 +1048,6 @@ def build_vista(wb, ws, idx):
     cf.add(f"F{FIRST}:I{last}", FormulaRule(formula=[f'AND({gantt},$K{FIRST}="Vencida")'], stopIfTrue=True,
                                            fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
     cf.add(f"F{FIRST}:I{last}", FormulaRule(formula=[gantt], fill=fill(color), font=Font(color="FFFFFF", bold=True)))
-    cf.add(f"A{FIRST}:B{last}", FormulaRule(formula=[f'$O{FIRST}="Macro"'], fill=fill(tint(color)), font=Font(bold=True),
-                                           border=Border(top=Side(style="medium", color=color))))
     cf.add(rngc("K"), FormulaRule(formula=[f'$K{FIRST}="Completado"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
     cf.add(rngc("K"), FormulaRule(formula=[f'$K{FIRST}="Vencida"'], fill=fill(ORANGE_F), font=Font(color="833C0B", bold=True)))
     cf.add(rngc("K"), FormulaRule(formula=[f'$K{FIRST}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
@@ -1804,7 +1803,7 @@ def build_instrucciones(ws):
             "No hay que escribir nada en esa columna. Corrija lo que indica y el aviso desaparece.",
         ]),
         ("La hoja «Actividades» (automática y bloqueada)", [
-            "1) Muestra solo las actividades del mes actual de su Cronograma, en orden: cada macroactividad (resaltada) seguida de sus subactividades (con «↳»), con su alerta de plazo. No se escribe nada en ella.",
+            "1) Muestra solo las MACROACTIVIDADES del mes actual de su Cronograma, en orden, con su alerta de plazo. Las subactividades no aparecen aquí (se ven en el Cronograma), pero su avance ya está sumado en el % de su macroactividad. No se escribe nada en ella.",
             "2) «Semana de entrega» indica en qué semana del mes cae la fecha límite (la semana actual se resalta en amarillo).",
             "3) Las columnas Semana 1 a 4 muestran una barra del color del puesto en las semanas en que la actividad está programada (de la fecha de inicio a la fecha límite) y, dentro, el avance anotado esa semana. Si la actividad está vencida, la barra se pone naranja.",
             "4) Para cambiar algo, corríjalo en el Cronograma: esta hoja se actualiza al instante.",
