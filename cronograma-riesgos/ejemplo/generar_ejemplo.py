@@ -10,8 +10,10 @@ def row(name, s, sub=False, ini=D(2026,10,5), fin=D(2026,10,30), peso=None, obs=
     return d
 rows = [
     row("Matriz de riesgos operativos", ()),
-    row("Levantar información", (0.5, 1.0), sub=True, fin=D(2026,10,16)),
-    row("Validar con áreas", (0.0, 0.5), sub=True),
+    row("Levantar información", (0.5,), sub=True),
+    row("Validar con áreas", (0.5, 1.0), sub=True),
+    row("Elaborar matriz", (0.0,), sub=True),
+    row("Presentar a comité", (0.2, 0.5), sub=True),
     row("Informe de eventos de pérdida", (0.3, 0.6)),
 ]
 B.build(sys.argv[1], test_rows=rows)

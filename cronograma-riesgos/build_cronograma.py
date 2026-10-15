@@ -271,12 +271,14 @@ def _avance_core(r):
 
 def f_avance(r):
     # Las subactividades no muestran % total, estado ni alerta: su avance solo completa la macroactividad
-    return f'=IF(OR(NOT({reg(r)}),{X("t", r)}="Sub"),"",{_avance_core(r)})'
+    # En la subactividad se muestra solo su APORTE a la macroactividad (su avance ÷ n° de subactividades)
+    aporte = f'IFERROR({X("ap", r)}/INDEX({col_abs("nsub")},{X("grupo", r)}-{FIRST - 1}),"")'
+    return f'=IF(NOT({reg(r)}),"",IF({X("t", r)}="Sub",{aporte},{_avance_core(r)}))'
 
 
 def f_estado(r):
     av = X("av", r)
-    return (f'=IF({av}="","",IF({av}>=1,"Completado",'
+    return (f'=IF(OR({av}="",{X("t", r)}="Sub"),"",IF({av}>=1,"Completado",'
             f'IF({av}>0,"En curso","Pendiente")))')
 
 
@@ -678,6 +680,7 @@ AUX_FIRST = CN["orden"]   # primera columna auxiliar oculta
 N_COLS = len(COLS_ACT)
 LASTV = C["mes"]          # última columna visible
 SUB_NUMFMT = '"      ↳  "@'   # sangría visual de las subactividades (formato condicional)
+APORTE_NUMFMT = '"aporta "0.0%'   # % de la subactividad = su aporte a la macroactividad
 
 
 def alerta_cf(cf, rng, first_cell):
@@ -917,11 +920,14 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     cf.add(R("est"), FormulaRule(formula=[f'{x("est")}="En curso"'], fill=fill(BLUE_F), font=Font(color=BLUE_T, bold=True)))
     cf.add(R("est"), FormulaRule(formula=[f'{x("est")}="Pendiente"'], fill=fill(RED_F), font=Font(color=RED_T)))
     alerta_cf(cf, R("alerta"), x("alerta"))
+    cf.add(R("av"), Rule(type="expression", formula=[f'{x("t")}="Sub"'], stopIfTrue=True,
+                         dxf=DifferentialStyle(numFmt=NumberFormat(numFmtId=201, formatCode=APORTE_NUMFMT),
+                                               font=Font(color=GREEN_T, italic=True))))
     cf.add(R("av"), FormulaRule(formula=[f'AND(ISNUMBER({x("av")}),{x("av")}>=1)'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
     cf.add(R("av"), DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color="5B9BD5", showValue=True))
     cf.add(R("cump"), FormulaRule(formula=[f'ISNUMBER({x("cump")})'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
-    cf.add(R("lim"), FormulaRule(formula=[f'AND(ISNUMBER({x("lef")}),{x("lef")}<FechaRef,N({x("av")})<1)'], stopIfTrue=True, **org))
-    cf.add(R("lim"), FormulaRule(formula=[f'AND(ISNUMBER({x("lef")}),{x("lef")}>=FechaRef,{x("lef")}-FechaRef<=DiasAlerta,N({x("av")})<1)'], **amb))
+    cf.add(R("lim"), FormulaRule(formula=[f'AND(ISNUMBER({x("lef")}),{x("lef")}<FechaRef,IF({x("t")}="Sub",N({x("ap")}),N({x("av")}))<1)'], stopIfTrue=True, **org))
+    cf.add(R("lim"), FormulaRule(formula=[f'AND(ISNUMBER({x("lef")}),{x("lef")}>=FechaRef,{x("lef")}-FechaRef<=DiasAlerta,IF({x("t")}="Sub",N({x("ap")}),N({x("av")}))<1)'], **amb))
     DE = f"{C['ini']}{F_}:{C['lim']}{LAST_RNG}"
     cf.add(DE, FormulaRule(formula=[f'AND(N({x("jfila")})>0)'], stopIfTrue=True, fill=fill("FFF2CC"), font=Font(color="7F6000", bold=True)))
     cf.add(DE, FormulaRule(formula=[f'AND({regf},{x("ief")}="")'], stopIfTrue=True, **red))
@@ -935,7 +941,7 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     cf.add(WKR, FormulaRule(formula=[f'AND({s1}<>"",OR(NOT(ISNUMBER({s1})),{s1}>1,{s1}<0))'], stopIfTrue=True, **red))
     cf.add(f"{C['s2']}{F_}:{C['s4']}{LAST_RNG}",
            FormulaRule(formula=[f'AND({C["s2"]}{F_}<>"",{C["s2"]}{F_}<MAX(${C["s1"]}{F_}:{C["s1"]}{F_}))'], **org))
-    cf.add(R("obs"), FormulaRule(formula=[f'AND(ObsObligatoria="Sí",ISNUMBER({x("lim")}),{x("lim")}<FechaRef,N({x("av")})<1,{x("obs")}="")'], **red))
+    cf.add(R("obs"), FormulaRule(formula=[f'AND(ObsObligatoria="Sí",ISNUMBER({x("lim")}),{x("lim")}<FechaRef,IF({x("t")}="Sub",N({x("ap")}),N({x("av")}))<1,{x("obs")}="")'], **red))
     cf.add(R("rev"), FormulaRule(formula=[f'LEFT({x("rev")},1)="⚠"'], fill=fill(RED_F), font=Font(color=RED_T)))
     cf.add(R("rev"), FormulaRule(formula=[f'LEFT({x("rev")},1)="✔"'], font=Font(color=GREEN_T, bold=True)))
     cf.add(R("mes"), FormulaRule(formula=[f'AND({x("mes")}<>"",{x("mes")}=MesCiclo)'], fill=fill(AMBER_F), font=Font(color=AMBER_T, bold=True)))
@@ -1778,7 +1784,7 @@ def build_instrucciones(ws):
             "2) El N° NO se escribe: sale solo 1.1, 1.2, 1.3… (la columna está bloqueada).",
             "3) Las subactividades NO llevan peso: todas valen lo mismo dentro de su macroactividad. Excel no deja escribir un peso en una fila «Subactividad» (muestra un aviso).",
             "4) Cuando termine una subactividad, escriba su FECHA DE CUMPLIMIENTO (queda al 100%). También puede anotar avances parciales por semana.",
-            "5) La subactividad NO tiene % total, estado ni alerta propios: su avance solo sirve para completar su macroactividad. El % de la macroactividad se calcula SOLO: es el promedio de sus subactividades. Ejemplo con 4 subactividades: si cumple 1 → 25%; si cumple 2 → 50%; si cumple las 4 → 100%. En la fila de la macroactividad deje VACÍAS las semanas (se ven en azul claro).",
+            "5) La subactividad NO tiene estado ni alerta propios: en «% de Avance Total» muestra cuánto APORTA a su macroactividad (ej. con 4 subactividades, una al 50% «aporta 12,5%»). El % de la macroactividad se calcula SOLO: es la suma de esos aportes. Ejemplo con 4 subactividades: si cumple 1 → 25%; si cumple 2 → 50%; si cumple las 4 → 100%. En la fila de la macroactividad deje VACÍAS las semanas (se ven en azul claro).",
             "6) Para agregar otra subactividad más adelante, escríbala debajo de las demás subactividades de su macroactividad: siempre pertenece a la macroactividad que esté más arriba.",
         ]),
         ("Alerta de plazo (vencidas y por vencer)", [
