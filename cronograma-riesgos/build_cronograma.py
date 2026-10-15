@@ -1824,11 +1824,15 @@ def build_instrucciones(ws):
             "• Si un puesto no tiene actividades en el mes o sus pesos no suman 100%, el avance general aparece como «No definitivo» hasta que se corrija.",
             "• Haga clic en el nombre de un puesto para ir a su hoja.",
         ]),
-        ("Compartir el archivo con el equipo", [
-            "1) Suba el archivo a OneDrive o SharePoint del área.",
-            "2) Botón Compartir > invite a los cuatro responsables con permiso de edición, y a la jefatura con permiso de solo lectura.",
-            "3) Todos pueden trabajar al mismo tiempo, cada quien en su Cronograma (Excel en la Web o Microsoft 365, con Autoguardado activado).",
-            "4) Si alguien borra algo por error: Archivo > Información > Historial de versiones permite recuperar una versión anterior y ver quién cambió qué.",
+        ("Compartir el archivo para que TODOS editen al mismo tiempo (OneDrive / SharePoint / Teams)", [
+            "Este archivo ya está listo para la coautoría de Excel: varias personas escriben a la vez y ven los cambios de los demás en segundos. NO use «Compartir libro (heredado)»: es la opción antigua, no funciona con las tablas de este archivo y no hace falta.",
+            "1) Suba el archivo a la carpeta compartida de OneDrive, SharePoint o al canal de Teams (pestaña Archivos). Súbalo UNA sola vez; todos trabajan sobre esa misma copia.",
+            "2) Botón Compartir > invite a los cuatro responsables y a la jefatura con permiso «Puede editar» (la jefatura escribe en la hoja Administración).",
+            "3) Cada persona abre el archivo DESDE OneDrive/SharePoint/Teams (en el navegador, o «Abrir en la aplicación de escritorio»). No lo descargue ni lo envíe por correo: una copia descargada ya no se comparte.",
+            "4) Use Excel en la Web o Microsoft 365, con «Autoguardado» ACTIVADO (arriba a la izquierda). Con Excel 2016/2019 o con el Autoguardado apagado, el archivo se bloquea para los demás.",
+            "5) Arriba a la derecha aparecen las iniciales de quienes están dentro, y cada uno ve con un color la celda donde está el otro.",
+            "6) Cada quien escribe solo en su hoja: su Cronograma (o Administración para la jefatura). Dashboard, Actividades e Historial se actualizan solos para todos.",
+            "7) Si alguien borra algo por error: Archivo > Información > Historial de versiones permite recuperar una versión anterior y ver quién cambió qué.",
         ]),
         ("Protección", [
             "Las celdas automáticas (azul muy claro) están bloqueadas y las de llenar (gris suave) desbloqueadas. Las hojas Dashboard, Actividades, Historial y Configuración (salvo sus celdas gris suave) están completamente bloqueadas. La protección no tiene contraseña.",
