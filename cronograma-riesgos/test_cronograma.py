@@ -285,41 +285,47 @@ def sub(i, s=(), **kw):
     return d
 rowsS = [
     act(1, RO, 0.6, ()),                                              # macro con subactividades (semanas vacías)
-    dict(sub(11, ()), peso=0.3), dict(sub(12, ()), peso=0.2), sub(13, ()),
+    dict(sub(11, (), cump=D(2026, 10, 9)), peso=0.4),                 # cumplida en semana 1 (antes del ciclo → semana 1)
+    dict(sub(12, (), cump=D(2026, 10, 20)), peso=0.3),                # cumplida en semana 2
+    sub(13, ()),                                                      # sin %: se lleva lo que falta (30%)
     act(2, RO, 0.4, (0.3, 0.7)),                                      # macro con semanas escritas
-    dict(sub(21, ()), peso=1.0),                                      # subactividad agregada más abajo (macro 2)
+    dict(sub(21, (), cump=D(2026, 10, 13))),                          # única sub de la macro 2 (vale 100%)
 ]
 rowsS[-1]["_row"] = 10
-wb = run("S", rowsS, semana=2, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
+wb = run("S", rowsS, semana=2, fecha_ref=D(2026, 10, 21), inicio_ciclo=D(2026, 10, 12))
 c = wb[B.AREAS[0][0]]
 ids = [c[f"A{r}"].value for r in range(5, 11)]
 check("N° automático 1, 1.1, 1.2, 1.3, 2, 2.1", [str(x) for x in ids] == ["1", "1.1", "1.2", "1.3", "2", "2.1"], ids)
 L1, M1, P1 = cron(wb, 5, RO)
-check("Macro 1 = suma de los % de sus subactividades (30% + 20% + vacío) = 50%, En curso, sin alertas",
-      abs(L1 - 0.5) < 1e-9 and M1 == "En curso" and P1 == "✔ OK", (L1, M1, P1))
+check("Macro 1 = suma del % de sus subactividades cumplidas (40% + 30%) = 70%, En curso, sin alertas",
+      abs(L1 - 0.7) < 1e-9 and M1 == "En curso" and P1 == "✔ OK", (L1, M1, P1))
+check("Subactividad sin % se lleva lo que falta para 100% (30%)", abs(c[f"{K['sh']}8"].value - 0.3) < 1e-9, c[f"{K['sh']}8"].value)
+check("Semanas de la macro: S1 = 40% (1.1 cumplida antes/en semana 1), S2 = 70% (1.2 cumplida en semana 2)",
+      [round(c[f"{K[e]}5"].value, 4) for e in ("e1", "e2")] == [0.4, 0.7], [c[f"{K[e]}5"].value for e in ("e1", "e2")])
 L2, M2, P2 = cron(wb, 6, RO)
-check("Subactividad: no muestra % total, estado ni alerta; su % va en Peso sin aviso",
+check("Subactividad: no muestra % total, estado ni alerta; sin aviso",
       (L2, M2, P2, alerta(wb, 6, RO)) == (None, None, "✔ OK", None), (L2, M2, P2, alerta(wb, 6, RO)))
 L3, M3, P3 = cron(wb, 9, RO)
-check("Macro 2 con subactividad al 100%: avance = 100%", L3 == 1, (L3, M3, P3))
-check("Macro 2 con semanas escritas y subactividades → aviso", "deje vacías las semanas" in P3, P3)
+check("Macro 2 con su única subactividad cumplida: avance = 100%", L3 == 1, (L3, M3, P3))
+check("Macro 2 con semanas escritas y subactividades → aviso", "no escriba en las semanas" in P3, P3)
 p = dash_puesto(wb, 0)
-check("Dashboard RO = 60%×50% + 40%×100% = 70% (2 macroactividades)", abs(p["avance"] - 0.7) < 1e-9 and p["total"] == 2, p)
+check("Dashboard RO = 60%×70% + 40%×100% = 82% (2 macroactividades)", abs(p["avance"] - 0.82) < 1e-9 and p["total"] == 2, p)
 d = wb[B.S_DASH]
-check("Semana 1 RO = 60%×50% + 40%×100% = 70%", abs(d["C25"].value - 0.7) < 1e-9, d["C25"].value)
+check("Semana 1 RO = 60%×40% + 40%×100% = 64%", abs(d["C25"].value - 0.64) < 1e-9, d["C25"].value)
+check("Fechas de la semana encima de los avances (12/10 – 18/10)", c[f"{K['s1']}3"].value == "12/10 – 18/10", c[f"{K['s1']}3"].value)
 v = wb[B.AREAS[0][1]]
 check("Hoja Actividades muestra SOLO macroactividades (1 y 2, sin subactividades)",
       (v["B5"].value, str(v["A6"].value), v["B7"].value in (None, "")) == ("Actividad de prueba 1", "2", True),
       (v["A5"].value, v["B5"].value, v["A6"].value, v["B6"].value, v["B7"].value))
-check("Actividades: semana 1 de la macro = 50% (suma de sus subactividades)", abs(v["F5"].value - 0.5) < 1e-9, v["F5"].value)
+check("Actividades: semana 1 de la macro = 40%", abs(v["F5"].value - 0.4) < 1e-9, v["F5"].value)
 rowsS2 = [sub(1, ()), act(2, RO, 1.0, (0.5,)), dict(sub(3, (0.2,)), peso=0.3),
           dict(sub(4, ()), peso=0.9)]
 wb = run("S2", rowsS2, semana=1, fecha_ref=D(2026, 10, 16))
 check("Subactividad sin macroactividad arriba → aviso", "sin macroactividad arriba" in cron(wb, 5, RO)[2], cron(wb, 5, RO)[2])
 check("Subactividad con % en las semanas → aviso (su % va en Peso)",
       "no use las semanas" in cron(wb, 7, RO)[2], cron(wb, 7, RO)[2])
-check("Subactividades que suman más de 100% → aviso en la macro y la macro queda en 100%",
-      "suman más de 100%" in cron(wb, 6, RO)[2] and cron(wb, 6, RO)[0] == 1, cron(wb, 6, RO))
+check("Subactividades que suman más de 100% → aviso en la macro",
+      "suman más de 100%" in cron(wb, 6, RO)[2], cron(wb, 6, RO))
 
 print("Escenario W: fecha de cumplimiento, peso automático y hoja Administración")
 rowsW = [act(1, RO, None, ()),                                                        # macro sin peso
@@ -342,11 +348,11 @@ check("Macro cumplida después de la fecha límite → 'Cumplida con 1 día de r
       alerta(wbw2, 5, RO) == "Cumplida con 1 día de retraso" and "Vencida" not in cron(wbw2, 5, RO)[2],
       (alerta(wbw2, 5, RO), cron(wbw2, 5, RO)[2]))
 L1 = cron(wb, 5, RO)[0]
-check("Macro = suma de los % de sus subactividades (25% + 25%) = 50%", abs(L1 - 0.5) < 1e-9, L1)
+check("Macro = % de sus subactividades cumplidas (solo 1.1 con 25%) = 25%", abs(L1 - 0.25) < 1e-9, L1)
 check("Por vencer: fin 18/10, corte 16/10 → 'Vence en 2 días'", alerta(wb, 10, RO) == "Vence en 2 días", alerta(wb, 10, RO))
 check("Vencida sin cumplimiento → 'Vencida hace 1 día'", alerta(wb, 11, RO) == "Vencida hace 1 día", alerta(wb, 11, RO))
 p = dash_puesto(wb, 0)
-check("Peso vacío = partes iguales: RO = (50% + 50% + 0%)/3 = 33%", abs(p["avance"] - 1 / 3) < 1e-9, p)
+check("Peso vacío = partes iguales: RO = (25% + 50% + 0%)/3 = 25%", abs(p["avance"] - 0.25) < 1e-9, p)
 check("Sin aviso de pesos con pesos vacíos", "Peso" not in str(cron(wb, 5, RO)[2]), cron(wb, 5, RO)[2])
 d = wb[B.S_DASH]
 ent = {d[f"B{r}"].value: (d[f"H{r}"].value, d[f"I{r}"].value) for r in range(40, 130)
@@ -364,12 +370,12 @@ rowsJ = [dict(act(1, ADM, None, (), fin=D(2026, 10, 18)), macro="SSF – Visita"
          dict(act(2, ADM, None, (), fin=D(2026, 10, 20)), macro="Indicadores – Plan de recuperación", deleg=RF),
          dict(act(3, ADM, None, (0.4,), fin=D(2026, 10, 30)), macro="Política T.C."),
          dict(act(10, RO, None, ()), macro=JEF + "SSF – Visita", fin=D(2026, 10, 30)),   # fecha distinta: manda la de la jefatura
-         dict(sub(11, (), fin=D(2026, 10, 14)), peso=0.5), sub(12, (), fin=D(2026, 10, 18)),
+         dict(sub(11, (), fin=D(2026, 10, 14), cump=D(2026, 10, 14)), peso=0.5), sub(12, (), fin=D(2026, 10, 18)),
          act(13, RO, None, (0.3,))]
 wb = run("J", rowsJ, semana=1, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
 adm = wb[B.ADMIN[1]]
 g = lambda k, r: adm[f"{K[k]}{r}"].value
-check("Delegada y agregada por R. Operacional: avance 50% (su subactividad 1.1 = 50%), estado y alerta del puesto",
+check("Delegada y agregada por R. Operacional: avance 50% (subactividad 1.1 de 50% cumplida), estado y alerta del puesto",
       (g("av", 5), g("est", 5), g("alerta", 5), g("seg", 5)) == (0.5, "En curso", "Vence en 2 días", "✔ Recibida por " + RO),
       (g("av", 5), g("est", 5), g("alerta", 5), g("seg", 5)))
 check("Delegada a R. Financiero aún no agregada → 0% y aviso",
