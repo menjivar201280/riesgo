@@ -968,9 +968,12 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
                                  fill=fill("FFF2CC"), font=Font(bold=True, color="7F6000")))
     cf.add(ABC, FormulaRule(formula=[f'AND({x("t")}="Macro",{x("act")}="")'], stopIfTrue=True, **red))
     cf.add(ABC, FormulaRule(formula=[f'{x("t")}="Macro"'], fill=fill(light), font=Font(bold=True), border=macro_line))
-    cf.add(R("act"), Rule(type="expression", formula=[f'{x("t")}="Sub"'],
+    # Sangría «↳» de la subactividad. Excel muestra ##### si un formato de texto (@) se aplica a más de
+    # 255 caracteres, así que en textos largos solo se cambia el color (sin «↳»).
+    cf.add(R("act"), Rule(type="expression", formula=[f'AND({x("t")}="Sub",LEN({x("act")})<=255)'], stopIfTrue=True,
                           dxf=DifferentialStyle(numFmt=NumberFormat(numFmtId=200, formatCode=SUB_NUMFMT),
                                                 font=Font(color="404040"))))
+    cf.add(R("act"), FormulaRule(formula=[f'{x("t")}="Sub"'], font=Font(color="404040", italic=True)))
     if es_admin:
         cf.add(R("seg"), FormulaRule(formula=[f'LEFT({x("seg")},1)="✔"'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
         cf.add(R("seg"), FormulaRule(formula=[f'LEFT({x("seg")},1)="⚠"'], fill=fill(RED_F), font=Font(color=RED_T, bold=True)))
