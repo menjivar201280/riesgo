@@ -275,10 +275,9 @@ def f_cumpw(r, w):
     """Subactividad: lo que aporta a su macroactividad al final de la semana w =
     su % × (100% si ya se cumplió; si no, el último avance escrito hasta esa semana).
     Las semanas se leen con OFFSET (referencia dinámica) para no crear referencia circular."""
-    base = X("s1", r)
     carried = "0"
-    for j in range(w + 1):
-        cell = f"OFFSET({base},0,{j})"
+    for j in range(w + 1):   # OFFSET desde $A$1 (texto fijo): Excel no ve dependencia estática con la semana
+        cell = f"OFFSET($A$1,ROW()-1,{CN['s1'] - 1 + j})"
         carried = f"IF(ISNUMBER({cell}),{cell},{carried})"
     return (f'=IF({X("t", r)}<>"Sub","",N({X("sh", r)})*IF({cumplida_en(r, w + 1)},1,MIN(1,MAX(0,{carried}))))')
 
@@ -286,7 +285,7 @@ def f_cumpw(r, w):
 def suma_subs_abajo(r, col):
     """Como suma_subs, pero solo mira las filas de ABAJO (ahí están sus subactividades) y con OFFSET,
     para que la celda de semana de la macro no dependa de sí misma."""
-    rng = lambda k: f'OFFSET(${C[k]}${FIRST},ROW()-{FIRST - 1},0,{LR}-ROW(),1)'
+    rng = lambda k: f'OFFSET($A$1,ROW(),{CN[k] - 1},{LR}-ROW(),1)'   # filas de abajo, base fija $A$1
     return f'MIN(1,SUMIFS({rng(col)},{rng("grupo")},ROW(),{rng("t")},"Sub"))'
 
 
