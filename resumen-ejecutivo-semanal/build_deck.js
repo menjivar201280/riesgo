@@ -257,13 +257,13 @@ function examBadge(slide, x, y, w, pct) {
     const x = 0.5 + i * (cw + 0.2), n = dias(v.d), first = i === 0;
     s2.addShape("roundRect", { x, y: cy, w: cw, h: ch, rectRadius: 0.12, fill: { color: first ? NAVY : CARD }, line: { color: first ? NAVY : CARD } });
     s2.addText(n === 0 ? [
-      { text: "Vence hoy", options: { fontSize: 30, bold: true, color: "F6C26B" } },
+      { text: fmt(v.d), options: { fontSize: 40, bold: true, color: "F6C26B" } },
     ] : [
       { text: String(n), options: { fontSize: 40, bold: true, color: first ? "F6C26B" : AMBER } },
       { text: n === 1 ? "  día" : "  días", options: { fontSize: 15, bold: true, color: first ? WHITE : NAVY } },
     ], { x: x + 0.22, y: cy + 0.14, w: cw - 0.4, h: 0.72, margin: 0, isTextBox: true, fontFace: FONT, valign: "middle" });
     s2.addText([
-      { text: fmt(v.d) + "/" + v.d.getFullYear(), options: { fontSize: 13, bold: true, color: first ? WHITE : NAVY, breakLine: true } },
+      ...(n === 0 ? [] : [{ text: fmt(v.d) + "/" + v.d.getFullYear(), options: { fontSize: 13, bold: true, color: first ? WHITE : NAVY, breakLine: true } }]),
       { text: v.t, options: { fontSize: 11.5, color: first ? WHITE : INK, breakLine: true } },
       { text: v.c, options: { fontSize: 10, color: first ? "A9D8DE" : BLUE, breakLine: !!v.n } },
       ...(v.n ? [{ text: v.n, options: { fontSize: 10, italic: true, color: first ? "DCE6F0" : "3E4F60" } }] : []),
@@ -272,7 +272,7 @@ function examBadge(slide, x, y, w, pct) {
 
   addFooter(s2, "Riesgos Específicos (Circ. 22742): visita iniciada el 09/10/2026, sin plazo de respuesta documentado. El estado de envío de cada requerimiento está por confirmar.");
   s2.addNotes(
-    "Corte " + fmt(CORTE) + ". Hoy vence la respuesta PLD/FT (Circ. 23486). Siguen Gobierno Corporativo el 23/10 y 30/10 (Circ. 22741) " +
+    "Corte " + fmt(CORTE) + ". Plazo de respuesta PLD/FT: 16/10 (Circ. 23486). Siguen Gobierno Corporativo el 23/10 y 30/10 (Circ. 22741) " +
     "y el Plan de Recuperación el 03/11 (Circ. 22737)."
   );
 
