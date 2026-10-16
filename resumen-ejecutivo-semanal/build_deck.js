@@ -175,140 +175,105 @@ function examBadge(slide, x, y, w, pct) {
   );
 
   // ---------------- DIAPOSITIVA 2 ----------------
+  // Fecha de corte: cambiar aquí para recalcular "HOY" y los días restantes.
+  const CORTE = new Date(2026, 9, 16);
+  const fmt = (d) => String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+  const dias = (d) => Math.round((d - CORTE) / 86400000);
+
   const s2 = pres.addSlide();
   s2.background = { color: WHITE };
   addTitle(s2, "Compromisos Regulatorios y Próximos Hitos",
-    "Requerimientos de la Superintendencia del Sistema Financiero (SSF) · Seguimiento semanal");
+    "Calendario de requerimientos SSF · Corte " + fmt(CORTE) + "/" + CORTE.getFullYear());
+
+  function marker(slide, kind, cx, cy, d, past) {
+    const o = { x: cx - d / 2, y: cy - d / 2, w: d, h: d };
+    if (kind === "plazo") slide.addShape("diamond", { ...o, fill: { color: AMBER }, line: { color: AMBER, width: 1 } });
+    else if (kind === "vis") slide.addShape("ellipse", { ...o, fill: { color: TEAL }, line: { color: TEAL, width: 1 } });
+    else slide.addShape("ellipse", { ...o, fill: { color: past ? NAVY : WHITE }, line: { color: NAVY, width: 2 } });
+  }
 
   // Leyenda
-  const lg = [["Recepción", "rec"], ["Inicio de visita", "vis"], ["Plazo", "plazo"]];
-  let lx = 9.95;
-  for (const [t, k] of lg) {
-    marker(s2, k, lx + 0.09, 0.62, 0.18);
-    s2.addText(t, { x: lx + 0.24, y: 0.5, w: 1.0, h: 0.24, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 10, color: INK, valign: "middle" });
-    lx += t.length > 10 ? 1.35 : 1.0;
+  let lx = 9.45;
+  for (const [t, k] of [["Recepción", "rec"], ["Inicio de visita", "vis"], ["Plazo SSF", "plazo"]]) {
+    marker(s2, k, lx + 0.09, 0.62, 0.18, true);
+    s2.addText(t, { x: lx + 0.24, y: 0.5, w: 1.2, h: 0.24, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 10, color: INK, valign: "middle" });
+    lx += t.length > 10 ? 1.4 : 1.05;
   }
 
-  function marker(slide, kind, cx, cy, d) {
-    const o = { x: cx - d / 2, y: cy - d / 2, w: d, h: d };
-    if (kind === "rec") slide.addShape("ellipse", { ...o, fill: { color: WHITE }, line: { color: NAVY, width: 2 } });
-    else if (kind === "vis") slide.addShape("ellipse", { ...o, fill: { color: TEAL }, line: { color: TEAL, width: 1 } });
-    else slide.addShape("diamond", { ...o, fill: { color: AMBER }, line: { color: AMBER, width: 1 } });
-  }
-
-  const LINE_Y = 2.74;
+  const LINE_Y = 2.6;
+  const D = (dd, mm) => new Date(2026, mm - 1, dd);
   const events = [
-    { d: "22/09", k: "rec", t: "Recepción resultado preliminar Plan de Recuperación", c: "Circ. 22737" },
-    { d: "24/09", k: "rec", t: "Recepción visita inicial Riesgos Específicos", c: "Circ. 22742" },
-    { d: "02/10", k: "rec", t: "Recepción resultados preliminares PLD/FT", c: "Circ. 23486" },
-    { d: "09/10", k: "vis", t: "Inicio visita Riesgos Específicos y recepción resultados Gob. Corp.", c: "Circ. 22742 · 22741" },
-    { d: "16/10", k: "plazo", t: "Respuesta a resultados preliminares PLD/FT", c: "Circ. 23486" },
-    { d: "23/10", k: "plazo", t: "Envío de nuevas observaciones Gob. Corporativo", c: "Circ. 22741" },
-    { d: "30/10", k: "plazo", t: "Seguimiento de observaciones Gob. Corporativo", c: "Circ. 22741" },
-    { d: "03/11", k: "plazo", t: "Envío del Plan de Recuperación", c: "Circ. 22737" },
+    { d: D(22, 9), k: "rec", t: "Resultado preliminar Plan de Recuperación", c: "Circ. 22737" },
+    { d: D(24, 9), k: "rec", t: "Visita inicial Riesgos Específicos", c: "Circ. 22742" },
+    { d: D(2, 10), k: "rec", t: "Resultados preliminares PLD/FT", c: "Circ. 23486" },
+    { d: D(9, 10), k: "vis", t: "Inicio visita Riesgos Específicos · Resultados Gob. Corporativo", c: "Circ. 22742 · 22741" },
+    { d: D(16, 10), k: "plazo", t: "Respuesta resultados preliminares PLD/FT", c: "Circ. 23486" },
+    { d: D(23, 10), k: "plazo", t: "Nuevas observaciones Gob. Corporativo", c: "Circ. 22741" },
+    { d: D(30, 10), k: "plazo", t: "Seguimiento de observaciones Gob. Corporativo", c: "Circ. 22741" },
+    { d: D(3, 11), k: "plazo", t: "Envío del Plan de Recuperación", c: "Circ. 22737" },
   ];
-  const x0 = 1.25, x1 = 12.08, step = (x1 - x0) / (events.length - 1);
+  const x0 = 1.2, x1 = 12.13, step = (x1 - x0) / (events.length - 1);
+  const xs = events.map((_, i) => x0 + i * step);
+  const iHoy = events.findIndex((e) => dias(e.d) >= 0);
+  const hoyX = dias(events[iHoy].d) === 0 ? xs[iHoy] : (xs[iHoy - 1] + xs[iHoy]) / 2;
 
-  // Zona de plazos (fondo ámbar suave)
-  const zx = x0 + 4 * step - 0.8;
-  s2.addShape("roundRect", { x: zx, y: 1.38, w: 12.83 - zx, h: 2.66, rectRadius: 0.12, fill: { color: AMBER_LT }, line: { color: AMBER_LT } });
-  s2.addText("FECHAS DE RESPUESTA SSF", {
-    x: zx + 0.15, y: 1.44, w: 3, h: 0.24, margin: 0, isTextBox: true,
-    fontFace: FONT, fontSize: 9, bold: true, color: AMBER, charSpacing: 1,
-  });
-
-  s2.addShape("line", { x: 0.6, y: LINE_Y, w: 12.13, h: 0, line: { color: "AFC0D0", width: 2 } });
+  // Línea: tramo transcurrido en azul marino, tramo pendiente en gris
+  s2.addShape("line", { x: 0.6, y: LINE_Y, w: hoyX - 0.6, h: 0, line: { color: NAVY, width: 3 } });
+  s2.addShape("line", { x: hoyX, y: LINE_Y, w: 12.73 - hoyX, h: 0, line: { color: "C3CFDB", width: 3 } });
 
   events.forEach((e, i) => {
-    const cx = x0 + i * step;
-    const above = i % 2 === 0;
-    const isP = e.k === "plazo";
+    const cx = xs[i], above = i % 2 === 0, isP = e.k === "plazo", past = dias(e.d) < 0;
+    s2.addShape("line", { x: cx, y: above ? LINE_Y - 0.26 : LINE_Y, w: 0, h: 0.26, line: { color: isP ? AMBER : "8FA3B8", width: 1 } });
+    marker(s2, e.k, cx, LINE_Y, isP ? 0.26 : 0.22, past);
     const bw = 1.62;
-    s2.addShape("line", {
-      x: cx, y: above ? LINE_Y - 0.28 : LINE_Y, w: 0, h: 0.28,
-      line: { color: isP ? AMBER : "8FA3B8", width: 1 },
-    });
-    marker(s2, e.k, cx, LINE_Y, isP ? 0.26 : 0.22);
-    const runs = [
-      { text: e.d, options: { bold: true, fontSize: 14, color: isP ? AMBER : NAVY, breakLine: true } },
+    s2.addText([
+      { text: (isP ? "Plazo " : "") + fmt(e.d), options: { bold: true, fontSize: 13, color: isP ? AMBER : NAVY, breakLine: true } },
       { text: e.t, options: { fontSize: 10, color: INK, breakLine: true } },
       { text: e.c, options: { fontSize: 9.5, color: BLUE, bold: true } },
-    ];
-    s2.addText(runs, {
-      x: cx - bw / 2, y: above ? 1.62 : 3.08, w: bw, h: 0.82, margin: 0, isTextBox: true,
-      fontFace: FONT, align: "center", valign: above ? "bottom" : "top", paraSpaceAfter: 1,
-    });
-  });
-
-  // Tarjetas de plazos
-  const dl = [
-    { d: "16/10/2026", tag: "Fecha límite", t: "Respuesta resultados preliminares PLD/FT", c: "Circular 23486", n: "Pruebas de descargo en seguimiento" },
-    { d: "23/10/2026", tag: "Fecha límite", t: "Nuevas observaciones – Gob. Corporativo", c: "Circular 22741", n: "Requerimiento remitido a las áreas" },
-    { d: "30/10/2026", tag: "Seguimiento", t: "Seguimiento observaciones – Gob. Corporativo", c: "Circular 22741", n: "Plan de solución, visitas anteriores" },
-    { d: "03/11/2026", tag: "Fecha límite", t: "Envío del Plan de Recuperación", c: "Circular 22737", n: "Indicadores Gob. Corp. y Reputacional" },
-  ];
-  const cw = 1.94, cg = 0.16, cy = 4.24, ch = 1.98;
-  const iconCal = await icon(fa.FaRegCalendarCheck, AMBER);
-  dl.forEach((k, i) => {
-    const x = 0.5 + i * (cw + cg);
-    const first = i === 0;
-    s2.addShape("roundRect", { x, y: cy, w: cw, h: ch, rectRadius: 0.1, fill: { color: first ? NAVY : CARD }, line: { color: first ? NAVY : CARD } });
-    s2.addText(k.tag.toUpperCase(), {
-      x: x + 0.16, y: cy + 0.12, w: cw - 0.3, h: 0.2, margin: 0, isTextBox: true,
-      fontFace: FONT, fontSize: 8.5, bold: true, charSpacing: 1, color: first ? "F6C26B" : AMBER,
-    });
-    s2.addText(k.d, {
-      x: x + 0.16, y: cy + 0.32, w: cw - 0.3, h: 0.38, margin: 0, isTextBox: true,
-      fontFace: FONT, fontSize: 19, bold: true, color: first ? WHITE : NAVY, valign: "middle",
-    });
-    s2.addText([
-      { text: k.t, options: { fontSize: 10.5, bold: true, color: first ? WHITE : INK, breakLine: true } },
-      { text: k.c, options: { fontSize: 9.5, color: first ? "A9D8DE" : BLUE, breakLine: true } },
-      { text: k.n, options: { fontSize: 9.5, italic: true, color: first ? "DCE6F0" : "3E4F60" } },
     ], {
-      x: x + 0.16, y: cy + 0.76, w: cw - 0.28, h: ch - 0.86, margin: 0, isTextBox: true,
-      fontFace: FONT, valign: "top", paraSpaceAfter: 2,
+      x: cx - bw / 2, y: above ? 1.5 : 2.94, w: bw, h: 0.84, margin: 0, isTextBox: true,
+      fontFace: FONT, align: "center", valign: above ? "bottom" : "top",
     });
   });
 
-  // Visita Riesgos Específicos
-  const ry = 6.36, rw = 4 * cw + 3 * cg;
-  s2.addShape("roundRect", { x: 0.5, y: ry, w: rw, h: 0.68, rectRadius: 0.1, fill: { color: TEAL_LT }, line: { color: TEAL_LT } });
-  s2.addShape("ellipse", { x: 0.64, y: ry + 0.12, w: 0.44, h: 0.44, fill: { color: TEAL }, line: { color: TEAL } });
-  s2.addImage({ data: await icon(fa.FaMagnifyingGlassChart, WHITE), x: 0.75, y: ry + 0.23, w: 0.22, h: 0.22 });
-  s2.addText([
-    { text: "Visita inicial Riesgos Específicos · Circ. 22742  ", options: { bold: true, color: NAVY, fontSize: 11 } },
-    { text: "Crédito, Liquidez y Mercado · recepción 24/09/2026, inicio 09/10/2026. Presentación de resultados preliminares registrada; plazo de respuesta no documentado.", options: { color: INK, fontSize: 10.5 } },
-  ], { x: 1.22, y: ry + 0.06, w: rw - 0.85, h: 0.56, margin: 0, isTextBox: true, fontFace: FONT, valign: "middle" });
+  // Marca HOY
+  s2.addShape("line", { x: hoyX, y: LINE_Y + 0.18, w: 0, h: 0.62, line: { color: AMBER, width: 1.5, dashType: "dash" } });
+  s2.addShape("roundRect", { x: hoyX - 0.55, y: LINE_Y + 0.8, w: 1.1, h: 0.3, rectRadius: 0.15, fill: { color: AMBER }, line: { color: AMBER } });
+  s2.addText("HOY " + fmt(CORTE), { x: hoyX - 0.55, y: LINE_Y + 0.8, w: 1.1, h: 0.3, margin: 0, isTextBox: true, align: "center", valign: "middle", fontFace: FONT, fontSize: 10.5, bold: true, color: WHITE });
 
-  // Puntos de control gerencial
-  const px = 0.5 + rw + 0.22, pw = 12.83 - px, py = 4.24, ph = 2.8;
-  s2.addShape("roundRect", { x: px, y: py, w: pw, h: ph, rectRadius: 0.12, fill: { color: NAVY }, line: { color: NAVY } });
-  s2.addText("Puntos de control gerencial", {
-    x: px + 0.25, y: py + 0.14, w: pw - 0.4, h: 0.34, margin: 0, isTextBox: true,
-    fontFace: FONT, fontSize: 15, bold: true, color: WHITE, valign: "middle",
+  // Próximos vencimientos
+  s2.addText("Próximos vencimientos", {
+    x: 0.5, y: 4.0, w: 6, h: 0.36, margin: 0, isTextBox: true,
+    fontFace: FONT, fontSize: 16, bold: true, color: NAVY, valign: "middle",
   });
-  const ctrl = [
-    [fa.FaPeopleArrows, "Coordinación entre áreas", "Nota 22741: Gerencia Financiera, Cumplimiento, Talento Humano, Procesos y otras áreas"],
-    [fa.FaFileCircleCheck, "Evidencias y pruebas de descargo", "Revisión y remisión para notas 22741 y 23486"],
-    [fa.FaListCheck, "Entregables y planes de acción", "Matriz de Riesgos 2026, informes al Comité de Riesgos, Plan de Recuperación"],
-    [fa.FaCircleQuestion, "Por confirmar", "Estado de envío de cada requerimiento y responsable asignado"],
-  ];
-  let iy = py + 0.58;
-  for (const [ic, h, t] of ctrl) {
-    s2.addShape("ellipse", { x: px + 0.25, y: iy + 0.02, w: 0.36, h: 0.36, fill: { color: TEAL }, line: { color: TEAL } });
-    s2.addImage({ data: await icon(ic, WHITE), x: px + 0.34, y: iy + 0.11, w: 0.18, h: 0.18 });
+  const venc = [
+    { d: D(16, 10), t: "Envío respuesta resultados preliminares PLD/FT", c: "Circular 23486", n: "Semana: seguimiento al envío de pruebas de descargo" },
+    { d: D(23, 10), t: "Envío de nuevas observaciones – Gobierno Corporativo", c: "Circular 22741", n: "Semana: matriz y requerimiento enviado a las áreas" },
+    { d: D(30, 10), t: "Seguimiento de observaciones – Gobierno Corporativo", c: "Circular 22741", n: "Semana: plan de solución de visitas anteriores" },
+    { d: D(3, 11), t: "Envío del Plan de Recuperación", c: "Circular 22737", n: "" },
+  ].filter((v) => dias(v.d) >= 0);
+  const cw = (12.33 - 0.2 * (venc.length - 1)) / venc.length, cy = 4.46, ch = 2.5;
+  venc.forEach((v, i) => {
+    const x = 0.5 + i * (cw + 0.2), n = dias(v.d), first = i === 0;
+    s2.addShape("roundRect", { x, y: cy, w: cw, h: ch, rectRadius: 0.12, fill: { color: first ? NAVY : CARD }, line: { color: first ? NAVY : CARD } });
+    s2.addText(n === 0 ? [
+      { text: "Vence hoy", options: { fontSize: 30, bold: true, color: "F6C26B" } },
+    ] : [
+      { text: String(n), options: { fontSize: 40, bold: true, color: first ? "F6C26B" : AMBER } },
+      { text: n === 1 ? "  día" : "  días", options: { fontSize: 15, bold: true, color: first ? WHITE : NAVY } },
+    ], { x: x + 0.22, y: cy + 0.14, w: cw - 0.4, h: 0.72, margin: 0, isTextBox: true, fontFace: FONT, valign: "middle" });
     s2.addText([
-      { text: h, options: { bold: true, fontSize: 11, color: WHITE, breakLine: true } },
-      { text: t, options: { fontSize: 9.5, color: "D3DEEA" } },
-    ], { x: px + 0.74, y: iy - 0.02, w: pw - 0.92, h: 0.58, margin: 0, isTextBox: true, fontFace: FONT, valign: "top" });
-    iy += 0.55;
-  }
+      { text: fmt(v.d) + "/" + v.d.getFullYear(), options: { fontSize: 13, bold: true, color: first ? WHITE : NAVY, breakLine: true } },
+      { text: v.t, options: { fontSize: 11.5, color: first ? WHITE : INK, breakLine: true } },
+      { text: v.c, options: { fontSize: 10, color: first ? "A9D8DE" : BLUE, breakLine: !!v.n } },
+      ...(v.n ? [{ text: v.n, options: { fontSize: 10, italic: true, color: first ? "DCE6F0" : "3E4F60" } }] : []),
+    ], { x: x + 0.22, y: cy + 0.92, w: cw - 0.4, h: ch - 1.04, margin: 0, isTextBox: true, fontFace: FONT, valign: "top", paraSpaceAfter: 3 });
+  });
 
-  addFooter(s2, "Fechas según la presentación base (referencia 10/10/2026). Fecha límite, inicio de visita y recepción se distinguen en la leyenda; el estado de cada envío está por confirmar.");
+  addFooter(s2, "Riesgos Específicos (Circ. 22742): visita iniciada el 09/10/2026, sin plazo de respuesta documentado. El estado de envío de cada requerimiento está por confirmar.");
   s2.addNotes(
-    "Línea de tiempo de requerimientos SSF. Plazos: 16/10 PLD/FT (Circ. 23486), 23/10 nuevas observaciones y 30/10 seguimiento de Gobierno Corporativo (Circ. 22741), 03/11 Plan de Recuperación (Circ. 22737). " +
-    "Visita de Riesgos Específicos (Circ. 22742): inicio 09/10, sin plazo de respuesta documentado. No se afirma si los envíos están cumplidos o pendientes."
+    "Corte " + fmt(CORTE) + ". Hoy vence la respuesta PLD/FT (Circ. 23486). Siguen Gobierno Corporativo el 23/10 y 30/10 (Circ. 22741) " +
+    "y el Plan de Recuperación el 03/11 (Circ. 22737)."
   );
 
   await pres.writeFile({ fileName: OUT });
