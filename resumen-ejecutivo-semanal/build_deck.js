@@ -33,22 +33,12 @@ async function icon(Comp, color, px = 256) {
 
 function addTitle(slide, title, subtitle) {
   slide.addText(title, {
-    x: 0.5, y: 0.32, w: 9.6, h: 0.6, margin: 0, isTextBox: true,
+    x: 0.5, y: 0.32, w: 8.8, h: 0.6, margin: 0, isTextBox: true,
     fontFace: FONT, fontSize: 26, bold: true, color: NAVY, valign: "middle",
   });
   slide.addText(subtitle, {
     x: 0.5, y: 0.92, w: 9.6, h: 0.32, margin: 0, isTextBox: true,
     fontFace: FONT, fontSize: 13, color: BLUE, valign: "middle",
-  });
-}
-
-function addPill(slide, text, x, y, w) {
-  slide.addShape("roundRect", {
-    x, y, w, h: 0.36, rectRadius: 0.18, fill: { color: NAVY }, line: { color: NAVY },
-  });
-  slide.addText(text, {
-    x, y, w, h: 0.36, margin: 0, isTextBox: true, align: "center", valign: "middle",
-    fontFace: FONT, fontSize: 11, bold: true, color: WHITE,
   });
 }
 
@@ -61,46 +51,41 @@ function addFooter(slide, text) {
 
 // Ítem de una línea: viñeta cuadrada + etiqueta en negrita + texto.
 function addItem(slide, x, y, w, label, text, color) {
-  slide.addShape("rect", { x, y: y + 0.075, w: 0.07, h: 0.07, fill: { color }, line: { color } });
-  slide.addText([
-    { text: label + " ", options: { bold: true, color: NAVY } },
-    { text, options: { color: INK } },
-  ], { x: x + 0.17, y, w: w - 0.17, h: 0.22, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 11, valign: "middle" });
+  slide.addShape("rect", { x, y: y + 0.105, w: 0.08, h: 0.08, fill: { color }, line: { color } });
+  const runs = label ? [{ text: label + " ", options: { bold: true, color: NAVY } }] : [];
+  runs.push({ text, options: { color: INK } });
+  slide.addText(runs, { x: x + 0.2, y, w: w - 0.2, h: 0.29, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 13, valign: "middle" });
 }
 
-async function card(slide, { x, y, w, h, ic, color, title, synth, items }) {
-  const HH = 0.7;
+async function card(slide, { x, y, w, h, ic, color, title, items }) {
+  const HH = 0.62;
   slide.addShape("roundRect", { x, y, w, h, rectRadius: 0.12, fill: { color: CARD }, line: { color: CARD } });
   slide.addShape("roundRect", { x, y, w, h: HH + 0.12, rectRadius: 0.12, fill: { color }, line: { color } });
   slide.addShape("rect", { x, y: y + HH, w, h: 0.2, fill: { color: CARD }, line: { color: CARD } });
-  slide.addShape("ellipse", { x: x + 0.2, y: y + 0.11, w: 0.48, h: 0.48, fill: { color: WHITE }, line: { color: WHITE } });
-  slide.addImage({ data: await icon(ic, color), x: x + 0.315, y: y + 0.225, w: 0.25, h: 0.25 });
+  slide.addShape("ellipse", { x: x + 0.2, y: y + 0.1, w: 0.42, h: 0.42, fill: { color: WHITE }, line: { color: WHITE } });
+  slide.addImage({ data: await icon(ic, color), x: x + 0.3, y: y + 0.2, w: 0.22, h: 0.22 });
   slide.addText(title, {
-    x: x + 0.84, y: y + 0.08, w: w - 1.0, h: 0.32, margin: 0, isTextBox: true,
-    fontFace: FONT, fontSize: 15, bold: true, color: WHITE, valign: "middle",
+    x: x + 0.78, y: y + 0.1, w: w - 0.95, h: 0.42, margin: 0, isTextBox: true,
+    fontFace: FONT, fontSize: 16, bold: true, color: WHITE, valign: "middle",
   });
-  slide.addText(synth, {
-    x: x + 0.84, y: y + 0.38, w: w - 1.0, h: 0.24, margin: 0, isTextBox: true,
-    fontFace: FONT, fontSize: 10.5, italic: true, color: "DCE8F3", valign: "middle",
-  });
-  const step = 0.245;
-  items.forEach(([label, text], i) => addItem(slide, x + 0.24, y + HH + 0.16 + i * step, w - 0.44, label, text, color));
+  const step = 0.34;
+  items.forEach(([label, text], i) => addItem(slide, x + 0.28, y + HH + 0.22 + i * step, w - 0.5, label, text, color));
 }
 
-// Franja de datos clave (solo cifras y fechas respaldadas por las fuentes).
-function keyFacts(slide, y, facts) {
-  const gap = 0.16, w = (12.33 - gap * (facts.length - 1)) / facts.length, h = 0.62;
-  facts.forEach(([value, label, sub], i) => {
-    const x = 0.5 + i * (w + gap);
-    slide.addShape("roundRect", { x, y, w, h, rectRadius: 0.1, fill: { color: TEAL_LT }, line: { color: TEAL_LT } });
-    slide.addText(value, {
-      x: x + 0.16, y, w: 0.95, h, margin: 0, isTextBox: true,
-      fontFace: FONT, fontSize: 22, bold: true, color: TEAL_DK, valign: "middle",
-    });
-    slide.addText([
-      { text: label, options: { bold: true, fontSize: 11, color: NAVY, breakLine: true } },
-      { text: sub, options: { fontSize: 9.5, color: BLUE } },
-    ], { x: x + 1.1, y: y + 0.06, w: w - 1.2, h: h - 0.12, margin: 0, isTextBox: true, fontFace: FONT, valign: "middle" });
+// Indicador único: avance del examen GIR.
+function examBadge(slide, x, y, w, pct) {
+  const h = 0.78;
+  slide.addShape("roundRect", { x, y, w, h, rectRadius: 0.12, fill: { color: TEAL_LT }, line: { color: TEAL_LT } });
+  slide.addText([
+    { text: "Examen GIR 2026", options: { bold: true, fontSize: 13, color: NAVY, breakLine: true } },
+    { text: "Avance reportado", options: { fontSize: 10.5, color: BLUE } },
+  ], { x: x + 0.22, y: y + 0.08, w: 1.7, h: 0.48, margin: 0, isTextBox: true, fontFace: FONT, valign: "middle" });
+  const bx = x + 0.22, bw = w - 1.5;
+  slide.addShape("roundRect", { x: bx, y: y + 0.6, w: bw, h: 0.09, rectRadius: 0.045, fill: { color: "B9DDE1" }, line: { color: "B9DDE1" } });
+  slide.addShape("roundRect", { x: bx, y: y + 0.6, w: bw * pct / 100, h: 0.09, rectRadius: 0.045, fill: { color: TEAL_DK }, line: { color: TEAL_DK } });
+  slide.addText(pct + "%", {
+    x: x + w - 1.2, y, w: 1.0, h, margin: 0, isTextBox: true,
+    fontFace: FONT, fontSize: 30, bold: true, color: TEAL_DK, align: "right", valign: "middle",
   });
 }
 
@@ -115,78 +100,63 @@ function keyFacts(slide, y, facts) {
   const s1 = pres.addSlide();
   s1.background = { color: WHITE };
   addTitle(s1, "Gestión Integral de Riesgos | Resumen Ejecutivo Semanal",
-    "Departamento de Administración de Riesgos · COMÉDICA de R.L.");
-  addPill(s1, "Seguimiento semanal · S1 – S2", 10.43, 0.42, 2.4);
+    "Departamento de Administración de Riesgos · COMÉDICA de R.L. · Seguimiento semanal");
+  examBadge(s1, 9.43, 0.34, 3.4, 90);
 
-  keyFacts(s1, 1.32, [
-    ["4", "Requerimientos SSF", "22737 · 22741 · 22742 · 23486"],
-    ["90%", "Examen GIR 2026", "Avance reportado"],
-    ["60%", "Control de avalúos", "Último reporte · por confirmar"],
-    ["01/10", "2.ª prueba de continuidad", "Informe de resultados"],
-  ]);
-
-  const W = 6.085, H = 2.41, X1 = 0.5, X2 = 6.745, Y1 = 2.1, Y2 = 4.67;
+  const W = 6.085, H = 2.66, X1 = 0.5, X2 = 6.745, Y1 = 1.5, Y2 = 4.34;
 
   await card(s1, {
     x: X1, y: Y1, w: W, h: H, ic: fa.FaShieldHalved, color: NAVY,
     title: "Riesgo Operacional y Continuidad",
-    synth: "Cultura de riesgos, continuidad del negocio y control de eventos",
     items: [
-      ["Capacitación GIR 2026:", "capacitación, examen e informe de seguimiento"],
-      ["Continuidad:", "informe de la 2.ª prueba (01/10/2026) y actualización Matriz BIA"],
-      ["Matriz de Riesgos Institucional 2026:", "seguimiento de planes de acción"],
-      ["Eventos:", "caídas de TC (25/09) y Orion (26/09); ventana de mantenimiento"],
-      ["Opiniones:", "Fábrica de Créditos y caso asociado J. Jacobo Marroquín"],
-      ["Auditorías:", "información a Auditoría Interna (NRP-24) y Auditoría Externa"],
+      ["", "Capacitación GIR 2026 e informe de seguimiento del examen"],
+      ["", "Informe de la 2.ª prueba de Continuidad del Negocio (01/10/2026)"],
+      ["", "Seguimiento de planes de acción – Matriz de Riesgos 2026"],
+      ["", "Eventos de riesgo: caídas de TC (25/09) y Orion (26/09)"],
+      ["", "Opiniones: Fábrica de Créditos y caso de asociado"],
     ],
   });
 
   await card(s1, {
     x: X2, y: Y1, w: W, h: H, ic: fa.FaScaleBalanced, color: BLUE,
-    title: "Riesgo Normativo y Requerimientos SSF",
-    synth: "Requerimientos coordinados con las áreas y pruebas de descargo",
+    title: "Riesgo Normativo",
     items: [
-      ["Gob. Corporativo · 22741:", "requerimiento a áreas y descargos (visita 18432)"],
-      ["PLD/FT · 23486:", "seguimiento al envío de pruebas de descargo"],
-      ["Riesgo Específico · 22742:", "presentación de resultados preliminares"],
-      ["Plan de Recuperación · 22737:", "indicadores de Gob. Corporativo y Reputacional"],
-      ["Avalúos:", "política, procedimientos, perfil de revisor, peritos y avisos"],
-      ["Comité y envíos:", "Acuerdos Semestrales (J. Vigilancia), acta 29/08/2026, DAR"],
+      ["", "Gobierno Corporativo (nota 22741): matriz y requerimiento a áreas"],
+      ["", "Seguimiento de pruebas de descargo – notas 22741 y 23486"],
+      ["", "Presentación de resultados preliminares de Riesgo Específico"],
+      ["", "Control de avalúos: asignación a perito y aviso a asociados"],
+      ["", "Acuerdos Semestrales del Comité de Riesgos y acta del 29/08"],
     ],
   });
 
   await card(s1, {
     x: X1, y: Y2, w: W, h: H, ic: fa.FaChartLine, color: TEAL_DK,
     title: "Riesgo Financiero y Crediticio",
-    synth: "Medición, reportes regulatorios y control de cartera y reservas",
     items: [
-      ["Crédito:", "pérdidas esperadas, matrices de transición y cosechas (Comité)"],
-      ["Liquidez y mercado:", "informe al Comité, escenarios y anexo 03 NRP-05"],
-      ["Activos de riesgo:", "NCB-022, Central de Riesgo, CTRI-RECR, relacionados"],
-      ["Tarjeta de crédito:", "análisis de cartera, simulación de vencida, cuadratura"],
-      ["Reservas y deuda:", "reserva de saneamiento y registro de traslados de deuda"],
-      ["Largo plazo:", "Política de TC, sistema de créditos NRP-41, TC de alto riesgo"],
+      ["", "Informes al Comité: riesgo de crédito, liquidez y mercado"],
+      ["", "Envíos SSF: NRP-05, NCB-022, Central de Riesgo, CTRI-RECR"],
+      ["", "Cartera de tarjeta de crédito y reserva de saneamiento"],
+      ["", "Traslados de deuda y segmentación de productos"],
+      ["", "Largo plazo: Política de TC y sistema de créditos NRP-41"],
     ],
   });
 
   await card(s1, {
     x: X2, y: Y2, w: W, h: H, ic: fa.FaDiagramProject, color: SLATE,
-    title: "Proyectos Transversales",
-    synth: "Mejora institucional en coordinación con otras áreas",
+    title: "Proyectos y Coordinación",
     items: [
-      ["BIA:", "cuestionario para las entrevistas"],
-      ["Formularios:", "unificación de Actualización de Datos y Conozca a tu Cliente"],
-      ["Comparativos de políticas:", "servicios tercerizados y gobierno corporativo"],
-      ["Procesos:", "Matriz de Sistemas Informáticos y cambio de estructura del Depto."],
-      ["Atención al Asociado:", "actualización de página web"],
-      ["Segmentación:", "informe de segmentación de productos de COMEDICA"],
+      ["", "Unificación de formularios Actualización de Datos y Conozca tu Cliente"],
+      ["", "Cuestionario para entrevistas BIA"],
+      ["", "Comparativos de políticas: tercerizados y gobierno corporativo"],
+      ["", "Procesos: Matriz de Sistemas Informáticos y estructura del Depto."],
+      ["", "Información para Auditoría Interna (NRP-24) y Auditoría Externa"],
     ],
   });
 
-  addFooter(s1, "Fuentes: presentación base «Resumen Ejecutivo Riesgos» y documento de actividades semanales. Sin estado documentado: se presenta solo la actividad.");
+  addFooter(s1, "Fuente: documento de actividades semanales.");
   s1.addNotes(
     "Resumen de los cuatro frentes de gestión, integrando las actividades de S1 y S2. " +
-    "Examen GIR 2026: avance 90% (reportado). Avalúos: 60% según la presentación anterior, por confirmar. " +
+    "Examen GIR 2026: avance 90% (reportado). " +
     "Los demás frentes se presentan sin estado porque los documentos no lo indican."
   );
 
