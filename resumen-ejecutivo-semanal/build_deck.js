@@ -14,6 +14,8 @@ const NAVY = "0B2545";
 const BLUE = "13507F";
 const TEAL = "0E9AA7";
 const TEAL_LT = "D7F0F2";
+const TEAL_DK = "0A7480";
+const SLATE = "2E4A73";
 const CARD = "F1F5F9";
 const INK = "1B2733";
 const AMBER = "B86E00";
@@ -57,49 +59,48 @@ function addFooter(slide, text) {
   });
 }
 
-// Lista con etiqueta en negrita + texto.
-function itemRuns(items, size) {
-  return items.map(([label, text], i) => ({
-    text: "",
-    options: {},
-    _label: label, _text: text, _last: i === items.length - 1,
-  })).flatMap((it) => [
-    { text: it._label + "  ", options: { bold: true, color: NAVY, bullet: { code: "25A0", indent: 12 }, paraSpaceAfter: 4, fontSize: size } },
-    { text: it._text, options: { color: INK, fontSize: size, breakLine: !it._last } },
-  ]);
+// Ítem de una línea: viñeta cuadrada + etiqueta en negrita + texto.
+function addItem(slide, x, y, w, label, text, color) {
+  slide.addShape("rect", { x, y: y + 0.075, w: 0.07, h: 0.07, fill: { color }, line: { color } });
+  slide.addText([
+    { text: label + " ", options: { bold: true, color: NAVY } },
+    { text, options: { color: INK } },
+  ], { x: x + 0.17, y, w: w - 0.17, h: 0.22, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 11, valign: "middle" });
 }
 
-function progress(slide, x, y, label, pct) {
-  slide.addText(label, {
-    x, y, w: 1.55, h: 0.22, margin: 0, isTextBox: true,
-    fontFace: FONT, fontSize: 9.5, bold: true, color: NAVY, align: "right",
-  });
-  const bw = 1.05;
-  slide.addShape("roundRect", { x, y: y + 0.29, w: bw, h: 0.11, rectRadius: 0.05, fill: { color: "D5DDE6" }, line: { color: "D5DDE6" } });
-  slide.addShape("roundRect", { x, y: y + 0.29, w: bw * pct / 100, h: 0.11, rectRadius: 0.05, fill: { color: TEAL }, line: { color: TEAL } });
-  slide.addText(pct + "%", {
-    x: x + bw + 0.05, y: y + 0.2, w: 0.45, h: 0.28, margin: 0, isTextBox: true,
-    fontFace: FONT, fontSize: 12, bold: true, color: TEAL, align: "right", valign: "middle",
-  });
-}
-
-async function card(slide, { x, y, w, h, ic, title, synth, items, status }) {
+async function card(slide, { x, y, w, h, ic, color, title, synth, items }) {
+  const HH = 0.7;
   slide.addShape("roundRect", { x, y, w, h, rectRadius: 0.12, fill: { color: CARD }, line: { color: CARD } });
-  slide.addShape("ellipse", { x: x + 0.22, y: y + 0.2, w: 0.56, h: 0.56, fill: { color: NAVY }, line: { color: NAVY } });
-  slide.addImage({ data: await icon(ic, WHITE), x: x + 0.355, y: y + 0.335, w: 0.29, h: 0.29 });
-  const tw = status ? w - 0.98 - 1.85 : w - 1.2;
+  slide.addShape("roundRect", { x, y, w, h: HH + 0.12, rectRadius: 0.12, fill: { color }, line: { color } });
+  slide.addShape("rect", { x, y: y + HH, w, h: 0.2, fill: { color: CARD }, line: { color: CARD } });
+  slide.addShape("ellipse", { x: x + 0.2, y: y + 0.11, w: 0.48, h: 0.48, fill: { color: WHITE }, line: { color: WHITE } });
+  slide.addImage({ data: await icon(ic, color), x: x + 0.315, y: y + 0.225, w: 0.25, h: 0.25 });
   slide.addText(title, {
-    x: x + 0.94, y: y + 0.17, w: tw, h: 0.34, margin: 0, isTextBox: true,
-    fontFace: FONT, fontSize: 15, bold: true, color: NAVY, valign: "middle",
+    x: x + 0.84, y: y + 0.08, w: w - 1.0, h: 0.32, margin: 0, isTextBox: true,
+    fontFace: FONT, fontSize: 15, bold: true, color: WHITE, valign: "middle",
   });
   slide.addText(synth, {
-    x: x + 0.94, y: y + 0.5, w: w - 1.2, h: 0.28, margin: 0, isTextBox: true,
-    fontFace: FONT, fontSize: 11, italic: true, color: BLUE, valign: "middle",
+    x: x + 0.84, y: y + 0.38, w: w - 1.0, h: 0.24, margin: 0, isTextBox: true,
+    fontFace: FONT, fontSize: 10.5, italic: true, color: "DCE8F3", valign: "middle",
   });
-  if (status) progress(slide, x + w - 1.78, y + 0.12, status.label, status.pct);
-  slide.addText(itemRuns(items, 11), {
-    x: x + 0.24, y: y + 0.92, w: w - 0.46, h: h - 1.04, margin: 0, isTextBox: true,
-    fontFace: FONT, valign: "top",
+  const step = 0.245;
+  items.forEach(([label, text], i) => addItem(slide, x + 0.24, y + HH + 0.16 + i * step, w - 0.44, label, text, color));
+}
+
+// Franja de datos clave (solo cifras y fechas respaldadas por las fuentes).
+function keyFacts(slide, y, facts) {
+  const gap = 0.16, w = (12.33 - gap * (facts.length - 1)) / facts.length, h = 0.62;
+  facts.forEach(([value, label, sub], i) => {
+    const x = 0.5 + i * (w + gap);
+    slide.addShape("roundRect", { x, y, w, h, rectRadius: 0.1, fill: { color: TEAL_LT }, line: { color: TEAL_LT } });
+    slide.addText(value, {
+      x: x + 0.16, y, w: 0.95, h, margin: 0, isTextBox: true,
+      fontFace: FONT, fontSize: 22, bold: true, color: TEAL_DK, valign: "middle",
+    });
+    slide.addText([
+      { text: label, options: { bold: true, fontSize: 11, color: NAVY, breakLine: true } },
+      { text: sub, options: { fontSize: 9.5, color: BLUE } },
+    ], { x: x + 1.1, y: y + 0.06, w: w - 1.2, h: h - 0.12, margin: 0, isTextBox: true, fontFace: FONT, valign: "middle" });
   });
 }
 
@@ -115,64 +116,70 @@ async function card(slide, { x, y, w, h, ic, title, synth, items, status }) {
   s1.background = { color: WHITE };
   addTitle(s1, "Gestión Integral de Riesgos | Resumen Ejecutivo Semanal",
     "Departamento de Administración de Riesgos · COMÉDICA de R.L.");
-  addPill(s1, "Seguimiento semanal · S1 – S2", 10.43, 0.45, 2.4);
+  addPill(s1, "Seguimiento semanal · S1 – S2", 10.43, 0.42, 2.4);
 
-  const W = 6.04, H = 2.72, X1 = 0.5, X2 = 6.79, Y1 = 1.48, Y2 = 4.36;
+  keyFacts(s1, 1.32, [
+    ["4", "Requerimientos SSF", "22737 · 22741 · 22742 · 23486"],
+    ["90%", "Examen GIR 2026", "Avance reportado"],
+    ["60%", "Control de avalúos", "Último reporte · por confirmar"],
+    ["01/10", "2.ª prueba de continuidad", "Informe de resultados"],
+  ]);
+
+  const W = 6.085, H = 2.41, X1 = 0.5, X2 = 6.745, Y1 = 2.1, Y2 = 4.67;
 
   await card(s1, {
-    x: X1, y: Y1, w: W, h: H, ic: fa.FaShieldHalved,
+    x: X1, y: Y1, w: W, h: H, ic: fa.FaShieldHalved, color: NAVY,
     title: "Riesgo Operacional y Continuidad",
     synth: "Cultura de riesgos, continuidad del negocio y control de eventos",
-    status: { label: "Examen GIR 2026", pct: 90 },
     items: [
-      ["Capacitación GIR 2026:", "capacitación, examen e informe de seguimiento del examen"],
-      ["Continuidad:", "informe de la 2.ª prueba (01/10/2026) y actualización de Matriz BIA"],
+      ["Capacitación GIR 2026:", "capacitación, examen e informe de seguimiento"],
+      ["Continuidad:", "informe de la 2.ª prueba (01/10/2026) y actualización Matriz BIA"],
       ["Matriz de Riesgos Institucional 2026:", "seguimiento de planes de acción"],
       ["Eventos:", "caídas de TC (25/09) y Orion (26/09); ventana de mantenimiento"],
-      ["Opiniones e informes:", "Fábrica de Créditos; caso asociado J. Jacobo Marroquín; Acuerdos Semestrales del Comité de Riesgos (Junta de Vigilancia)"],
+      ["Opiniones:", "Fábrica de Créditos y caso asociado J. Jacobo Marroquín"],
       ["Auditorías:", "información a Auditoría Interna (NRP-24) y Auditoría Externa"],
     ],
   });
 
   await card(s1, {
-    x: X2, y: Y1, w: W, h: H, ic: fa.FaScaleBalanced,
-    title: "Riesgo Normativo y SSF",
-    synth: "Requerimientos SSF coordinados con las áreas y pruebas de descargo",
-    status: { label: "Avalúos (último reporte)", pct: 60 },
+    x: X2, y: Y1, w: W, h: H, ic: fa.FaScaleBalanced, color: BLUE,
+    title: "Riesgo Normativo y Requerimientos SSF",
+    synth: "Requerimientos coordinados con las áreas y pruebas de descargo",
     items: [
-      ["Gobierno Corporativo · 22741:", "matriz de requerimiento, solicitudes a áreas y seguimiento de descargos (visita 18432)"],
+      ["Gob. Corporativo · 22741:", "requerimiento a áreas y descargos (visita 18432)"],
       ["PLD/FT · 23486:", "seguimiento al envío de pruebas de descargo"],
       ["Riesgo Específico · 22742:", "presentación de resultados preliminares"],
-      ["Plan de Recuperación · 22737:", "indicadores de Gobierno Corporativo y Reputacional"],
-      ["Avalúos:", "política, procedimientos y perfil de revisor; asignación a perito, gestión electrónica y aviso a asociados"],
-      ["Otros:", "envíos regulatorios (DAR); acta de sesión del 29/08/2026"],
+      ["Plan de Recuperación · 22737:", "indicadores de Gob. Corporativo y Reputacional"],
+      ["Avalúos:", "política, procedimientos, perfil de revisor, peritos y avisos"],
+      ["Comité y envíos:", "Acuerdos Semestrales (J. Vigilancia), acta 29/08/2026, DAR"],
     ],
   });
 
   await card(s1, {
-    x: X1, y: Y2, w: W, h: H, ic: fa.FaChartLine,
+    x: X1, y: Y2, w: W, h: H, ic: fa.FaChartLine, color: TEAL_DK,
     title: "Riesgo Financiero y Crediticio",
     synth: "Medición, reportes regulatorios y control de cartera y reservas",
     items: [
-      ["Crédito:", "informe al Comité – pérdidas esperadas, matrices de transición, cosechas"],
-      ["Liquidez y mercado:", "informe al Comité, escenarios regulatorios y anexo 03 NRP-05"],
-      ["Activos de riesgo:", "NCB-022, Central de Riesgo (NRP-41), CTRI-RECR y créditos relacionados"],
-      ["Tarjeta y reservas:", "análisis de cartera TC, simulación de vencida; reserva de saneamiento"],
-      ["Seguimiento:", "traslados de deuda, segmentación de productos, consultas de aspirantes"],
-      ["Largo plazo:", "Política de TC, sistema de créditos (NRP-41), expedientes TC de alto riesgo"],
+      ["Crédito:", "pérdidas esperadas, matrices de transición y cosechas (Comité)"],
+      ["Liquidez y mercado:", "informe al Comité, escenarios y anexo 03 NRP-05"],
+      ["Activos de riesgo:", "NCB-022, Central de Riesgo, CTRI-RECR, relacionados"],
+      ["Tarjeta de crédito:", "análisis de cartera, simulación de vencida, cuadratura"],
+      ["Reservas y deuda:", "reserva de saneamiento y registro de traslados de deuda"],
+      ["Largo plazo:", "Política de TC, sistema de créditos NRP-41, TC de alto riesgo"],
     ],
   });
 
   await card(s1, {
-    x: X2, y: Y2, w: W, h: H, ic: fa.FaDiagramProject,
+    x: X2, y: Y2, w: W, h: H, ic: fa.FaDiagramProject, color: SLATE,
     title: "Proyectos Transversales",
     synth: "Mejora institucional en coordinación con otras áreas",
     items: [
-      ["BIA:", "elaboración del cuestionario para entrevistas"],
-      ["Formularios:", "unificación de Actualización de Datos (Atención al Asociado) y Conozca a tu Cliente (Oficialía de Cumplimiento)"],
+      ["BIA:", "cuestionario para las entrevistas"],
+      ["Formularios:", "unificación de Actualización de Datos y Conozca a tu Cliente"],
       ["Comparativos de políticas:", "servicios tercerizados y gobierno corporativo"],
-      ["Procesos:", "Matriz de Administración de Sistemas Informáticos y solicitud de cambio de estructura del Departamento"],
+      ["Procesos:", "Matriz de Sistemas Informáticos y cambio de estructura del Depto."],
       ["Atención al Asociado:", "actualización de página web"],
+      ["Segmentación:", "informe de segmentación de productos de COMEDICA"],
     ],
   });
 
