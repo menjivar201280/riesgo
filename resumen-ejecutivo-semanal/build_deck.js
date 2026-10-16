@@ -207,14 +207,14 @@ function examBadge(slide, x, y, w, pct) {
   const LINE_Y = 2.6;
   const D = (dd, mm) => new Date(2026, mm - 1, dd);
   const events = [
-    { d: D(22, 9), k: "rec", t: "Resultado preliminar Plan de Recuperación", c: "Circ. 22737" },
-    { d: D(24, 9), k: "rec", t: "Visita inicial Riesgos Específicos", c: "Circ. 22742" },
-    { d: D(2, 10), k: "rec", t: "Resultados preliminares PLD/FT", c: "Circ. 23486" },
-    { d: D(9, 10), k: "vis", t: "Inicio visita Riesgos Específicos · Resultados Gob. Corporativo", c: "Circ. 22742 · 22741" },
-    { d: D(16, 10), k: "plazo", t: "Respuesta resultados preliminares PLD/FT", c: "Circ. 23486" },
-    { d: D(23, 10), k: "plazo", t: "Nuevas observaciones Gob. Corporativo", c: "Circ. 22741" },
-    { d: D(30, 10), k: "plazo", t: "Seguimiento de observaciones Gob. Corporativo", c: "Circ. 22741" },
-    { d: D(3, 11), k: "plazo", t: "Envío del Plan de Recuperación", c: "Circ. 22737" },
+    { d: D(22, 9), k: "rec", t: "Resultado preliminar Plan de Recuperación", c: "Circular 22737" },
+    { d: D(24, 9), k: "rec", t: "Visita inicial Riesgos Específicos", c: "Circular 22742" },
+    { d: D(2, 10), k: "rec", t: "Resultados preliminares PLD/FT", c: "Circular 23486" },
+    { d: D(9, 10), k: "vis", t: "Inicio visita Riesgos Específicos · Resultados Gobierno Corporativo", c: "Circular 22742 · 22741" },
+    { d: D(16, 10), k: "plazo", t: "Respuesta resultados preliminares PLD/FT", c: "Circular 23486" },
+    { d: D(23, 10), k: "plazo", t: "Nuevas observaciones Gobierno Corporativo", c: "Circular 22741" },
+    { d: D(30, 10), k: "plazo", t: "Seguimiento de observaciones Gobierno Corporativo", c: "Circular 22741" },
+    { d: D(3, 11), k: "plazo", t: "Envío del Plan de Recuperación", c: "Circular 22737" },
   ];
   // Posición proporcional a la fecha: la línea muestra el avance real del calendario.
   const x0 = 1.4, x1 = 12.0, T0 = events[0].d, TN = events[events.length - 1].d;
@@ -282,10 +282,10 @@ function examBadge(slide, x, y, w, pct) {
     ], { x: x + 0.22, y: cy + 0.92, w: cw - 0.4, h: ch - 1.04, margin: 0, isTextBox: true, fontFace: FONT, valign: "top", paraSpaceAfter: 3 });
   });
 
-  addFooter(s2, "Riesgos Específicos (Circ. 22742): inicio de visita 09/10/2026.");
+  addFooter(s2, "Riesgos Específicos (Circular 22742): inicio de visita 09/10/2026.");
   s2.addNotes(
-    "Corte " + fmt(CORTE) + ". Plazo de respuesta PLD/FT: 16/10 (Circ. 23486). Siguen Gobierno Corporativo el 23/10 y 30/10 (Circ. 22741) " +
-    "y el Plan de Recuperación el 03/11 (Circ. 22737)."
+    "Corte " + fmt(CORTE) + ". Plazo de respuesta PLD/FT: 16/10 (Circular 23486). Siguen Gobierno Corporativo el 23/10 y 30/10 (Circular 22741) " +
+    "y el Plan de Recuperación el 03/11 (Circular 22737)."
   );
 
   await pres.writeFile({ fileName: OUT });
