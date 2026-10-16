@@ -16,6 +16,8 @@ const TEAL = "0E9AA7";
 const TEAL_LT = "D7F0F2";
 const TEAL_DK = "0A7480";
 const SLATE = "2E4A73";
+const GREEN = "2E7D4F";
+const GREEN_LT = "E5F2EA";
 const CARD = "F1F5F9";
 const INK = "1B2733";
 const AMBER = "B86E00";
@@ -193,11 +195,15 @@ function examBadge(slide, x, y, w, pct) {
   }
 
   // Leyenda
-  let lx = 9.45;
-  for (const [t, k] of [["Recepción", "rec"], ["Inicio de visita", "vis"], ["Plazo SSF", "plazo"]]) {
-    marker(s2, k, lx + 0.09, 0.62, 0.18, true);
+  const checkIcon = await icon(fa.FaCheck, WHITE);
+  let lx = 10.0;
+  for (const [t, k] of [["Transcurrido", "done"], ["Plazo SSF", "plazo"]]) {
+    if (k === "done") {
+      s2.addShape("ellipse", { x: lx, y: 0.53, w: 0.18, h: 0.18, fill: { color: GREEN }, line: { color: GREEN } });
+      s2.addImage({ data: checkIcon, x: lx + 0.04, y: 0.57, w: 0.1, h: 0.1 });
+    } else marker(s2, k, lx + 0.09, 0.62, 0.18, true);
     s2.addText(t, { x: lx + 0.24, y: 0.5, w: 1.2, h: 0.24, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 10, color: INK, valign: "middle" });
-    lx += t.length > 10 ? 1.4 : 1.05;
+    lx += 1.45;
   }
 
   const LINE_Y = 2.6;
@@ -221,16 +227,21 @@ function examBadge(slide, x, y, w, pct) {
   const transcurridos = Math.round((CORTE - T0) / 86400000);
 
   // Línea: tramo transcurrido en azul marino, tramo pendiente en gris
+  s2.addShape("roundRect", { x: 0.5, y: 1.38, w: hoyX - 0.86 - 0.5, h: 2.48, rectRadius: 0.12, fill: { color: GREEN_LT }, line: { color: GREEN_LT } });
+  s2.addText("TRANSCURRIDO", { x: 0.65, y: 1.43, w: 2, h: 0.22, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 9, bold: true, charSpacing: 1, color: GREEN });
   s2.addShape("roundRect", { x: x0 - 0.15, y: LINE_Y - 0.06, w: x1 - x0 + 0.3, h: 0.12, rectRadius: 0.06, fill: { color: "D5DEE8" }, line: { color: "D5DEE8" } });
-  s2.addShape("roundRect", { x: x0 - 0.15, y: LINE_Y - 0.06, w: hoyX - x0 + 0.15, h: 0.12, rectRadius: 0.06, fill: { color: NAVY }, line: { color: NAVY } });
+  s2.addShape("roundRect", { x: x0 - 0.15, y: LINE_Y - 0.06, w: hoyX - x0 + 0.15, h: 0.12, rectRadius: 0.06, fill: { color: GREEN }, line: { color: GREEN } });
 
   events.forEach((e, i) => {
     const cx = xs[i], above = i % 2 === 0, isP = e.k === "plazo", past = dias(e.d) < 0;
-    s2.addShape("line", { x: cx, y: above ? LINE_Y - 0.26 : LINE_Y, w: 0, h: 0.26, line: { color: isP ? AMBER : "8FA3B8", width: 1 } });
-    marker(s2, e.k, cx, LINE_Y, isP ? 0.26 : 0.22, past);
+    s2.addShape("line", { x: cx, y: above ? LINE_Y - 0.26 : LINE_Y, w: 0, h: 0.26, line: { color: past ? GREEN : (isP ? AMBER : "8FA3B8"), width: 1 } });
+    if (past) {
+      s2.addShape("ellipse", { x: cx - 0.14, y: LINE_Y - 0.14, w: 0.28, h: 0.28, fill: { color: GREEN }, line: { color: WHITE, width: 1.5 } });
+      s2.addImage({ data: checkIcon, x: cx - 0.07, y: LINE_Y - 0.07, w: 0.14, h: 0.14 });
+    } else marker(s2, e.k, cx, LINE_Y, isP ? 0.26 : 0.22, past);
     const bw = 1.55;
     s2.addText([
-      { text: (isP ? "Plazo " : "") + fmt(e.d), options: { bold: true, fontSize: 13, color: isP ? AMBER : NAVY, breakLine: true } },
+      { text: (isP ? "Plazo " : "") + fmt(e.d), options: { bold: true, fontSize: 13, color: past ? GREEN : (isP ? AMBER : NAVY), breakLine: true } },
       { text: e.t, options: { fontSize: 10, color: INK, breakLine: true } },
       { text: e.c, options: { fontSize: 9.5, color: BLUE, bold: true } },
     ], {
