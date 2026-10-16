@@ -145,20 +145,20 @@ function examBadge(slide, x, y, w, pct) {
     ...[].concat(d).map((x, i, arr) => ({ text: x, options: { bold: true, color: AMBER, fontSize: 10.5, paraSpaceAfter: i === arr.length - 1 ? 3 : 0, breakLine: !(last && i === arr.length - 1) } })),
   ];
   const rows = [
-    { h: 1.55, ic: fa.FaBuildingColumns, t: "Cumplimiento Regulatorio", s: "Requerimientos SSF",
+    { h: 1.5, ic: fa.FaBuildingColumns, t: "Cumplimiento Regulatorio", s: "Requerimientos SSF",
       a: [
         ...reg("Resultados preliminares – PLD/FT", "Circ. 23486", "Plazo 16/10/2026"),
         ...reg("Resultados preliminares – Gobierno Corporativo", "Circ. 22741", ["Plazo 23/10/2026 · Nuevas observaciones", "Plazo 30/10/2026 · Seguimiento de observaciones"]),
         ...reg("Resultado preliminar Plan de Recuperación", "Circ. 22737", "Plazo 03/11/2026", true),
       ],
       b: bullets(["Requerimiento según nota DS-SABAO-BCS-BC-22741", "Requerimiento según nota DS-SABAO-BCS-BC-23486", "Presentación resultados preliminares de Gestión de Riesgo Específico", "Presentación visita de supervisión gobierno corporativo"]) },
-    { h: 1.3, ic: fa.FaShieldHalved, t: "Riesgo Operacional", s: "", pct: 93,
+    { h: 1.26, ic: fa.FaShieldHalved, t: "Riesgo Operacional", s: "", pct: 93,
       a: bullets(["Capacitación y Examen GIR 2026", "Actualización Matriz BIA", "Segunda prueba de continuidad de negocio"]),
       b: bullets(["Capacitación de GIR 2026", "Informe de segunda prueba de Continuidad del Negocio realizada el 01.10.2026", "Seguimiento planes de acción Matriz de Riesgos Institucional 2026", "Seguimiento eventos de riesgos por caídas de TC 25.09.2026 y Orion 26.09.2026"]) },
-    { h: 1.08, ic: fa.FaScaleBalanced, t: "Riesgo Normativo", s: "",
+    { h: 1.3, ic: fa.FaScaleBalanced, t: "Riesgo Normativo", s: "",
       a: bullets(["Revisión de Política de Avalúos", "Revisión de Procedimientos de Administración de Avalúos", "Revisión de Perfil de Revisor"]),
-      b: bullets(["Asignación a perito valuador", "Descargo de avalúo anterior y documento mutuo hipotecario", "Elaboración de acta de sesión de fecha 29/08/2026"]) },
-    { h: 1.08, ic: fa.FaChartLine, t: "Riesgo Financiero", s: "",
+      b: bullets(["Asignación a perito valuador", "Descargo de avalúo anterior y documento mutuo hipotecario", "Elaboración de acta de sesión de fecha 29/08/2026", "Actualización de política de servicios tercerizados", "Actualización de política de gobierno corporativo"]) },
+    { h: 0.98, ic: fa.FaChartLine, t: "Riesgo Financiero", s: "",
       a: bullets(["Informe de Análisis de Cartera de TC", "Simulación de cartera vencida", "Actualización de Política de TC"]),
       b: bullets(["Envío de información a la Central de Riesgo (NRP-41)", "Monitoreo semanal de la reserva de saneamiento", "Registro permanente de los traslados de deuda"]) },
   ];
