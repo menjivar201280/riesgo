@@ -133,7 +133,7 @@ function examBadge(slide, x, y, w, pct) {
       const by = y + h / 2 + 0.3, bw = LW - 0.95;
       s1.addText("Capacitación y Examen GIR 2026", { x: LX + 0.18, y: by - 0.24, w: 2.3, h: 0.2, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 9.5, bold: true, color: "C9D6E6" });
       s1.addShape("roundRect", { x: LX + 0.18, y: by, w: bw, h: 0.11, rectRadius: 0.05, fill: { color: "3C5A80" }, line: { color: "3C5A80" } });
-      s1.addShape("roundRect", { x: LX + 0.18, y: by, w: bw * pct / 100, h: 0.11, rectRadius: 0.05, fill: { color: "F2B544" }, line: { color: "F2B544" } });
+      s1.addShape("roundRect", { x: LX + 0.18, y: by, w: bw * pct / 100, h: 0.11, rectRadius: 0.05, fill: { color: "5FB3E8" }, line: { color: "5FB3E8" } });
       s1.addText(pct + "%", { x: LX + LW - 0.72, y: by - 0.12, w: 0.6, h: 0.34, margin: 0, isTextBox: true, align: "right", valign: "middle", fontFace: FONT, fontSize: 14, bold: true, color: WHITE });
     }
   };
@@ -152,7 +152,7 @@ function examBadge(slide, x, y, w, pct) {
         ...reg("Resultado preliminar Plan de Recuperación", "Circ. 22737", "Plazo 03/11/2026", true),
       ],
       b: bullets(["Requerimiento según nota DS-SABAO-BCS-BC-22741", "Requerimiento según nota DS-SABAO-BCS-BC-23486", "Presentación resultados preliminares de Gestión de Riesgo Específico", "Presentación visita de supervisión gobierno corporativo"]) },
-    { h: 1.3, ic: fa.FaShieldHalved, t: "Riesgo Operacional", s: "", pct: 90,
+    { h: 1.3, ic: fa.FaShieldHalved, t: "Riesgo Operacional", s: "", pct: 93,
       a: bullets(["Capacitación y Examen GIR 2026", "Actualización Matriz BIA", "Segunda prueba de continuidad de negocio"]),
       b: bullets(["Capacitación de GIR 2026", "Informe de segunda prueba de Continuidad del Negocio realizada el 01.10.2026", "Seguimiento planes de acción Matriz de Riesgos Institucional 2026", "Seguimiento eventos de riesgos por caídas de TC 25.09.2026 y Orion 26.09.2026"]) },
     { h: 1.08, ic: fa.FaScaleBalanced, t: "Riesgo Normativo", s: "",
@@ -172,7 +172,7 @@ function examBadge(slide, x, y, w, pct) {
 
   s1.addNotes(
     "Matriz por frente. Columna izquierda: asuntos del informe anterior que siguen vigentes (plazos SSF). " +
-    "Columna derecha: actividades de la semana según el documento de actividades. Examen GIR 2026: avance 90%."
+    "Columna derecha: actividades de la semana según el documento de actividades. Examen GIR 2026: avance 93%."
   );
 
   // ---------------- DIAPOSITIVA 2 ----------------
