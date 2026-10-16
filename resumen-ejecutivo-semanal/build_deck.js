@@ -97,67 +97,84 @@ function examBadge(slide, x, y, w, pct) {
   pres.author = "Departamento de Administración de Riesgos";
 
   // ---------------- DIAPOSITIVA 1 ----------------
+  // Matriz por frente (filas) x [vigente del informe anterior | nuevo de la semana].
   const s1 = pres.addSlide();
   s1.background = { color: WHITE };
-  addTitle(s1, "Gestión Integral de Riesgos | Resumen Ejecutivo Semanal",
-    "Departamento de Administración de Riesgos · COMÉDICA de R.L. · Seguimiento semanal");
-  examBadge(s1, 9.43, 0.34, 3.4, 90);
+  addTitle(s1, "Departamento de Administración de Riesgos", "Informe semanal · Resumen ejecutivo");
 
-  const W = 6.085, H = 2.66, X1 = 0.5, X2 = 6.745, Y1 = 1.5, Y2 = 4.34;
+  const LX = 0.5, LW = 2.95, C1 = 3.6, CW = 4.54, C2 = C1 + CW + 0.15;
+  const colHead = (x, t) => {
+    s1.addShape("roundRect", { x, y: 1.32, w: CW, h: 0.34, rectRadius: 0.17, fill: { color: NAVY }, line: { color: NAVY } });
+    s1.addText(t, { x, y: 1.32, w: CW, h: 0.34, margin: 0, isTextBox: true, align: "center", valign: "middle", fontFace: FONT, fontSize: 12, bold: true, color: WHITE });
+  };
+  colHead(C1, "En seguimiento");
+  colHead(C2, "Actividades de la semana");
 
-  await card(s1, {
-    x: X1, y: Y1, w: W, h: H, ic: fa.FaShieldHalved, color: NAVY,
-    title: "Riesgo Operacional y Continuidad",
-    items: [
-      ["", "Capacitación GIR 2026 e informe de seguimiento del examen"],
-      ["", "Informe de la 2.ª prueba de Continuidad del Negocio (01/10/2026)"],
-      ["", "Seguimiento de planes de acción – Matriz de Riesgos 2026"],
-      ["", "Eventos de riesgo: caídas de TC (25/09) y Orion (26/09)"],
-      ["", "Opiniones: Fábrica de Créditos y caso de asociado"],
-    ],
-  });
+  const bullets = (items) => items.map((t, i) => ({
+    text: t, options: { bullet: { indent: 12 }, color: INK, fontSize: 11.5, paraSpaceAfter: 3, breakLine: i < items.length - 1 },
+  }));
+  const cell = (x, y, h, content) => {
+    s1.addShape("roundRect", { x, y, w: CW, h, rectRadius: 0.1, fill: { color: "EEF2F7" }, line: { color: "EEF2F7" } });
+    s1.addText(content, { x: x + 0.18, y: y + 0.08, w: CW - 0.32, h: h - 0.16, margin: 0, isTextBox: true, fontFace: FONT, valign: "middle" });
+  };
+  const label = async (y, h, ic, title, sub, pct) => {
+    s1.addShape("roundRect", { x: LX, y, w: LW, h, rectRadius: 0.1, fill: { color: NAVY }, line: { color: NAVY } });
+    const cy = pct ? y + h / 2 - 0.42 : y + h / 2 - 0.2;
+    s1.addShape("ellipse", { x: LX + 0.18, y: cy, w: 0.42, h: 0.42, fill: { color: "2B6CB0" }, line: { color: "2B6CB0" } });
+    s1.addImage({ data: await icon(ic, WHITE), x: LX + 0.29, y: cy + 0.11, w: 0.2, h: 0.2 });
+    s1.addText([
+      { text: title, options: { bold: true, fontSize: 13.5, color: WHITE, breakLine: true } },
+      { text: sub, options: { fontSize: 10.5, color: "C9D6E6" } },
+    ], { x: LX + 0.75, y: cy - 0.1, w: LW - 0.85, h: 0.62, margin: 0, isTextBox: true, fontFace: FONT, valign: "middle" });
+    if (pct) {
+      const by = y + h / 2 + 0.3, bw = LW - 0.95;
+      s1.addText("Examen GIR 2026", { x: LX + 0.18, y: by - 0.24, w: 1.6, h: 0.2, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 9.5, bold: true, color: "C9D6E6" });
+      s1.addShape("roundRect", { x: LX + 0.18, y: by, w: bw, h: 0.11, rectRadius: 0.05, fill: { color: "3C5A80" }, line: { color: "3C5A80" } });
+      s1.addShape("roundRect", { x: LX + 0.18, y: by, w: bw * pct / 100, h: 0.11, rectRadius: 0.05, fill: { color: "F2B544" }, line: { color: "F2B544" } });
+      s1.addText(pct + "%", { x: LX + LW - 0.72, y: by - 0.12, w: 0.6, h: 0.34, margin: 0, isTextBox: true, align: "right", valign: "middle", fontFace: FONT, fontSize: 14, bold: true, color: WHITE });
+    }
+  };
 
-  await card(s1, {
-    x: X2, y: Y1, w: W, h: H, ic: fa.FaScaleBalanced, color: BLUE,
-    title: "Riesgo Normativo",
-    items: [
-      ["", "Gobierno Corporativo (nota 22741): matriz y requerimiento a áreas"],
-      ["", "Seguimiento de pruebas de descargo – notas 22741 y 23486"],
-      ["", "Presentación de resultados preliminares de Riesgo Específico"],
-      ["", "Control de avalúos: asignación a perito y aviso a asociados"],
-      ["", "Acuerdos Semestrales del Comité de Riesgos y acta del 29/08"],
-    ],
-  });
+  // Fila 1: requerimientos SSF (plazos vigentes, presentación base)
+  const reg = (t, c, d, last) => [
+    { text: t + "  ·  ", options: { bold: true, color: NAVY, fontSize: 11.5 } },
+    { text: c, options: { color: BLUE, fontSize: 11 } },
+    { text: "   " + d, options: { bold: true, color: AMBER, fontSize: 11.5, paraSpaceAfter: 3, breakLine: !last } },
+  ];
+  const rows = [
+    { h: 1.22, ic: fa.FaBuildingColumns, t: "Cumplimiento Regulatorio", s: "Requerimientos SSF",
+      a: [
+        ...reg("PLD/FT", "Circ. 23486", "Plazo 16/10/2026"),
+        ...reg("Gobierno Corporativo", "Circ. 22741", "Plazos 23/10 y 30/10"),
+        ...reg("Plan de Recuperación", "Circ. 22737", "Plazo 03/11/2026"),
+        ...reg("Riesgos Específicos", "Circ. 22742", "Inicio visita 09/10", true),
+      ],
+      b: bullets(["Matriz y requerimiento a áreas – Gob. Corporativo (22741)", "Seguimiento de pruebas de descargo (22741 y 23486)", "Presentación de resultados preliminares de Riesgo Específico"]) },
+    { h: 1.02, ic: fa.FaShieldHalved, t: "Riesgos No Financieros", s: "Riesgo Operacional", pct: 90,
+      a: bullets(["Capacitación y Examen GIR 2026", "Segunda prueba de continuidad de negocio", "Opinión Fábrica de Créditos"]),
+      b: bullets(["Informe de la 2.ª prueba de continuidad (01/10/2026)", "Seguimiento planes de acción – Matriz de Riesgos 2026", "Eventos de riesgo: caídas de TC (25/09) y Orion (26/09)"]) },
+    { h: 0.8, ic: fa.FaClipboardCheck, t: "Cumplimiento Normativo", s: "Envíos y auditorías",
+      a: bullets(["Auditoría Interna – Evaluación NRP-24", "Auditoría Externa"]),
+      b: bullets(["Información remitida a Auditoría Interna y Externa", "Acuerdos Semestrales del Comité de Riesgos"]) },
+    { h: 0.8, ic: fa.FaChartLine, t: "Riesgos Financieros", s: "Crédito, liquidez y TC",
+      a: bullets(["Actualización de Política de TC", "Simulación de cartera vencida"]),
+      b: bullets(["Informes al Comité: crédito, liquidez y mercado", "Reserva de saneamiento y traslados de deuda"]) },
+    { h: 0.8, ic: fa.FaHouse, t: "Avalúos y Proyectos", s: "Mejora institucional",
+      a: bullets(["Revisión de Política y Procedimientos de Avalúos", "Revisión de Perfil de Revisor"]),
+      b: bullets(["Avalúos: asignación a perito y aviso a asociados", "Cuestionario BIA y comparativos de políticas"]) },
+  ];
+  let rowY = 1.8;
+  for (const r of rows) {
+    await label(rowY, r.h, r.ic, r.t, r.s, r.pct);
+    cell(C1, rowY, r.h, r.a);
+    cell(C2, rowY, r.h, r.b);
+    rowY += r.h + 0.1;
+  }
 
-  await card(s1, {
-    x: X1, y: Y2, w: W, h: H, ic: fa.FaChartLine, color: TEAL_DK,
-    title: "Riesgo Financiero y Crediticio",
-    items: [
-      ["", "Informes al Comité: riesgo de crédito, liquidez y mercado"],
-      ["", "Envíos SSF: NRP-05, NCB-022, Central de Riesgo, CTRI-RECR"],
-      ["", "Cartera de tarjeta de crédito y reserva de saneamiento"],
-      ["", "Traslados de deuda y segmentación de productos"],
-      ["", "Largo plazo: Política de TC y sistema de créditos NRP-41"],
-    ],
-  });
-
-  await card(s1, {
-    x: X2, y: Y2, w: W, h: H, ic: fa.FaDiagramProject, color: SLATE,
-    title: "Proyectos y Coordinación",
-    items: [
-      ["", "Unificación de formularios Actualización de Datos y Conozca tu Cliente"],
-      ["", "Cuestionario para entrevistas BIA"],
-      ["", "Comparativos de políticas: tercerizados y gobierno corporativo"],
-      ["", "Procesos: Matriz de Sistemas Informáticos y estructura del Depto."],
-      ["", "Información para Auditoría Interna (NRP-24) y Auditoría Externa"],
-    ],
-  });
-
-  addFooter(s1, "Fuente: documento de actividades semanales.");
+  addFooter(s1, "«En seguimiento»: asuntos del informe anterior que siguen vigentes. «Actividades de la semana»: documento de actividades semanales.");
   s1.addNotes(
-    "Resumen de los cuatro frentes de gestión, integrando las actividades de S1 y S2. " +
-    "Examen GIR 2026: avance 90% (reportado). " +
-    "Los demás frentes se presentan sin estado porque los documentos no lo indican."
+    "Matriz por frente. Columna izquierda: asuntos del informe anterior que siguen vigentes (plazos SSF). " +
+    "Columna derecha: actividades de la semana según el documento de actividades. Examen GIR 2026: avance 90%."
   );
 
   // ---------------- DIAPOSITIVA 2 ----------------
