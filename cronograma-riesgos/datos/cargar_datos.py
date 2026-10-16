@@ -2,6 +2,7 @@
 - Riesgo Financiero: «Cronograma de actividades – Informes semanal/mensual» (Word).
 - Riesgo Normativo: lista enviada por mensaje.
 - Riesgo Operacional: «Cronograma de actividades – Informe semanal 05 al 17 octubre» de Silvia (Word).
+- Asistente Técnico de Riesgo: «Cronograma de actividades – Informe semanal 13 al 17 octubre» de Héctor (Word).
 Cada grupo es una MACROACTIVIDAD y sus actividades son SUBACTIVIDADES (todas valen igual dentro de su
 macroactividad). El % de cada subactividad va en la Semana 2 (12/10 – 18/10); sin % = vacío (0%).
 La macroactividad se llena sola con sus subactividades. Uso: python datos/cargar_datos.py <salida.xlsx>"""
@@ -12,6 +13,7 @@ import build_cronograma as B
 RF = B.PUESTOS[2]
 RN = B.PUESTOS[1]
 RO = B.PUESTOS[0]
+ATR = B.PUESTOS[3]
 INICIO = dt.date(2026, 10, 1)   # mantiene las actividades en octubre (los documentos no traen fechas)
 
 # (macroactividad, % propio si no tiene subactividades, [(subactividad, %, observación), ...])
@@ -91,13 +93,24 @@ RIESGO_OPERACIONAL = [   # informe semanal del 05 al 17 de octubre: sin subactiv
 ]
 INICIO_RO = dt.date(2026, 10, 5)   # el informe cubre del 05 al 17 de octubre
 
+ASISTENTE_TECNICO = [   # informe semanal del 13 al 17 de octubre: sin subactividades
+    ("Realizar informe de Jonathan Jacobo Marroquín", 1.0, []),
+    ("Informe de seguimiento de examen de gestión integral de riesgos", 0.90, []),
+    ("Presentación resultados preliminares de Gestión de Riesgo Específico", 1.0, []),
+    ("Comparativo de política de servicios tercerizados", 0.90, []),
+    ("Comparativo de política de gobierno corporativo", 0.90, []),
+    ("Presentación visita de supervisión gobierno corporativo", 1.0, []),
+    ("Elaboración del cuestionario para la entrevista de BIA", 1.0, []),
+]
+INICIO_ATR = dt.date(2026, 10, 13)   # el informe cubre del 13 al 17 de octubre
+
 rows = []
 for area, macros, ini in ((RF, RIESGO_FINANCIERO, INICIO), (RN, RIESGO_NORMATIVO, INICIO),
-                         (RO, RIESGO_OPERACIONAL, INICIO_RO)):
+                         (RO, RIESGO_OPERACIONAL, INICIO_RO), (ATR, ASISTENTE_TECNICO, INICIO_ATR)):
     for macro, pct, subs in macros:
         rows.append(dict(area=area, macro=macro, ini=ini, s2=pct))
         for nombre, spct, obs in subs:
             rows.append(dict(area=area, sub=nombre, ini=ini, s2=spct, obs=obs))
 B.build(sys.argv[1], test_rows=rows, extra_rows=0)
-for area in (RO, RN, RF):
+for area in (RO, RN, RF, ATR):
     print(f"{sum(r['area'] == area for r in rows)} filas cargadas en {area}")
