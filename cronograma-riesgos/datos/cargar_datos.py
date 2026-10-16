@@ -51,15 +51,15 @@ RIESGO_FINANCIERO = [
         ("Actualización de Políticas de Tarjeta de Crédito", 0.80, None),
     ]),
 ]
-RIESGO_NORMATIVO = [
+RIESGO_NORMATIVO = [   # texto tal como lo envió el puesto
     ("Requerimiento según nota DS-SABAO-BCS-BC-22741", None, [
-        ("Elaboración de matriz de requerimiento", None, None),
-        ("Envío de requerimiento para dar respuesta a observaciones de visita SABAO-BCS-BC-18432", None,
-         "Se envió correo electrónico a todas las áreas involucradas: Gerencia Financiera, Gerencia de Cumplimiento, "
-         "Talento Humano, Depto. de Procesos, Administración de Riesgos, Depto. de Educación y Responsabilidad Social."),
-        ("Envío de requerimiento para dar respuesta a plan de solución según nota DS-SABAO-BCS-BC-22741, "
-         "en seguimiento a observaciones de visitas anteriores", None,
-         "Se envió correo a Administración de Riesgos, Auditoría Interna, Servicios Generales y Talento Humano."),
+        ("Elaboración matriz de requerimiento", None, None),
+        ("Envío requerimiento para dar respuesta a observaciones de visita SABAO-BCS-BC-18432, se envió correo "
+         "electrónico a todas las áreas involucradas; Gerencia Financiera, Gerencia de Cumplimiento, Talento Humano, "
+         "Depto. de Procesos, Administración de Riesgos, Depto. de Educación y Responsabilidad Social.", None, None),
+        ("Envío requerimiento para dar respuesta a plan de Solución según nota DS-SABAO-BCS-BC-22741 en seguimiento "
+         "a observaciones de visitas anteriores, se envió correo a Administración de Riesgos, Auditoría Interna, "
+         "Servicios Generales y Talento Humano.", None, None),
         ("Seguimiento al envío de las pruebas de descargo para dar respuesta a nota", None, None),
     ]),
     ("Requerimiento según nota DS-SABAO-BCS-BC-23486", None, [
@@ -108,9 +108,8 @@ rows = []
 for area, macros, ini in ((RF, RIESGO_FINANCIERO, INICIO), (RN, RIESGO_NORMATIVO, INICIO),
                          (RO, RIESGO_OPERACIONAL, INICIO_RO), (ATR, ASISTENTE_TECNICO, INICIO_ATR)):
     for macro, pct, subs in macros:
-        rows.append(dict(area=area, macro=macro, ini=ini, s2=pct))
+        rows.append(dict(area=area, macro=macro, tipo="Macroactividad", ini=ini, s2=pct))
         for nombre, spct, obs in subs:
             rows.append(dict(area=area, sub=nombre, ini=ini, s2=spct, obs=obs))
 B.build(sys.argv[1], test_rows=rows, extra_rows=0)
-for area in (RO, RN, RF, ATR):
-    print(f"{sum(r['area'] == area for r in rows)} filas cargadas en {area}")
+

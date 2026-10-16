@@ -860,6 +860,8 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     # Datos de prueba (solo en ejecuciones de test)
     for i, row in enumerate(test_rows):
         r = row.get("_row", FIRST + i)
+        if row.get("tipo"):
+            ws.cell(row=r, column=CN["tipo"], value=row["tipo"])
         if "sub" in row:
             ws.cell(row=r, column=CN["tipo"], value="Subactividad")
             ws.cell(row=r, column=CN["act"], value=row["sub"])
