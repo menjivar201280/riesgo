@@ -21,6 +21,7 @@ const GREEN_LT = "E5F2EA";
 const CARD = "F1F5F9";
 const INK = "1B2733";
 const AMBER = "B86E00";
+const PLAZO = "1F6FB2"; // plazos SSF en la diapositiva 2
 const AMBER_LT = "FDF3E1";
 const WHITE = "FFFFFF";
 const FONT = "Calibri";
@@ -187,7 +188,7 @@ function examBadge(slide, x, y, w, pct) {
 
   function marker(slide, kind, cx, cy, d, past) {
     const o = { x: cx - d / 2, y: cy - d / 2, w: d, h: d };
-    if (kind === "plazo") slide.addShape("diamond", { ...o, fill: { color: AMBER }, line: { color: AMBER, width: 1 } });
+    if (kind === "plazo") slide.addShape("diamond", { ...o, fill: { color: PLAZO }, line: { color: PLAZO, width: 1 } });
     else if (kind === "vis") slide.addShape("ellipse", { ...o, fill: { color: TEAL }, line: { color: TEAL, width: 1 } });
     else slide.addShape("ellipse", { ...o, fill: { color: past ? NAVY : WHITE }, line: { color: NAVY, width: 2 } });
   }
@@ -232,14 +233,14 @@ function examBadge(slide, x, y, w, pct) {
 
   events.forEach((e, i) => {
     const cx = xs[i], above = i % 2 === 0, isP = e.k === "plazo", past = dias(e.d) < 0;
-    s2.addShape("line", { x: cx, y: above ? LINE_Y - 0.26 : LINE_Y, w: 0, h: 0.26, line: { color: past ? GREEN : (isP ? AMBER : "8FA3B8"), width: 1 } });
+    s2.addShape("line", { x: cx, y: above ? LINE_Y - 0.26 : LINE_Y, w: 0, h: 0.26, line: { color: past ? GREEN : (isP ? PLAZO : "8FA3B8"), width: 1 } });
     if (past) {
       s2.addShape("ellipse", { x: cx - 0.14, y: LINE_Y - 0.14, w: 0.28, h: 0.28, fill: { color: GREEN }, line: { color: WHITE, width: 1.5 } });
       s2.addImage({ data: checkIcon, x: cx - 0.07, y: LINE_Y - 0.07, w: 0.14, h: 0.14 });
     } else marker(s2, e.k, cx, LINE_Y, isP ? 0.26 : 0.22, past);
     const bw = 1.55;
     s2.addText([
-      { text: (isP ? "Plazo " : "") + fmt(e.d), options: { bold: true, fontSize: 13, color: past ? GREEN : (isP ? AMBER : NAVY), breakLine: true } },
+      { text: (isP ? "Plazo " : "") + fmt(e.d), options: { bold: true, fontSize: 13, color: past ? GREEN : (isP ? PLAZO : NAVY), breakLine: true } },
       { text: e.t, options: { fontSize: 10, color: INK, breakLine: true } },
       { text: e.c, options: { fontSize: 9.5, color: BLUE, bold: true } },
     ], {
@@ -249,8 +250,8 @@ function examBadge(slide, x, y, w, pct) {
   });
 
   // Marca HOY
-  s2.addShape("line", { x: hoyX, y: LINE_Y + 0.18, w: 0, h: 0.62, line: { color: AMBER, width: 1.5, dashType: "dash" } });
-  s2.addShape("roundRect", { x: hoyX - 0.55, y: LINE_Y + 0.8, w: 1.1, h: 0.3, rectRadius: 0.15, fill: { color: AMBER }, line: { color: AMBER } });
+  s2.addShape("line", { x: hoyX, y: LINE_Y + 0.18, w: 0, h: 0.62, line: { color: PLAZO, width: 1.5, dashType: "dash" } });
+  s2.addShape("roundRect", { x: hoyX - 0.55, y: LINE_Y + 0.8, w: 1.1, h: 0.3, rectRadius: 0.15, fill: { color: PLAZO }, line: { color: PLAZO } });
   s2.addText("HOY " + fmt(CORTE), { x: hoyX - 0.55, y: LINE_Y + 0.8, w: 1.1, h: 0.3, margin: 0, isTextBox: true, align: "center", valign: "middle", fontFace: FONT, fontSize: 10.5, bold: true, color: WHITE });
 
   // Próximos vencimientos
@@ -269,9 +270,9 @@ function examBadge(slide, x, y, w, pct) {
     const x = 0.5 + i * (cw + 0.2), n = dias(v.d), first = i === 0;
     s2.addShape("roundRect", { x, y: cy, w: cw, h: ch, rectRadius: 0.12, fill: { color: first ? NAVY : CARD }, line: { color: first ? NAVY : CARD } });
     s2.addText(n === 0 ? [
-      { text: fmt(v.d), options: { fontSize: 40, bold: true, color: "F6C26B" } },
+      { text: fmt(v.d), options: { fontSize: 40, bold: true, color: "9CCBF2" } },
     ] : [
-      { text: String(n), options: { fontSize: 40, bold: true, color: first ? "F6C26B" : AMBER } },
+      { text: String(n), options: { fontSize: 40, bold: true, color: first ? "9CCBF2" : PLAZO } },
       { text: n === 1 ? "  día" : "  días", options: { fontSize: 15, bold: true, color: first ? WHITE : NAVY } },
     ], { x: x + 0.22, y: cy + 0.14, w: cw - 0.4, h: 0.72, margin: 0, isTextBox: true, fontFace: FONT, valign: "middle" });
     s2.addText([
