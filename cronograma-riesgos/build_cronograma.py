@@ -258,29 +258,43 @@ def f_sh(r):
 
 def f_ap(r):
     """Avance propio. Macro: 100% si tiene fecha de cumplimiento; si no, último avance semanal escrito.
-    Subactividad: su % (columna Peso) cuando tiene fecha de cumplimiento; si no, 0."""
+    Subactividad: su % (columna Peso) × (100% si tiene fecha de cumplimiento; si no, su último avance escrito)."""
     s1, s4 = X("s1", r), X("s4", r)
-    return (f'=IF({X("t", r)}="","",IF({X("t", r)}="Sub",IF(ISNUMBER({X("cump", r)}),N({X("sh", r)}),0),'
+    return (f'=IF({X("t", r)}="","",IF({X("t", r)}="Sub",N({X("sh", r)})*IF(ISNUMBER({X("cump", r)}),1,'
+            f'MIN(1,MAX(0,IFERROR(LOOKUP(2,1/ISNUMBER({s1}:{s4}),{s1}:{s4}),0)))),'
             f'IF(ISNUMBER({X("cump", r)}),1,IFERROR(LOOKUP(2,1/({s1}:{s4}<>""),{s1}:{s4}),0))))')
 
 
 def f_own(r, w):
     c = X(["s1", "s2", "s3", "s4"][w], r)
     prev = f"${OWN[w - 1]}{r}" if w else "0"
-    return (f'=IF({X("t", r)}="","",IF({X("t", r)}="Sub",IF({cumplida_en(r, w + 1)},N({X("sh", r)}),0),'
-            f'IF({cumplida_en(r, w + 1)},1,IF(ISNUMBER({c}),{c},{prev}))))')
+    return f'=IF({X("t", r)}="","",IF({cumplida_en(r, w + 1)},1,IF(ISNUMBER({c}),{c},{prev})))'
 
 
 def f_cumpw(r, w):
-    """Subactividad: su % si ya se cumplió al final de la semana w (no depende de las celdas de semana)."""
-    return f'=IF({X("t", r)}<>"Sub","",IF({cumplida_en(r, w + 1)},N({X("sh", r)}),0))'
+    """Subactividad: lo que aporta a su macroactividad al final de la semana w =
+    su % × (100% si ya se cumplió; si no, el último avance escrito hasta esa semana).
+    Las semanas se leen con OFFSET (referencia dinámica) para no crear referencia circular."""
+    base = X("s1", r)
+    carried = "0"
+    for j in range(w + 1):
+        cell = f"OFFSET({base},0,{j})"
+        carried = f"IF(ISNUMBER({cell}),{cell},{carried})"
+    return (f'=IF({X("t", r)}<>"Sub","",N({X("sh", r)})*IF({cumplida_en(r, w + 1)},1,MIN(1,MAX(0,{carried}))))')
+
+
+def suma_subs_abajo(r, col):
+    """Como suma_subs, pero solo mira las filas de ABAJO (ahí están sus subactividades) y con OFFSET,
+    para que la celda de semana de la macro no dependa de sí misma."""
+    rng = lambda k: f'OFFSET(${C[k]}${FIRST},ROW()-{FIRST - 1},0,{LR}-ROW(),1)'
+    return f'MIN(1,SUMIFS({rng(col)},{rng("grupo")},ROW(),{rng("t")},"Sub"))'
 
 
 def f_sem_macro(r, w):
     """Celda «Avance Semana w» (se reemplaza al escribir): en una macroactividad con subactividades
     muestra sola la suma de sus subactividades cumplidas hasta esa semana."""
     return (f'=IF(N({X("nsub", r)})=0,"",IF(AND({X("mes", r)}=MesCiclo,{w + 1}>SemanaActual),"",'
-            f'{suma_subs(r, f"c{w + 1}")}))')
+            f'{suma_subs_abajo(r, f"c{w + 1}")}))')
 
 
 def f_eff(r, w):
@@ -377,15 +391,14 @@ def checks(r):
     return [
         (f'{act}=""', "Falta el nombre de la actividad"),
         (f'AND({sub},N({grupo})=0)', "Subactividad sin macroactividad arriba"),
-        (f'{ini}=""', "Sin fecha de inicio"),
-        (f'{lim}=""', "Sin fecha límite"),
+        (f'AND({macro},{ini}="")', "Sin fecha de inicio"),
+        (f'AND({macro},{lim}="")', "Sin fecha límite"),   # en la subactividad las fechas son opcionales
         (f'AND({es_jef(r)},N({X("jfila", r)})=0)', "No se encuentra en la hoja de la jefatura (elíjala de nuevo en la lista)"),
         (f'OR(AND({ini_t}<>"",NOT(ISNUMBER({ini_t}))),AND({lim_t}<>"",NOT(ISNUMBER({lim_t}))),AND({cump}<>"",NOT(ISNUMBER({cump}))))',
          "Fecha no válida"),
         (f'AND(ISNUMBER({ini}),ISNUMBER({lim}),{ini}>{lim})', "Inicio posterior a fecha límite"),
         (f'AND({macro},{peso}<>"",OR(NOT(ISNUMBER({peso})),{peso}<0,{peso}>1))', "Peso fuera de rango"),
         (f'AND({sub},{peso}<>"",OR(NOT(ISNUMBER({peso})),{peso}<0,{peso}>1))', "% de la subactividad fuera de rango 0-100%"),
-        (f'AND({sub},COUNT({s1}:{s4})+SUMPRODUCT((LEN({s1}:{s4})>0)*NOT(ISNUMBER({s1}:{s4})))>0)', "Subactividad: no use las semanas; ponga su % en Peso y su fecha de cumplimiento"),
         (f'AND(N({nsub})>0,SUMIFS({col_abs("peso")},{col_abs("grupo")},ROW(),{col_abs("t")},"Sub")>1.0001)',
          "Las subactividades suman más de 100%"),
         (f'AND(N({nsub})>0,OR(' + ",".join(f'IF(ISNUMBER({X(sk, r)}),ROUND({X(sk, r)},6)<>ROUND({suma_subs(r, ck)},6),FALSE)'
@@ -665,7 +678,7 @@ def build_config(wb, ws, semana, fecha_ref, inicio_ciclo, mes, obs):
         "2. Estado automático: 0% = Pendiente; >0% y <100% = En curso; 100% = Completado.",
         "3. Avance ponderado del puesto = Σ (peso efectivo × avance actual) de las macroactividades del mes. Es válido si el puesto tiene ≥1 macroactividad en el mes y ningún peso fuera de 0–100%.",
         "0. Cada actividad pertenece al mes de su fecha de inicio (columna «Mes» del Cronograma). Dashboard, hojas Actividades y cálculos usan solo el mes mostrado; los meses anteriores quedan en el Historial mensual.",
-        "0b. Subactividades: filas con Tipo «Subactividad» pertenecen a la macroactividad más cercana hacia arriba. Avance de la macroactividad = suma del % (columna Peso; vacío = partes iguales) de las subactividades con fecha de cumplimiento, en la semana de esa fecha (máximo 100%). Una fila con Fecha de cumplimiento cuenta 100% desde la semana en que se cumplió. Peso efectivo de cada macroactividad = su peso / suma de pesos del mes (vacío = partes iguales), por lo que siempre suma 100%.",
+        "0b. Subactividades: filas con Tipo «Subactividad» pertenecen a la macroactividad más cercana hacia arriba. Avance de la macroactividad = suma de (% de cada subactividad dentro de la macro — columna Peso; vacío = partes iguales — × su avance: 100% con fecha de cumplimiento, o su último % semanal), semana por semana (máximo 100%). Una fila con Fecha de cumplimiento cuenta 100% desde la semana en que se cumplió. Peso efectivo de cada macroactividad = su peso / suma de pesos del mes (vacío = partes iguales), por lo que siempre suma 100%.",
         "4. Avance general de las actividades = promedio simple de los 4 puestos (cada puesto pesa 25%, sin importar cuántas actividades tenga). Si algún puesto no es válido, el Dashboard muestra «No definitivo» y un valor provisional rotulado como tal.",
         "5. Avance semanal acumulado (Semana n) = Σ peso × último avance registrado hasta la Semana n. Incremento semanal = acumulado Semana n − acumulado Semana n−1.",
         "6. «¡Enhorabuena, completado anticipadamente!»: el puesto (o el total de actividades del mes) es válido, llega al 100% y la semana en que lo alcanzó (la menor entre la primera semana con 100% registrada y la Semana actual) es anterior a la Semana 4. Si lo alcanza en la Semana 4: «Completado». Si no: «En ejecución».",
@@ -762,7 +775,7 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
     ws.row_dimensions[1].height = 28
     merge_set(ws, f"A2:{LASTV}2",
               "Llene solo las celdas GRIS SUAVE; las AZUL CLARO son automáticas. En «Tipo» elija Macroactividad o Subactividad: "
-              "las subactividades van en las filas de ABAJO de su macroactividad (se ven con ↳); a cada una póngale su % (columna «Peso») y, cuando la termine, su FECHA DE CUMPLIMIENTO: su % se suma a la macroactividad en esa semana. "
+              "las subactividades van en las filas de ABAJO de su macroactividad (se ven con ↳); a cada una póngale su avance en las semanas o, cuando la termine, su FECHA DE CUMPLIMIENTO, y la macroactividad se llena sola. "
               "Cuando termine algo, escriba la FECHA DE CUMPLIMIENTO: queda al 100% y ya no aparece vencido. "
               "Si quiere registrar avances parciales, escriba en cada semana el % total logrado hasta esa semana. "
               "Cada mes agregue sus actividades debajo de las anteriores (no borre los meses pasados: quedan como historial).",
@@ -912,16 +925,15 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
                              showInputMessage=True, promptTitle="Peso / % de la subactividad",
                              prompt="Macroactividad: cuánto vale en el mes (opcional; vacío = todas valen igual). "
                                     "Subactividad: cuánto vale dentro de su macroactividad (entre todas 100%; vacío = iguales). "
-                                    "Cuenta cuando pone su Fecha de cumplimiento.")
+                                    "Su avance (semanas o fecha de cumplimiento) suma a la macroactividad.")
     dv_peso.add(R("peso"))
     sc = f'{C["s1"]}{FIRST}'
-    dv_av = DataValidation(type="custom",
-                           formula1=f'AND(LEFT(${C["tipo"]}{FIRST},3)<>"Sub",ISNUMBER({sc}),{sc}>=0,{sc}<=1)',
-                           allow_blank=True, showErrorMessage=True, errorTitle="Avance no permitido",
-                           error="Las subactividades NO usan las semanas: escriba su % en la columna Peso. "
-                                 "En una macroactividad ingrese un porcentaje entre 0% y 100%.",
-                           showInputMessage=True, promptTitle="Avance parcial (opcional)",
-                           prompt="% TOTAL logrado hasta esta semana. Cuando termine, escriba la Fecha de cumplimiento. Si la macroactividad tiene subactividades, déjelo vacío.")
+    dv_av = DataValidation(type="decimal", operator="between", formula1="0", formula2="1",
+                           allow_blank=True, showErrorMessage=True, errorTitle="Avance no válido",
+                           error="Ingrese un porcentaje entre 0% y 100%.",
+                           showInputMessage=True, promptTitle="Avance de la semana (opcional)",
+                           prompt="% TOTAL logrado hasta esta semana. Cuando termine, escriba la Fecha de cumplimiento. "
+                                  "En la macroactividad con subactividades no escriba: se llena sola con sus subactividades.")
     dv_av.add(f"{C['s1']}{FIRST}:{C['s4']}{LAST_RNG}")
     for d in (dv_tipo, dv_date, dv_cump, dv_peso, dv_av):
         ws.add_data_validation(d)
@@ -968,7 +980,6 @@ def build_cronograma(wb, ws, idx, test_rows, extra_rows, area=None):
                f'MIN(4,MAX(1,INT(({x("cump")}-InicioCiclo)/7)+1))=COLUMN({C["s1"]}{F_})-{CN["s1"] - 1})')
     cf.add(f"{C['s1']}{F_}:{C['s4']}{LAST_RNG}", FormulaRule(formula=[wk_cump], stopIfTrue=True,
                                                              fill=fill("70AD47"), font=Font(color="FFFFFF", bold=True)))
-    cf.add(f"{C['s1']}{F_}:{C['s4']}{LAST_RNG}", FormulaRule(formula=[f'{x("t")}="Sub"'], stopIfTrue=True, fill=fill("D9D9D9")))
     cf.add(R("av"), FormulaRule(formula=[f'AND(ISNUMBER({x("av")}),{x("av")}>=1)'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
     cf.add(R("av"), DataBarRule(start_type="num", start_value=0, end_type="num", end_value=1, color="5B9BD5", showValue=True))
     cf.add(R("cump"), FormulaRule(formula=[f'ISNUMBER({x("cump")})'], fill=fill(GREEN_F), font=Font(color=GREEN_T, bold=True)))
@@ -1827,8 +1838,8 @@ def build_instrucciones(ws):
             "1) Debajo de la macroactividad, en las filas siguientes, elija en «Tipo» la opción «Subactividad» y escriba su nombre en «Actividad», con sus fechas. Se verá con sangría (↳) justo debajo de su macroactividad.",
             "2) El N° NO se escribe: sale solo 1.1, 1.2, 1.3… (la columna está bloqueada).",
             "3) En la columna «Peso / % de la subactividad» escriba cuánto vale cada subactividad dentro de su macroactividad (entre todas suman 100%). Si la deja vacía, se reparte en partes iguales (3 subactividades → 33% cada una).",
-            "4) Cuando termine una subactividad, escriba su FECHA DE CUMPLIMIENTO. Su % se suma SOLO a la macroactividad en la semana de esa fecha (la semana se pinta de verde). Las fechas de cada semana están arriba de «Avance Semana 1–4».",
-            "5) Ejemplo: 1.1 vale 40% y se cumplió el 09/10 (Semana 1) → la macroactividad queda en 40% en la Semana 1; 1.2 vale 30% y se cumplió el 15/10 (Semana 2) → 70% en la Semana 2. La subactividad NO usa las semanas (gris) ni muestra % total, estado o alerta. En la fila de la macroactividad las semanas se llenan SOLAS (no escriba ahí).",
+            "4) Avance de la subactividad: si va a medias, escriba su % en la semana (ej. 60% en Semana 2); cuando la termine, escriba su FECHA DE CUMPLIMIENTO (cuenta 100% y la semana de esa fecha se pinta de verde).",
+            "5) La macroactividad se llena SOLA, semana por semana: suma lo que aporta cada subactividad (su % dentro de la macro × su avance). Ej.: 1.1 vale 40% y está terminada → aporta 40%; 1.2 vale 30% y va al 50% → aporta 15%; la macroactividad queda en 55%. En la fila de la macroactividad no escriba en las semanas. La subactividad no muestra % total, estado ni alerta.",
             "6) Para agregar otra subactividad más adelante, escríbala debajo de las demás subactividades de su macroactividad: siempre pertenece a la macroactividad que esté más arriba.",
         ]),
         ("Alerta de plazo (vencidas y por vencer)", [

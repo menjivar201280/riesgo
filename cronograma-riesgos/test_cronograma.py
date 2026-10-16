@@ -322,8 +322,15 @@ rowsS2 = [sub(1, ()), act(2, RO, 1.0, (0.5,)), dict(sub(3, (0.2,)), peso=0.3),
           dict(sub(4, ()), peso=0.9)]
 wb = run("S2", rowsS2, semana=1, fecha_ref=D(2026, 10, 16))
 check("Subactividad sin macroactividad arriba → aviso", "sin macroactividad arriba" in cron(wb, 5, RO)[2], cron(wb, 5, RO)[2])
-check("Subactividad con % en las semanas → aviso (su % va en Peso)",
-      "no use las semanas" in cron(wb, 7, RO)[2], cron(wb, 7, RO)[2])
+rowsS3 = [act(1, RO, None, ()), dict(sub(11, (), cump=D(2026, 10, 9)), peso=0.4),
+          dict(sub(12, (None, 0.5)), peso=0.3), sub(13, ())]
+wb3 = run("S3", rowsS3, semana=2, fecha_ref=D(2026, 10, 16), inicio_ciclo=D(2026, 10, 12))
+c3 = wb3[B.AREAS[0][0]]
+check("Subactividad a medias: 40%×100% + 30%×50% + 30%×0% = 55% en la macro",
+      abs(cron(wb3, 5, RO)[0] - 0.55) < 1e-9 and cron(wb3, 5, RO)[2] == "✔ OK", cron(wb3, 5, RO))
+check("Semanas de la macro se llenan solas en el Cronograma: S1 = 40%, S2 = 55%, S3 vacía (semana futura)",
+      [c3[f"{K[k]}5"].value for k in ("s1", "s3")] == [0.4, None] and abs(c3[f"{K['s2']}5"].value - 0.55) < 1e-9,
+      [c3[f"{K[k]}5"].value for k in ("s1", "s2", "s3")])
 check("Subactividades que suman más de 100% → aviso en la macro",
       "suman más de 100%" in cron(wb, 6, RO)[2], cron(wb, 6, RO))
 
