@@ -111,7 +111,7 @@ function examBadge(slide, x, y, w, pct) {
   colHead(C2, "Actividades de la semana");
 
   const bullets = (items) => items.map((t, i) => ({
-    text: t, options: { bullet: { indent: 12 }, color: INK, fontSize: 11.5, paraSpaceAfter: 3, breakLine: i < items.length - 1 },
+    text: t, options: { bullet: { indent: 12 }, color: INK, fontSize: 11, paraSpaceAfter: 2, breakLine: i < items.length - 1 },
   }));
   const cell = (x, y, h, content) => {
     s1.addShape("roundRect", { x, y, w: CW, h, rectRadius: 0.1, fill: { color: "EEF2F7" }, line: { color: "EEF2F7" } });
@@ -142,33 +142,30 @@ function examBadge(slide, x, y, w, pct) {
     { text: "   " + d, options: { bold: true, color: AMBER, fontSize: 11.5, paraSpaceAfter: 3, breakLine: !last } },
   ];
   const rows = [
-    { h: 1.22, ic: fa.FaBuildingColumns, t: "Cumplimiento Regulatorio", s: "Requerimientos SSF",
+    { h: 1.15, ic: fa.FaBuildingColumns, t: "Cumplimiento Regulatorio", s: "Requerimientos SSF",
       a: [
         ...reg("PLD/FT", "Circ. 23486", "Plazo 16/10/2026"),
         ...reg("Gobierno Corporativo", "Circ. 22741", "Plazos 23/10 y 30/10"),
         ...reg("Plan de Recuperación", "Circ. 22737", "Plazo 03/11/2026"),
         ...reg("Riesgos Específicos", "Circ. 22742", "Inicio visita 09/10", true),
       ],
-      b: bullets(["Matriz y requerimiento a áreas – Gob. Corporativo (22741)", "Seguimiento de pruebas de descargo (22741 y 23486)", "Presentación de resultados preliminares de Riesgo Específico"]) },
-    { h: 1.02, ic: fa.FaShieldHalved, t: "Riesgos No Financieros", s: "Riesgo Operacional", pct: 90,
-      a: bullets(["Capacitación y Examen GIR 2026", "Segunda prueba de continuidad de negocio", "Opinión Fábrica de Créditos"]),
-      b: bullets(["Informe de la 2.ª prueba de continuidad (01/10/2026)", "Seguimiento planes de acción – Matriz de Riesgos 2026", "Eventos de riesgo: caídas de TC (25/09) y Orion (26/09)"]) },
-    { h: 0.8, ic: fa.FaClipboardCheck, t: "Cumplimiento Normativo", s: "Envíos y auditorías",
-      a: bullets(["Auditoría Interna – Evaluación NRP-24", "Auditoría Externa"]),
-      b: bullets(["Información remitida a Auditoría Interna y Externa", "Acuerdos Semestrales del Comité de Riesgos"]) },
-    { h: 0.8, ic: fa.FaChartLine, t: "Riesgos Financieros", s: "Crédito, liquidez y TC",
-      a: bullets(["Actualización de Política de TC", "Simulación de cartera vencida"]),
-      b: bullets(["Informes al Comité: crédito, liquidez y mercado", "Reserva de saneamiento y traslados de deuda"]) },
-    { h: 0.8, ic: fa.FaHouse, t: "Avalúos y Proyectos", s: "Mejora institucional",
-      a: bullets(["Revisión de Política y Procedimientos de Avalúos", "Revisión de Perfil de Revisor"]),
-      b: bullets(["Avalúos: asignación a perito y aviso a asociados", "Cuestionario BIA y comparativos de políticas"]) },
+      b: bullets(["Matriz y requerimiento a áreas – nota 22741", "Pruebas de descargo – notas 22741 y 23486", "Presentación visita de supervisión Gob. Corporativo", "Resultados preliminares de Riesgo Específico"]) },
+    { h: 1.28, ic: fa.FaShieldHalved, t: "Riesgo Operacional", s: "Continuidad y control", pct: 90,
+      a: bullets(["Actualización Matriz BIA", "Indicadores de Gob. Corporativo y Reputacional", "Segunda prueba de continuidad de negocio"]),
+      b: bullets(["Capacitación GIR 2026 e informe de seguimiento del examen", "Informe 2.ª prueba de continuidad (01/10/2026)", "Planes de acción Matriz 2026 y eventos TC / Orion", "Opiniones: Fábrica de Créditos y caso de asociado", "Información a Auditoría Interna (NRP-24) y Externa"]) },
+    { h: 1.28, ic: fa.FaScaleBalanced, t: "Riesgo Normativo", s: "Avalúos y políticas",
+      a: bullets(["Revisión de Política y Procedimientos de Avalúos", "Revisión de Perfil de Revisor", "Envíos regulatorios (DAR)"]),
+      b: bullets(["Avalúos: perito, gestión electrónica y aviso a asociados", "Descargo de avalúo anterior y mutuo hipotecario", "Comparativos de políticas y acta de sesión 29/08/2026", "Acuerdos Semestrales del Comité de Riesgos", "Proyectos: formularios, BIA, Procesos y página web"]) },
+    { h: 1.28, ic: fa.FaChartLine, t: "Riesgo Financiero", s: "Crédito, liquidez y TC",
+      a: bullets(["Informe de Análisis de Cartera de TC", "Simulación de cartera vencida", "Actualización de Política de TC"]),
+      b: bullets(["Informes al Comité: crédito, liquidez y mercado", "Envíos SSF: NRP-05, NCB-022, NRP-41 y CTRI-RECR", "Cartera TC y reserva de saneamiento", "Traslados de deuda y segmentación de productos", "Sistema de créditos NRP-41 y TC de alto riesgo"]) },
   ];
-  let rowY = 1.8;
+  let rowY = 1.78;
   for (const r of rows) {
     await label(rowY, r.h, r.ic, r.t, r.s, r.pct);
     cell(C1, rowY, r.h, r.a);
     cell(C2, rowY, r.h, r.b);
-    rowY += r.h + 0.1;
+    rowY += r.h + 0.09;
   }
 
   addFooter(s1, "«En seguimiento»: asuntos del informe anterior que siguen vigentes. «Actividades de la semana»: documento de actividades semanales.");
