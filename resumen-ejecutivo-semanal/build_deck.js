@@ -182,8 +182,8 @@ function examBadge(slide, x, y, w, pct) {
 
   const s2 = pres.addSlide();
   s2.background = { color: WHITE };
-  addTitle(s2, "Compromisos Regulatorios y Próximos Hitos",
-    "Calendario de requerimientos SSF · Corte " + fmt(CORTE) + "/" + CORTE.getFullYear());
+  addTitle(s2, "Calendario de requerimientos SSF",
+    "Compromisos regulatorios y próximos hitos · Corte " + fmt(CORTE) + "/" + CORTE.getFullYear());
 
   function marker(slide, kind, cx, cy, d, past) {
     const o = { x: cx - d / 2, y: cy - d / 2, w: d, h: d };
@@ -212,20 +212,23 @@ function examBadge(slide, x, y, w, pct) {
     { d: D(30, 10), k: "plazo", t: "Seguimiento de observaciones Gob. Corporativo", c: "Circ. 22741" },
     { d: D(3, 11), k: "plazo", t: "Envío del Plan de Recuperación", c: "Circ. 22737" },
   ];
-  const x0 = 1.2, x1 = 12.13, step = (x1 - x0) / (events.length - 1);
-  const xs = events.map((_, i) => x0 + i * step);
-  const iHoy = events.findIndex((e) => dias(e.d) >= 0);
-  const hoyX = dias(events[iHoy].d) === 0 ? xs[iHoy] : (xs[iHoy - 1] + xs[iHoy]) / 2;
+  // Posición proporcional a la fecha: la línea muestra el avance real del calendario.
+  const x0 = 1.4, x1 = 12.0, T0 = events[0].d, TN = events[events.length - 1].d;
+  const span = (TN - T0) / 86400000;
+  const xAt = (d) => x0 + ((d - T0) / 86400000) / span * (x1 - x0);
+  const xs = events.map((e) => xAt(e.d));
+  const hoyX = xAt(CORTE);
+  const transcurridos = Math.round((CORTE - T0) / 86400000);
 
   // Línea: tramo transcurrido en azul marino, tramo pendiente en gris
-  s2.addShape("line", { x: 0.6, y: LINE_Y, w: hoyX - 0.6, h: 0, line: { color: NAVY, width: 3 } });
-  s2.addShape("line", { x: hoyX, y: LINE_Y, w: 12.73 - hoyX, h: 0, line: { color: "C3CFDB", width: 3 } });
+  s2.addShape("roundRect", { x: x0 - 0.15, y: LINE_Y - 0.06, w: x1 - x0 + 0.3, h: 0.12, rectRadius: 0.06, fill: { color: "D5DEE8" }, line: { color: "D5DEE8" } });
+  s2.addShape("roundRect", { x: x0 - 0.15, y: LINE_Y - 0.06, w: hoyX - x0 + 0.15, h: 0.12, rectRadius: 0.06, fill: { color: NAVY }, line: { color: NAVY } });
 
   events.forEach((e, i) => {
     const cx = xs[i], above = i % 2 === 0, isP = e.k === "plazo", past = dias(e.d) < 0;
     s2.addShape("line", { x: cx, y: above ? LINE_Y - 0.26 : LINE_Y, w: 0, h: 0.26, line: { color: isP ? AMBER : "8FA3B8", width: 1 } });
     marker(s2, e.k, cx, LINE_Y, isP ? 0.26 : 0.22, past);
-    const bw = 1.62;
+    const bw = 1.55;
     s2.addText([
       { text: (isP ? "Plazo " : "") + fmt(e.d), options: { bold: true, fontSize: 13, color: isP ? AMBER : NAVY, breakLine: true } },
       { text: e.t, options: { fontSize: 10, color: INK, breakLine: true } },
@@ -240,6 +243,7 @@ function examBadge(slide, x, y, w, pct) {
   s2.addShape("line", { x: hoyX, y: LINE_Y + 0.18, w: 0, h: 0.62, line: { color: AMBER, width: 1.5, dashType: "dash" } });
   s2.addShape("roundRect", { x: hoyX - 0.55, y: LINE_Y + 0.8, w: 1.1, h: 0.3, rectRadius: 0.15, fill: { color: AMBER }, line: { color: AMBER } });
   s2.addText("HOY " + fmt(CORTE), { x: hoyX - 0.55, y: LINE_Y + 0.8, w: 1.1, h: 0.3, margin: 0, isTextBox: true, align: "center", valign: "middle", fontFace: FONT, fontSize: 10.5, bold: true, color: WHITE });
+  s2.addText("Día " + transcurridos + " de " + span + " del calendario", { x: hoyX - 0.9, y: LINE_Y + 1.13, w: 1.8, h: 0.22, margin: 0, isTextBox: true, align: "center", valign: "middle", fontFace: FONT, fontSize: 9.5, bold: true, color: AMBER });
 
   // Próximos vencimientos
   s2.addText("Próximos vencimientos", {
