@@ -102,7 +102,7 @@ function examBadge(slide, x, y, w, pct) {
   // Matriz por frente (filas) x [vigente del informe anterior | nuevo de la semana].
   const s1 = pres.addSlide();
   s1.background = { color: WHITE };
-  addTitle(s1, "Departamento de Administración de Riesgos", "Informe semanal · Resumen ejecutivo");
+  addTitle(s1, "Departamento de Administración de Riesgos", "Informe semanal");
 
   const LX = 0.5, LW = 2.95, C1 = 3.6, CW = 4.54, C2 = C1 + CW + 0.15;
   const colHead = (x, t) => {
@@ -113,7 +113,7 @@ function examBadge(slide, x, y, w, pct) {
   colHead(C2, "Actividades de la semana");
 
   const bullets = (items) => items.map((t, i) => ({
-    text: t, options: { bullet: { indent: 12 }, color: INK, fontSize: 11, paraSpaceAfter: 2, breakLine: i < items.length - 1 },
+    text: t, options: { bullet: { indent: 12 }, color: INK, fontSize: 10.5, paraSpaceAfter: 2, breakLine: i < items.length - 1 },
   }));
   const cell = (x, y, h, content) => {
     s1.addShape("roundRect", { x, y, w: CW, h, rectRadius: 0.1, fill: { color: "EEF2F7" }, line: { color: "EEF2F7" } });
@@ -125,42 +125,41 @@ function examBadge(slide, x, y, w, pct) {
     s1.addShape("ellipse", { x: LX + 0.18, y: cy, w: 0.42, h: 0.42, fill: { color: "2B6CB0" }, line: { color: "2B6CB0" } });
     s1.addImage({ data: await icon(ic, WHITE), x: LX + 0.29, y: cy + 0.11, w: 0.2, h: 0.2 });
     s1.addText([
-      { text: title, options: { bold: true, fontSize: 13.5, color: WHITE, breakLine: true } },
-      { text: sub, options: { fontSize: 10.5, color: "C9D6E6" } },
+      { text: title, options: { bold: true, fontSize: 13.5, color: WHITE, breakLine: !!sub } },
+      ...(sub ? [{ text: sub, options: { fontSize: 10.5, color: "C9D6E6" } }] : []),
     ], { x: LX + 0.75, y: cy - 0.1, w: LW - 0.85, h: 0.62, margin: 0, isTextBox: true, fontFace: FONT, valign: "middle" });
     if (pct) {
       const by = y + h / 2 + 0.3, bw = LW - 0.95;
-      s1.addText("Examen GIR 2026", { x: LX + 0.18, y: by - 0.24, w: 1.6, h: 0.2, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 9.5, bold: true, color: "C9D6E6" });
+      s1.addText("Capacitación y Examen GIR 2026", { x: LX + 0.18, y: by - 0.24, w: 2.3, h: 0.2, margin: 0, isTextBox: true, fontFace: FONT, fontSize: 9.5, bold: true, color: "C9D6E6" });
       s1.addShape("roundRect", { x: LX + 0.18, y: by, w: bw, h: 0.11, rectRadius: 0.05, fill: { color: "3C5A80" }, line: { color: "3C5A80" } });
       s1.addShape("roundRect", { x: LX + 0.18, y: by, w: bw * pct / 100, h: 0.11, rectRadius: 0.05, fill: { color: "F2B544" }, line: { color: "F2B544" } });
       s1.addText(pct + "%", { x: LX + LW - 0.72, y: by - 0.12, w: 0.6, h: 0.34, margin: 0, isTextBox: true, align: "right", valign: "middle", fontFace: FONT, fontSize: 14, bold: true, color: WHITE });
     }
   };
 
-  // Fila 1: requerimientos SSF (plazos vigentes, presentación base)
+  // Texto literal: «En seguimiento» = presentación anterior; «Actividades de la semana» = documento de actividades.
   const reg = (t, c, d, last) => [
-    { text: t + "  ·  ", options: { bold: true, color: NAVY, fontSize: 11.5 } },
-    { text: c, options: { color: BLUE, fontSize: 11 } },
-    { text: "   " + d, options: { bold: true, color: AMBER, fontSize: 11.5, paraSpaceAfter: 3, breakLine: !last } },
+    { text: t + "  ·  ", options: { bold: true, color: NAVY, fontSize: 10.5 } },
+    { text: c, options: { color: BLUE, fontSize: 10.5, breakLine: true } },
+    ...[].concat(d).map((x, i, arr) => ({ text: x, options: { bold: true, color: AMBER, fontSize: 10.5, paraSpaceAfter: i === arr.length - 1 ? 3 : 0, breakLine: !(last && i === arr.length - 1) } })),
   ];
   const rows = [
-    { h: 1.15, ic: fa.FaBuildingColumns, t: "Cumplimiento Regulatorio", s: "Requerimientos SSF",
+    { h: 1.55, ic: fa.FaBuildingColumns, t: "Cumplimiento Regulatorio", s: "Requerimientos SSF",
       a: [
-        ...reg("PLD/FT", "Circ. 23486", "Plazo 16/10/2026"),
-        ...reg("Gobierno Corporativo", "Circ. 22741", "Plazos 23/10 y 30/10"),
-        ...reg("Plan de Recuperación", "Circ. 22737", "Plazo 03/11/2026"),
-        ...reg("Riesgos Específicos", "Circ. 22742", "Inicio visita 09/10", true),
+        ...reg("Resultados preliminares – PLD/FT", "Circ. 23486", "Plazo 16/10/2026"),
+        ...reg("Resultados preliminares – Gobierno Corporativo", "Circ. 22741", ["Plazo 23/10/2026 · Nuevas observaciones", "Plazo 30/10/2026 · Seguimiento de observaciones"]),
+        ...reg("Resultado preliminar Plan de Recuperación", "Circ. 22737", "Plazo 03/11/2026", true),
       ],
-      b: bullets(["Matriz y requerimiento a áreas – nota 22741", "Pruebas de descargo – notas 22741 y 23486", "Presentación visita de supervisión Gob. Corporativo", "Resultados preliminares de Riesgo Específico"]) },
-    { h: 1.28, ic: fa.FaShieldHalved, t: "Riesgo Operacional", s: "Continuidad y control", pct: 90,
-      a: bullets(["Actualización Matriz BIA", "Indicadores de Gob. Corporativo y Reputacional", "Segunda prueba de continuidad de negocio"]),
-      b: bullets(["Capacitación GIR 2026 e informe de seguimiento del examen", "Informe 2.ª prueba de continuidad (01/10/2026)", "Planes de acción Matriz 2026 y eventos TC / Orion", "Opiniones: Fábrica de Créditos y caso de asociado", "Información a Auditoría Interna (NRP-24) y Externa"]) },
-    { h: 1.28, ic: fa.FaScaleBalanced, t: "Riesgo Normativo", s: "Avalúos y políticas",
-      a: bullets(["Revisión de Política y Procedimientos de Avalúos", "Revisión de Perfil de Revisor", "Envíos regulatorios (DAR)"]),
-      b: bullets(["Avalúos: perito, gestión electrónica y aviso a asociados", "Descargo de avalúo anterior y mutuo hipotecario", "Comparativos de políticas y acta de sesión 29/08/2026", "Acuerdos Semestrales del Comité de Riesgos", "Proyectos: formularios, BIA, Procesos y página web"]) },
-    { h: 1.28, ic: fa.FaChartLine, t: "Riesgo Financiero", s: "Crédito, liquidez y TC",
+      b: bullets(["Requerimiento según nota DS-SABAO-BCS-BC-22741", "Requerimiento según nota DS-SABAO-BCS-BC-23486", "Presentación resultados preliminares de Gestión de Riesgo Específico", "Presentación visita de supervisión gobierno corporativo"]) },
+    { h: 1.3, ic: fa.FaShieldHalved, t: "Riesgo Operacional", s: "", pct: 90,
+      a: bullets(["Capacitación y Examen GIR 2026", "Actualización Matriz BIA", "Segunda prueba de continuidad de negocio"]),
+      b: bullets(["Capacitación de GIR 2026", "Informe de segunda prueba de Continuidad del Negocio realizada el 01.10.2026", "Seguimiento planes de acción Matriz de Riesgos Institucional 2026", "Seguimiento eventos de riesgos por caídas de TC 25.09.2026 y Orion 26.09.2026"]) },
+    { h: 1.08, ic: fa.FaScaleBalanced, t: "Riesgo Normativo", s: "",
+      a: bullets(["Revisión de Política de Avalúos", "Revisión de Procedimientos de Administración de Avalúos", "Revisión de Perfil de Revisor"]),
+      b: bullets(["Asignación a perito valuador", "Descargo de avalúo anterior y documento mutuo hipotecario", "Elaboración de acta de sesión de fecha 29/08/2026"]) },
+    { h: 1.08, ic: fa.FaChartLine, t: "Riesgo Financiero", s: "",
       a: bullets(["Informe de Análisis de Cartera de TC", "Simulación de cartera vencida", "Actualización de Política de TC"]),
-      b: bullets(["Informes al Comité: crédito, liquidez y mercado", "Envíos SSF: NRP-05, NCB-022, NRP-41 y CTRI-RECR", "Cartera TC y reserva de saneamiento", "Traslados de deuda y segmentación de productos", "Sistema de créditos NRP-41 y TC de alto riesgo"]) },
+      b: bullets(["Envío de información a la Central de Riesgo (NRP-41)", "Monitoreo semanal de la reserva de saneamiento", "Registro permanente de los traslados de deuda"]) },
   ];
   let rowY = 1.78;
   for (const r of rows) {
@@ -170,7 +169,6 @@ function examBadge(slide, x, y, w, pct) {
     rowY += r.h + 0.09;
   }
 
-  addFooter(s1, "«En seguimiento»: asuntos del informe anterior que siguen vigentes. «Actividades de la semana»: documento de actividades semanales.");
   s1.addNotes(
     "Matriz por frente. Columna izquierda: asuntos del informe anterior que siguen vigentes (plazos SSF). " +
     "Columna derecha: actividades de la semana según el documento de actividades. Examen GIR 2026: avance 90%."
@@ -254,7 +252,6 @@ function examBadge(slide, x, y, w, pct) {
   s2.addShape("line", { x: hoyX, y: LINE_Y + 0.18, w: 0, h: 0.62, line: { color: AMBER, width: 1.5, dashType: "dash" } });
   s2.addShape("roundRect", { x: hoyX - 0.55, y: LINE_Y + 0.8, w: 1.1, h: 0.3, rectRadius: 0.15, fill: { color: AMBER }, line: { color: AMBER } });
   s2.addText("HOY " + fmt(CORTE), { x: hoyX - 0.55, y: LINE_Y + 0.8, w: 1.1, h: 0.3, margin: 0, isTextBox: true, align: "center", valign: "middle", fontFace: FONT, fontSize: 10.5, bold: true, color: WHITE });
-  s2.addText("Día " + transcurridos + " de " + span + " del calendario", { x: hoyX - 0.9, y: LINE_Y + 1.13, w: 1.8, h: 0.22, margin: 0, isTextBox: true, align: "center", valign: "middle", fontFace: FONT, fontSize: 9.5, bold: true, color: AMBER });
 
   // Próximos vencimientos
   s2.addText("Próximos vencimientos", {
@@ -262,9 +259,9 @@ function examBadge(slide, x, y, w, pct) {
     fontFace: FONT, fontSize: 16, bold: true, color: NAVY, valign: "middle",
   });
   const venc = [
-    { d: D(16, 10), t: "Envío respuesta resultados preliminares PLD/FT", c: "Circular 23486", n: "Semana: seguimiento al envío de pruebas de descargo" },
-    { d: D(23, 10), t: "Envío de nuevas observaciones – Gobierno Corporativo", c: "Circular 22741", n: "Semana: matriz y requerimiento enviado a las áreas" },
-    { d: D(30, 10), t: "Seguimiento de observaciones – Gobierno Corporativo", c: "Circular 22741", n: "Semana: plan de solución de visitas anteriores" },
+    { d: D(16, 10), t: "Envío respuesta resultados preliminares PLD/FT", c: "Circular 23486", n: "" },
+    { d: D(23, 10), t: "Envío de nuevas observaciones – Gobierno Corporativo", c: "Circular 22741", n: "" },
+    { d: D(30, 10), t: "Seguimiento de observaciones – Gobierno Corporativo", c: "Circular 22741", n: "" },
     { d: D(3, 11), t: "Envío del Plan de Recuperación", c: "Circular 22737", n: "" },
   ].filter((v) => dias(v.d) >= 0);
   const cw = (12.33 - 0.2 * (venc.length - 1)) / venc.length, cy = 4.46, ch = 2.5;
@@ -285,7 +282,7 @@ function examBadge(slide, x, y, w, pct) {
     ], { x: x + 0.22, y: cy + 0.92, w: cw - 0.4, h: ch - 1.04, margin: 0, isTextBox: true, fontFace: FONT, valign: "top", paraSpaceAfter: 3 });
   });
 
-  addFooter(s2, "Riesgos Específicos (Circ. 22742): visita iniciada el 09/10/2026, sin plazo de respuesta documentado. El estado de envío de cada requerimiento está por confirmar.");
+  addFooter(s2, "Riesgos Específicos (Circ. 22742): inicio de visita 09/10/2026.");
   s2.addNotes(
     "Corte " + fmt(CORTE) + ". Plazo de respuesta PLD/FT: 16/10 (Circ. 23486). Siguen Gobierno Corporativo el 23/10 y 30/10 (Circ. 22741) " +
     "y el Plan de Recuperación el 03/11 (Circ. 22737)."
