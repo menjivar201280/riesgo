@@ -89,6 +89,20 @@ svg.i{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-l
 .closing p span{color:var(--blue)}
 .foot{position:absolute;bottom:0;left:0;right:0;height:62px;background:linear-gradient(90deg,#0a2560,var(--navy) 50%,#0a2560);color:#fff;display:flex;align-items:center;justify-content:center;gap:14px;font-family:'Fira Sans Condensed';font-weight:600;font-size:20px;letter-spacing:1.6px}
 .foot i{width:6px;height:6px;border-radius:50%;background:var(--sky);display:block}
+
+.c3 .intro{padding:22px 30px 0 36px;font-family:'Fira Sans Condensed';font-weight:500;font-size:22px;color:var(--txt)}
+.c3 .intro b{color:var(--blue)}
+.ph{margin:22px 28px 0 36px;padding:22px 22px;border-radius:14px;background:#f7faff;border:1px solid #e3edf9}
+.phh{display:flex;align-items:center;gap:14px;font-family:'Fira Sans Condensed';font-weight:700;font-size:25px;color:var(--navy);line-height:1}
+.phh small{display:block;font-size:13px;letter-spacing:1.8px;color:var(--sky);margin-bottom:4px;font-weight:600}
+.phh .chip{width:48px;height:48px;border-radius:14px;background:var(--soft)}
+.phh .chip svg{width:26px;height:26px}
+.ph p{margin-top:12px;font-size:16.5px;line-height:1.5;color:var(--txt)}
+.ph p b{color:var(--navy)}
+.res{position:absolute;left:36px;right:28px;bottom:26px;display:flex;align-items:center;justify-content:center;gap:12px;font-family:'Fira Sans Condensed';font-weight:600;font-size:20px;color:var(--navy)}
+.res em{font-style:normal;padding:7px 18px;border-radius:999px;font-size:18px}
+.res .cr{background:var(--blue);color:#fff}
+.res .nc{background:var(--soft);color:var(--blue);border:1px solid #c9dcf5}
 </style></head><body>
 <div class="dots"></div>
 
@@ -141,17 +155,20 @@ svg.i{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-l
 </div>
 
 <div class="card c3">
-  <div class="hd"><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M3 12h4l3-8 4 16 3-8h4"/></svg></div>Proceso General</div>
+  <div class="hd"><div class="chip"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></div>Proceso General</div>
   <div class="sep"></div>
-  <div class="tl">
-    <div class="st"><div class="n">1</div><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.3 16.3 15 18"/></svg></div><div class="l"><b>Identificar</b> el servicio</div></div>
-    <div class="st"><div class="n">2</div><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.7 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.5 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M9.6 9.5a2.5 2.5 0 0 1 4.8.8c0 1.7-2.4 2.3-2.4 2.3"/><path d="M12 16h.01"/></svg></div><div class="l">¿Podría afectar la continuidad<br>del negocio? <b>(Evaluación)</b></div></div>
-    <div class="st"><div class="n">3</div><div class="chip"><svg class="i" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></div><div class="l"><b>Validar</b> criterios<br>de criticidad</div></div>
-    <div class="st"><div class="n">4</div><div class="chip"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div><div class="l"><b>Solicitar evaluación</b> a<br>Administración de Riesgos</div></div>
-    <div class="st"><div class="n">5</div><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></div><div class="l"><b>Reunión</b> de<br>evaluación conjunta</div></div>
-    <div class="st"><div class="n">6</div><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v10"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z"/></svg></div><div class="l"><b>Completar</b> Formulario<br>RP-GG-F-213</div></div>
-    <div class="st"><div class="n">7</div><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></div><div class="l"><b>Emitir resultado</b> de criticidad<br>(Crítico / No Crítico)</div></div>
-    <div class="st"><div class="n">8</div><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg></div><div class="l"><b>Continuar</b> proceso<br>de contratación</div></div>
+  <p class="intro">¿Cómo se determina si un servicio tercerizado es <b>crítico</b>?</p>
+  <div class="ph">
+    <div class="phh"><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.3 16.3 15 18"/></svg></div><div><small>FASE 1</small>Identificación</div></div>
+    <p>Se identifica el servicio a contratar y se analiza si su interrupción podría afectar la continuidad del negocio.</p>
+  </div>
+  <div class="ph">
+    <div class="phh"><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></div><div><small>FASE 2</small>Evaluación</div></div>
+    <p>Se validan los criterios de criticidad junto con <b>Administración de Riesgos</b> en una reunión de evaluación conjunta.</p>
+  </div>
+  <div class="ph">
+    <div class="phh"><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><small>FASE 3</small>Resultado</div></div>
+    <p>Se completa el formulario <b>RP-GG-F-213</b> y se emite el resultado: <b>Crítico</b> o <b>No Crítico</b>, para continuar con la contratación.</p>
   </div>
 </div>
 
