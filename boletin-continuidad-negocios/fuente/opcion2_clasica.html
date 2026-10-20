@@ -1,0 +1,73 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@500;600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0b2a6f;--d:#0a2d77;--blue:#1565c0;--b2:#1e88e5;--sky:#29b6f6;--line:#cfe0f4;--txt:#24395f}
+body{width:1024px;height:1536px;font-family:'Open Sans',sans-serif;position:relative;overflow:hidden;background:linear-gradient(180deg,#eef4fc 0%,#fff 30%,#fff 70%,#eaf2fc 100%)}
+svg.i{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.cor{position:absolute;top:0;left:0;width:240px;height:96px;background:linear-gradient(135deg,var(--blue) 0 28%,transparent 28%),linear-gradient(135deg,transparent 32%,var(--sky) 32% 37%,transparent 37%)}
+.cor2{position:absolute;bottom:66px;right:0;width:200px;height:60px;background:linear-gradient(315deg,#d6e6f8 0 40%,transparent 40%)}
+.title{position:absolute;top:82px;left:32px;font-family:'Fira Sans Condensed';font-weight:800;font-size:64px;line-height:1;color:#fff;padding:18px 30px 22px;border-radius:18px;background:linear-gradient(90deg,var(--d),var(--blue));box-shadow:0 12px 24px -10px rgba(10,45,119,.55)}
+.rule{position:absolute;top:202px;left:36px;width:380px;height:5px;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--sky))}
+.sub{position:absolute;top:222px;left:36px;font-family:'Fira Sans Condensed';font-weight:700;font-size:24px;letter-spacing:.6px;color:var(--blue)}
+.logo{position:absolute;top:34px;right:30px;width:250px;mix-blend-mode:multiply}
+.ban{position:absolute;top:278px;left:24px;right:24px;height:268px;border-radius:22px;overflow:hidden;background:linear-gradient(115deg,var(--d) 0%,#0d47a8 60%,var(--blue) 100%);box-shadow:0 14px 30px -14px rgba(10,45,119,.6);color:#fff}
+.ban .wm{position:absolute;right:-20px;top:-10px;width:300px;height:300px;color:rgba(255,255,255,.06)}
+.ban .wm svg{width:100%;height:100%;stroke-width:1.2}
+.ban .tg{position:absolute;left:36px;top:26px;font-family:'Fira Sans Condensed';font-weight:700;font-size:17px;letter-spacing:2px;color:var(--sky);display:flex;align-items:center;gap:10px}
+.ban .tg::before{content:"";width:28px;height:3px;background:var(--sky);border-radius:2px}
+.cols{position:absolute;left:36px;right:32px;top:72px;bottom:26px;display:flex;gap:28px}
+.cc{flex:1;display:flex;gap:16px}
+.ci{width:58px;height:58px;border-radius:50%;border:2px solid rgba(255,255,255,.55);background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;flex:none}
+.ci svg{width:28px;height:28px}
+.cc h3{font-family:'Fira Sans Condensed';font-weight:700;font-size:26px;line-height:1.1}
+.cc p{margin-top:8px;font-size:16.5px;line-height:1.5;color:#dbe8ff}
+.cc p b{color:#fff}
+.vd{width:1px;background:rgba(255,255,255,.22)}
+.card{position:absolute;left:24px;width:484px;background:#fff;border:2px solid var(--line);border-radius:18px;box-shadow:0 6px 16px -8px rgba(13,71,168,.2)}
+.card .hd{height:92px;border-radius:16px 16px 0 0;background:linear-gradient(90deg,var(--d),var(--blue));display:flex;align-items:center;gap:16px;padding-left:22px;color:#fff;font-family:'Fira Sans Condensed';font-weight:700;font-size:30px;line-height:1.05}
+.bd{width:62px;height:62px;border-radius:50%;background:#fff;color:var(--blue);display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 0 0 4px rgba(255,255,255,.25)}
+.bd svg{width:32px;height:32px}
+.c1{top:572px;height:236px}
+.c1 .b{display:flex;align-items:center;gap:20px;padding:30px 26px 0}
+.c1 .tg2{width:84px;height:84px;border-radius:50%;background:linear-gradient(135deg,var(--b2),var(--blue));color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.c1 .tg2 svg{width:44px;height:44px}
+.c1 p{border-left:3px solid var(--blue);padding-left:18px;font-family:'Fira Sans Condensed';font-weight:600;font-size:27px;line-height:1.2;color:var(--navy)}
+.c2{top:832px;height:478px}
+.c2 ul{list-style:none;padding:20px 26px 0 30px}
+.c2 li{height:70px;display:flex;align-items:center;gap:18px;border-bottom:1px solid #edf3fb;font-family:'Fira Sans Condensed';font-weight:500;font-size:24px;color:var(--navy)}
+.c2 li:last-child{border-bottom:none}
+.ar{width:20px;height:24px;background:linear-gradient(90deg,var(--blue),var(--sky));clip-path:polygon(0 0,45% 0,100% 50%,45% 100%,0 100%,55% 50%);flex:none}
+.steps{position:absolute;top:566px;left:530px;right:24px}
+.st{height:93px;display:flex;align-items:center;border-bottom:1.5px solid #dbe7f5}
+.st:last-child{border-bottom:none}
+.n{width:56px;height:56px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#3b8ae6,var(--d));color:#fff;font-family:'Fira Sans Condensed';font-weight:800;font-size:30px;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 6px 12px -6px rgba(10,45,119,.7)}
+.ic{width:62px;height:62px;border-radius:50%;border:2px solid var(--blue);color:var(--blue);margin-left:12px;display:flex;align-items:center;justify-content:center;flex:none;background:#fff}
+.ic svg{width:30px;height:30px}
+.l{margin-left:18px;font-family:'Fira Sans Condensed';font-weight:600;font-size:19.5px;line-height:1.18;color:var(--blue)}
+.close{position:absolute;left:90px;right:90px;top:1336px;height:100px;background:#fff;border:2px solid var(--line);border-radius:18px;display:flex;align-items:center;justify-content:center;gap:26px;box-shadow:0 6px 16px -8px rgba(13,71,168,.2)}
+.close .h{width:74px;height:74px;border-radius:50%;background:linear-gradient(135deg,var(--b2),var(--d));color:#fff;display:flex;align-items:center;justify-content:center}
+.close .h svg{width:40px;height:40px}
+.close p{border-left:3px solid var(--navy);padding-left:24px;font-family:'Fira Sans Condensed';font-weight:700;font-size:31px;line-height:1.08;color:var(--navy)}
+.foot{position:absolute;bottom:0;left:0;right:0;height:66px;background:linear-gradient(90deg,var(--d),var(--blue),var(--d));color:#fff;display:flex;align-items:center;justify-content:center;font-family:'Fira Sans Condensed';font-weight:600;font-size:22px;letter-spacing:.8px}
+</style></head><body>
+<div class="cor"></div><div class="cor2"></div>
+<div class="title">Continuidad del Negocio</div><div class="rule"></div>
+<div class="sub">ANÁLISIS DE CRITICIDAD DE UN SERVICIO TERCERIZADO</div>
+<img class="logo" src="logo.png" alt="Comédica">
+<div class="ban">
+  <div class="wm"><svg viewBox="0 0 24 24" class="i"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.7 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.5 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></div>
+  <div class="tg">CONCEPTOS SEGÚN LA NRP-24</div>
+  <div class="cols">
+    <div class="cc"><div class="ci"><svg viewBox="0 0 24 24" class="i"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.7 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.5 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></svg></div><div><h3>Servicios críticos</h3><p>Son los servicios y actividades prioritarios cuya <b>no disponibilidad compromete la existencia</b> de la entidad.</p></div></div>
+    <div class="vd"></div>
+    <div class="cc"><div class="ci"><svg viewBox="0 0 24 24" class="i"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg></div><div><h3>Tercerización de servicios</h3><p>Se produce cuando la entidad encarga la realización de un proceso a un <b>tercero</b>, es decir, a una persona natural o jurídica distinta a la entidad.</p></div></div>
+  </div>
+</div>
+<div class="card c1"><div class="hd"><div class="bd"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.6-4.6"/><path d="M9 9.2a2.1 2.1 0 0 1 4.1.6c0 1.4-2.1 2-2.1 2"/><path d="M11 14.2h.01"/></svg></div>¿Qué es el Análisis<br>de Criticidad?</div>
+  <div class="b"><div class="tg2"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg></div><p>Garantizar la operación continua y mantener la confianza.</p></div></div>
+<div class="card c2"><div class="hd"><div class="bd"><svg class="i" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m8 12 1.5 1.5L12 11"/><path d="M14 12h2.5"/><path d="m8 17 1.5 1.5L12 16"/><path d="M14 17h2.5"/></svg></div>Criterios de Criticidad</div><ul><li><span class="ar"></span>Interrumpe procesos críticos</li><li><span class="ar"></span>Genera pérdidas</li><li><span class="ar"></span>Afecta la imagen institucional</li><li><span class="ar"></span>Genera sanciones regulatorias</li><li><span class="ar"></span>Cambio de proveedor complejo</li></ul></div>
+<div class="steps"><div class="st"><div class="n">1</div><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.3 16.3 15 18"/></svg></div><div class="l">Identificar el servicio</div></div><div class="st"><div class="n">2</div><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.7 9a1 1 0 0 1-.7 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.2-2.7a1.2 1.2 0 0 1 1.5 0C14.5 3.8 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M9.6 9.5a2.5 2.5 0 0 1 4.8.8c0 1.7-2.4 2.3-2.4 2.3"/><path d="M12 16h.01"/></svg></div><div class="l">¿Podría afectar la continuidad<br>del negocio? (Evaluación)</div></div><div class="st"><div class="n">3</div><div class="ic"><svg class="i" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m9 14 2 2 4-4"/></svg></div><div class="l">Validar criterios<br>de criticidad</div></div><div class="st"><div class="n">4</div><div class="ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg></div><div class="l">Solicitar por correo evaluación<br>a Administración de Riesgos</div></div><div class="st"><div class="n">5</div><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></div><div class="l">Reunión de<br>evaluación conjunta</div></div><div class="st"><div class="n">6</div><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 22h6a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v10"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10.4 12.6a2 2 0 1 1 3 3L8 21l-4 1 1-4Z"/></svg></div><div class="l">Llenar en conjunto el<br>Formulario RP-GG-F-213</div></div><div class="st"><div class="n">7</div><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></div><div class="l">Determinar si el servicio es<br>Crítico o No Crítico</div></div><div class="st"><div class="n">8</div><div class="ic"><svg class="i" viewBox="0 0 24 24"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg></div><div class="l">Continuar proceso<br>de contratación</div></div></div>
+<div class="close"><div class="h"><svg viewBox="0 0 24 24" class="i"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg></div><p>La continuidad del negocio es<br>responsabilidad de todos.</p></div>
+<div class="foot">GESTIÓN INTEGRAL DE RIESGOS - COMÉDICA DE R.L.</div>
+</body></html>
