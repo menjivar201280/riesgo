@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Fira+Sans+Condensed:wght@500;600;700;800&family=Open+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#0b2a6f;--blue:#1565c0;--blue2:#1e88e5;--sky:#29b6f6;--line:#dbe6f4;--soft:#eaf3fe;--txt:#34466b;--muted:#6b7c9c}
+body{width:1024px;height:1536px;font-family:'Open Sans',sans-serif;color:var(--navy);position:relative;overflow:hidden;
+  background:
+    radial-gradient(520px 380px at 100% 0%,rgba(41,182,246,.13),transparent 70%),
+    radial-gradient(600px 420px at 0% 100%,rgba(21,101,192,.10),transparent 70%),
+    #f6f9fe}
+.dots{position:absolute;inset:0;background-image:radial-gradient(rgba(21,101,192,.10) 1.2px,transparent 1.3px);background-size:22px 22px;
+  -webkit-mask-image:linear-gradient(180deg,#000 0,transparent 260px);mask-image:linear-gradient(180deg,#000 0,transparent 260px)}
+svg.i{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fc{font-family:'Fira Sans Condensed',sans-serif}
+
+/* header */
+.header{position:absolute;top:70px;left:44px}
+.title{font-family:'Fira Sans Condensed';font-weight:800;font-size:72px;line-height:.95;letter-spacing:-.5px;color:var(--navy)}
+.title span{background:linear-gradient(90deg,var(--blue),var(--blue2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.rule{display:flex;gap:6px;margin:22px 0 16px}
+.rule i{display:block;height:5px;border-radius:3px;background:var(--sky)}
+.rule i:first-child{width:72px;background:var(--blue)}
+.rule i:nth-child(2){width:22px}
+.rule i:nth-child(3){width:8px;opacity:.5}
+.subtitle{font-family:'Fira Sans Condensed';font-weight:600;font-size:23px;letter-spacing:1.6px;color:var(--blue)}
+.logo{position:absolute;top:36px;right:40px;width:238px;mix-blend-mode:multiply}
+
+/* cards */
+.card{position:absolute;background:#fff;border:1px solid var(--line);border-radius:18px;
+  box-shadow:0 1px 2px rgba(11,42,111,.04),0 10px 28px -12px rgba(11,42,111,.14);overflow:hidden}
+.card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:8px;background:linear-gradient(180deg,var(--blue2),var(--blue))}
+.chip{width:58px;height:58px;border-radius:16px;background:var(--soft);color:var(--blue);display:flex;align-items:center;justify-content:center;flex:none}
+.chip svg{width:30px;height:30px}
+.hd{display:flex;align-items:center;gap:16px;font-family:'Fira Sans Condensed';font-weight:700;font-size:28px;line-height:1.05;color:var(--navy)}
+.sep{height:1px;background:var(--line)}
+
+/* banner */
+.banner{top:276px;left:32px;right:32px;height:196px}
+.banner .txt{position:absolute;left:44px;top:0;bottom:0;right:220px;display:flex;flex-direction:column;justify-content:center}
+.eyebrow{font-family:'Fira Sans Condensed';font-weight:600;font-size:16px;letter-spacing:2px;color:var(--sky);margin-bottom:6px}
+.banner h2{font-family:'Fira Sans Condensed';font-weight:800;font-size:42px;line-height:1;color:var(--navy)}
+.banner h2 span{color:var(--blue)}
+.banner p{margin-top:16px;font-size:18.5px;line-height:1.5;color:var(--txt);max-width:640px}
+.banner p b{color:var(--navy);font-weight:700}
+.sh{position:absolute;right:52px;top:30px;width:136px;height:136px;border-radius:50%;
+  background:radial-gradient(circle at 50% 45%,#fff 0 38%,var(--soft) 39% 100%);box-shadow:inset 0 0 0 1px #d4e5fa}
+.sh::after{content:"";position:absolute;inset:-12px;border-radius:50%;border:1px dashed #c3d9f5}
+.sh svg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:78px;height:92px;filter:drop-shadow(0 6px 8px rgba(21,101,192,.28))}
+
+/* left column */
+.c1{top:500px;left:32px;width:468px;height:262px}
+.c1 .hd{padding:28px 28px 0 36px}
+.c1 .sep{margin:22px 28px 0 36px}
+.c1 .body{display:flex;align-items:center;gap:20px;padding:24px 28px 0 36px}
+.c1 .body .chip{width:72px;height:72px;border-radius:50%;background:linear-gradient(135deg,var(--blue2),var(--blue));color:#fff;box-shadow:0 8px 16px -6px rgba(21,101,192,.5)}
+.c1 .body .chip svg{width:38px;height:38px}
+.c1 .body p{font-family:'Fira Sans Condensed';font-weight:600;font-size:25px;line-height:1.22;color:var(--txt)}
+.c1 .body p b{color:var(--blue);font-weight:700}
+
+.c2{top:786px;left:32px;width:468px;height:542px}
+.c2 .hd{padding:28px 28px 0 36px}
+.c2 .sep{margin:22px 28px 0 36px}
+.c2 ul{list-style:none;padding:12px 28px 0 36px}
+.c2 li{height:82px;display:flex;align-items:center;gap:18px;border-bottom:1px solid #eef3fa;font-family:'Fira Sans Condensed';font-weight:500;font-size:23px;color:var(--txt)}
+.c2 li:last-child{border-bottom:none}
+.c2 li .chip{width:48px;height:48px;border-radius:14px}
+.c2 li .chip svg{width:26px;height:26px}
+
+/* steps */
+.c3{top:500px;left:524px;right:32px;height:828px}
+.c3 .hd{padding:28px 28px 0 36px}
+.c3 .sep{margin:22px 28px 0 36px}
+.tl{position:absolute;left:36px;right:24px;top:122px}
+.tl::before{content:"";position:absolute;left:19px;top:30px;bottom:30px;width:2px;background:repeating-linear-gradient(180deg,#bcd5f3 0 6px,transparent 6px 11px)}
+.st{position:relative;height:86px;display:flex;align-items:center}
+.n{width:40px;height:40px;border-radius:50%;background:#fff;border:2px solid var(--blue);color:var(--blue);font-family:'Fira Sans Condensed';font-weight:700;font-size:20px;display:flex;align-items:center;justify-content:center;flex:none;position:relative;z-index:1}
+.st:last-child .n{background:var(--blue);color:#fff}
+.st .chip{width:50px;height:50px;border-radius:14px;margin-left:16px}
+.st .chip svg{width:28px;height:28px}
+.st .l{margin-left:16px;font-family:'Fira Sans Condensed';font-weight:500;font-size:19px;line-height:1.18;color:var(--txt)}
+.st .l b{font-weight:700;color:var(--navy)}
+
+/* closing */
+.closing{position:absolute;left:32px;right:32px;top:1352px;height:92px;border-radius:18px;
+  background:linear-gradient(90deg,#eaf3fe,#f4f9ff 50%,#eaf3fe);border:1px solid #d4e5fa;display:flex;align-items:center;justify-content:center;gap:20px}
+.closing .chip{width:56px;height:56px;border-radius:50%;background:#fff;box-shadow:0 4px 10px -4px rgba(21,101,192,.35)}
+.closing p{font-family:'Fira Sans Condensed';font-weight:700;font-size:29px;color:var(--navy)}
+.closing p span{color:var(--blue)}
+.foot{position:absolute;bottom:0;left:0;right:0;height:62px;background:linear-gradient(90deg,#0a2560,var(--navy) 50%,#0a2560);color:#fff;display:flex;align-items:center;justify-content:center;gap:14px;font-family:'Fira Sans Condensed';font-weight:600;font-size:20px;letter-spacing:1.6px}
+.foot i{width:6px;height:6px;border-radius:50%;background:var(--sky);display:block}
+
+.c3 .intro{padding:22px 30px 0 36px;font-family:'Fira Sans Condensed';font-weight:500;font-size:22px;color:var(--txt)}
+.c3 .intro b{color:var(--blue)}
+.ph{margin:22px 28px 0 36px;padding:22px 22px;border-radius:14px;background:#f7faff;border:1px solid #e3edf9}
+.phh{display:flex;align-items:center;gap:14px;font-family:'Fira Sans Condensed';font-weight:700;font-size:25px;color:var(--navy);line-height:1}
+.phh small{display:block;font-size:13px;letter-spacing:1.8px;color:var(--sky);margin-bottom:4px;font-weight:600}
+.phh .chip{width:48px;height:48px;border-radius:14px;background:var(--soft)}
+.phh .chip svg{width:26px;height:26px}
+.ph p{margin-top:12px;font-size:16.5px;line-height:1.5;color:var(--txt)}
+.ph p b{color:var(--navy)}
+.res{position:absolute;left:36px;right:28px;bottom:26px;display:flex;align-items:center;justify-content:center;gap:12px;font-family:'Fira Sans Condensed';font-weight:600;font-size:20px;color:var(--navy)}
+.res em{font-style:normal;padding:7px 18px;border-radius:999px;font-size:18px}
+.res .cr{background:var(--blue);color:#fff}
+.res .nc{background:var(--soft);color:var(--blue);border:1px solid #c9dcf5}
+</style><style>
+.note{margin:22px 28px 0 36px;padding:20px 22px;border-radius:14px;background:#fff8e6;border:1px solid #f6d98b;display:flex;gap:16px;align-items:center}
+.nic{width:50px;height:50px;border-radius:50%;background:#ffb300;color:#fff;display:flex;align-items:center;justify-content:center;flex:none}
+.nic svg{width:28px;height:28px}
+.note p{font-size:18.5px;line-height:1.45;color:#5a4300}.note p b{color:#3d2e00}
+.flow2{margin:30px 28px 0 36px;display:flex;flex-direction:column;gap:14px}
+.fs2{display:flex;align-items:center;gap:18px}
+.big2{width:66px;height:66px;border-radius:50%;background:linear-gradient(135deg,var(--blue2),var(--blue));color:#fff;display:flex;align-items:center;justify-content:center;flex:none;box-shadow:0 8px 16px -8px rgba(21,101,192,.6)}
+.big2 svg{width:32px;height:32px}
+.ft2{font-family:'Fira Sans Condensed';font-weight:700;font-size:25px;color:var(--navy);line-height:1.1}
+.fd2{font-size:16.5px;color:var(--txt);line-height:1.35}
+.arr2{width:66px;display:flex;justify-content:center;color:#9cc3ee}.arr2 svg{width:28px;height:28px}
+.tip{position:absolute;left:36px;right:28px;bottom:28px;padding:16px;border-radius:12px;background:var(--blue);color:#fff;text-align:center;font-family:'Fira Sans Condensed';font-weight:700;font-size:23px}
+</style></head><body>
+<div class="dots"></div>
+
+<div class="header">
+  <div class="title">Continuidad <span>de Negocios</span></div>
+  <div class="rule"><i></i><i></i><i></i></div>
+  <div class="subtitle">ANÁLISIS DE CRITICIDAD DE UN SERVICIO TERCERIZADO</div>
+</div>
+<img class="logo" src="logo.png" alt="Comédica">
+
+<div class="card banner">
+  <div class="txt">
+    <h2>SIEMPRE LISTOS, <span>SIEMPRE CONTIGO</span></h2>
+    <p><b>Servicios Críticos Tercerizados:</b> aquellos delegados de la actividad principal cuya interrupción afecta el servicio.</p>
+  </div>
+  <div class="sh">
+    <svg viewBox="0 0 200 236">
+      <defs>
+        <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9e7f8"/></linearGradient>
+        <linearGradient id="fill" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2f95f5"/><stop offset="1" stop-color="#0d47a8"/></linearGradient>
+        <linearGradient id="gl" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      </defs>
+      <path d="M100 4 L192 36 V110 C192 170 152 212 100 232 C48 212 8 170 8 110 V36 Z" fill="url(#rim)"/>
+      <path d="M100 22 L176 48 V112 C176 160 144 196 100 214 C56 196 24 160 24 112 V48 Z" fill="url(#fill)"/>
+      <path d="M100 22 L24 48 V112 C24 160 56 196 100 214 Z" fill="url(#gl)"/>
+      <path d="M60 118 L89 147 L144 90" fill="none" stroke="#fff" stroke-width="19" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+</div>
+
+<div class="card c1">
+  <div class="hd"><div class="chip"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7.5"/><path d="m21 21-4.6-4.6"/><path d="M9 9.2a2.1 2.1 0 0 1 4.1.6c0 1.4-2.1 2-2.1 2"/><path d="M11 14.2h.01"/></svg></div>¿Qué es el Análisis<br>de Criticidad?</div>
+  <div class="sep"></div>
+  <div class="body">
+    <div class="chip"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.2"/></svg></div>
+    <p><b>Garantizar</b> la operación continua y mantener la confianza.</p>
+  </div>
+</div>
+
+<div class="card c2">
+  <div class="hd"><div class="chip"><svg class="i" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="m8 12 1.5 1.5L12 11"/><path d="M14 12h2.5"/><path d="m8 17 1.5 1.5L12 16"/><path d="M14 17h2.5"/></svg></div>Criterios de Criticidad</div>
+  <div class="sep"></div>
+  <ul>
+    <li><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div>Interrumpe procesos críticos</li>
+    <li><div class="chip"><svg class="i" viewBox="0 0 24 24"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg></div>Genera pérdidas</li>
+    <li><div class="chip"><svg class="i" viewBox="0 0 24 24"><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/></svg></div>Afecta la imagen institucional</li>
+    <li><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="m16 16 3-8 3 8c-.9.7-1.9 1-3 1s-2.1-.3-3-1Z"/><path d="m2 16 3-8 3 8c-.9.7-1.9 1-3 1s-2.1-.3-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg></div>Genera sanciones regulatorias</li>
+    <li><div class="chip"><svg class="i" viewBox="0 0 24 24"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg></div>Cambio de proveedor complejo</li>
+  </ul>
+</div>
+
+<div class="card c3">
+  <div class="hd"><div class="chip"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5h.01"/></svg></div>Proceso General</div>
+  <div class="sep"></div>
+  <p class="intro">¿Tu área va a contratar un <b>servicio tercerizado</b>?</p>
+  <div class="note"><div class="nic"><svg class="i" viewBox="0 0 24 24"><path d="m21.7 18-8-14a2 2 0 0 0-3.5 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.7-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg></div><p><b>Antes de contratar</b>, solicita el <b>Análisis de Criticidad</b> a Administración de Riesgos.</p></div>
+  <div class="flow2"><div class="fs2"><div class="big2"><svg class="i" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><circle cx="11.5" cy="14.5" r="2.5"/><path d="M13.3 16.3 15 18"/></svg></div><div><div class="ft2">Identificar</div><div class="fd2">el servicio y su impacto</div></div></div><div class="arr2"><svg viewBox="0 0 24 24" class="i"><path d="M12 4v16"/><path d="m6 14 6 6 6-6"/></svg></div><div class="fs2"><div class="big2"><svg class="i" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.9"/><path d="M16 3.1a4 4 0 0 1 0 7.8"/></svg></div><div><div class="ft2">Evaluar</div><div class="fd2">con Administración de Riesgos</div></div></div><div class="arr2"><svg viewBox="0 0 24 24" class="i"><path d="M12 4v16"/><path d="m6 14 6 6 6-6"/></svg></div><div class="fs2"><div class="big2"><svg class="i" viewBox="0 0 24 24"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.78 4 4 0 0 1 0 6.74 4 4 0 0 1-4.77 4.78 4 4 0 0 1-6.75 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg></div><div><div class="ft2">Resultado</div><div class="fd2">Crítico / No Crítico<br>Form. RP-GG-F-213</div></div></div></div>
+  <div class="tip">Primero el análisis, después la contratación.</div>
+</div>
+
+<div class="closing">
+  <div class="chip" style="color:var(--blue)"><svg class="i" viewBox="0 0 24 24" style="width:30px;height:30px"><path d="m11 17 2 2a1 1 0 1 0 3-3"/><path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88a1 1 0 1 1-3-3l2.81-2.81a5.79 5.79 0 0 1 7.06-.87l.47.28a2 2 0 0 0 1.42.25L21 4"/><path d="m21 3 1 11h-2"/><path d="M3 3 2 14l6.5 6.5a1 1 0 1 0 3-3"/><path d="M3 4h8"/></svg></div>
+  <p>La continuidad del negocio es <span>responsabilidad de todos.</span></p>
+</div>
+
+<div class="foot"><i></i>GESTIÓN INTEGRAL DE RIESGOS · COMÉDICA DE R.L.<i></i></div>
+</body></html>
