@@ -134,8 +134,8 @@ async function icon(Comp, color = "#FFFFFF") {
       num: "03", topicImg: "sync", short: "Cartera en proceso de reestructuración",
       title: "Cartera en proceso de reestructuración",
       name: "Lic. Carlos Roberto Aguilar", cargo: "Jefe de Soluciones Financieras",
-      status: "prog", thumb: "c3944e2d-1.png", thumbTitle: "Nota del Comité",
-      thumbText: "10/09/2026 · Recibida en Depto. de Soluciones el 10/09/2026",
+      status: "ok", thumb: "3eb7e831-1.png", thumbTitle: "Informe de análisis",
+      thumbText: "25/09/2026 · Departamento de Soluciones Financieras",
       acuerdoH: 2.1,
       acuerdo: [
         { text: "Presentar ante el Comité un análisis integral de la cartera en proceso de reestructuración, que incluya:", options: { breakLine: true, paraSpaceAfter: 4 } },
@@ -143,7 +143,6 @@ async function icon(Comp, color = "#FFFFFF") {
         { text: "Principales causas, factores o circunstancias que la originan.", options: { bullet: true, breakLine: true } },
         { text: "Tendencias observadas y riesgos asociados.", options: { bullet: true } },
       ],
-      timeline: [["27/08/2026", "Acuerdo en Sesión 150"], ["10/09/2026", "Nota recibida por Depto. de Soluciones (Griselda Sigüenza)"], ["Pendiente", "Presentación del análisis al Comité de Riesgos"]],
     },
     {
       num: "04", topicImg: "pension", short: "Servicio de pago de pensiones en la Cooperativa",
@@ -174,8 +173,8 @@ async function icon(Comp, color = "#FFFFFF") {
   {
     const s = pres.addSlide({ masterName: "CONTENIDO" });
     s.addText("TABLERO DE SEGUIMIENTO", { placeholder: "kicker" });
-    s.addText("4 acuerdos en seguimiento: 3 atendidos y 1 en proceso", { placeholder: "title" });
-    const stats = [["4", "Notas emitidas por el Comité", C.text2], ["3", "Acuerdos atendidos con respuesta", C.accent2], ["1", "Análisis pendiente de presentar", C.accent3]];
+    s.addText("Los 4 acuerdos de la Sesión 150 fueron atendidos", { placeholder: "title" });
+    const stats = [["4", "Notas emitidas por el Comité", C.text2], ["3", "Acuerdos cumplidos con evidencia", C.accent2], ["1", "Atendido con resultado no favorable", C.accent4]];
     stats.forEach(([n, l, col], i) => {
       const x = 0.6 + i * 4.13;
       card(s, x, 1.65, 3.87, 1.35, "Indicador " + (i + 1));
@@ -216,7 +215,7 @@ async function icon(Comp, color = "#FFFFFF") {
         ev("Memorando 04_2026 del 30/09/2026", "liberación de reservas $1,073,528.39 (4.33% de ingresos) por mejora crediticia; recuperación de castigados $121,441.73 (0.49%) por cobros efectivos. Origen contable distinto."), st("ok")],
       [num("03"), { text: resp("Lic. Carlos Roberto Aguilar", "Jefe de Soluciones Financieras") },
         "Análisis integral de la cartera en reestructuración: características, causas, tendencias y riesgos",
-        ev("Nota recibida el 10/09/2026", "análisis aún no presentado; se mantiene en seguimiento para la próxima sesión."), st("prog")],
+        ev("Informe de análisis del 25/09/2026 · 554 referencias ($16.42 M)", "causas: sobreendeudamiento, menor ingreso del hogar y jubilación. Mora >90 días 10.63% y 42.3% fuera de A1; creció 64.87% desde 2019 y ya es un componente estructural."), st("ok")],
       [num("04"), { text: resp("Lic. Luis Marcelo Cruz Vigil", "Consulta del 02/10/2026") },
         "Informar gestiones para prestar el servicio de pago de pensiones en la Cooperativa",
         ev("Solicitudes a AFP CONFIA, AFP CRECER, IPSFA e ISP · respuesta 03/10/2026", "las instituciones indicaron que COMEDICA aún no califica como entidad receptora de pensiones."), st("nf")],
@@ -317,20 +316,24 @@ async function icon(Comp, color = "#FFFFFF") {
       tb(s, [{ text: "Conclusión: ", options: { bold: true } }, { text: "mismo ámbito (riesgo crediticio), origen distinto: la liberación revierte provisiones por mejora crediticia; la recuperación son cobros de créditos ya castigados." }],
         { x: X + 0.3, y: by + 1.25, w: W - 0.6, h: 0.6, fontSize: 13 });
     } else {
-      // Línea de tiempo: acuerdo -> nota recibida -> pendiente
-      tb(s, [{ text: "A la fecha " }, { text: "no se ha recibido el análisis solicitado", options: { bold: true } }, { text: "; se mantiene en seguimiento." }],
-        { x: X + 0.3, y: by, w: W - 0.6, h: 0.35 });
-      const ty = by + 0.5, d0 = 0.36, lw = 2.6;
-      const nodes = [X + 0.3, X + W / 2 - d0 / 2, X + W - 0.3 - d0];
-      s.addShape(pres.shapes.LINE, { x: nodes[0] + d0, y: ty + d0 / 2, w: nodes[2] - nodes[0] - d0, h: 0, line: { color: H.accent6, width: 2 }, objectName: "Línea de tiempo" });
-      d.timeline.forEach(([f, t], i) => {
-        const cx = nodes[i], pend = f === "Pendiente";
-        s.addShape(pres.shapes.OVAL, { x: cx, y: ty, w: d0, h: d0, fill: { color: pend ? C.accent3 : C.accent1 }, line: { color: H.lt2, width: 3 }, objectName: "Hito " + (i + 1) });
-        const lx = i === 0 ? X + 0.3 : i === 1 ? X + W / 2 - lw / 2 : X + W - 0.3 - lw;
-        const align = ["left", "center", "right"][i];
-        tb(s, f, { x: lx, y: ty + 0.45, w: lw, h: 0.3, fontSize: 15, bold: true, color: pend ? C.accent3 : C.text2, align });
-        tb(s, t, { x: lx, y: ty + 0.77, w: lw, h: 0.55, fontSize: 12, color: C.accent5, align });
+      // Nota 03: indicadores de la cartera reestructurada
+      const kpis = [
+        ["$16.42 M", "Saldo al 31/08/2026", "554 ref. · 473 deudores", C.text2],
+        ["10.63%", "Índice de vencimiento", "mora > 90 días", C.accent4],
+        ["42.3%", "Saldo en riesgo", "fuera de A1", C.accent3],
+        ["+64.87%", "Crecimiento", "dic-2019 a jul-2026", C.accent1],
+      ];
+      const kw = (W - 0.6 - 3 * 0.15) / 4;
+      kpis.forEach(([n, a, b, col], i) => {
+        const x = X + 0.3 + i * (kw + 0.15);
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y: by, w: kw, h: 1.1, fill: { color: C.background1 }, line: { color: "D5DEE6", width: 1 }, rectRadius: 0.1, objectName: "Indicador " + a });
+        tb(s, n, { x: x + 0.15, y: by + 0.08, w: kw - 0.3, h: 0.42, fontSize: 22, bold: true, color: col });
+        tb(s, [{ text: a, options: { bold: true, color: C.text2, breakLine: true } }, { text: b, options: { color: C.accent5 } }],
+          { x: x + 0.15, y: by + 0.52, w: kw - 0.3, h: 0.5, fontSize: 11 });
       });
+      tb(s, [{ text: "Causas: ", options: { bold: true } }, { text: "sobreendeudamiento, reducción de ingresos del titular o del hogar y jubilación.", options: { breakLine: true } },
+        { text: "Conclusión: ", options: { bold: true } }, { text: "pasó de medida coyuntural (COVID-19) a componente estructural; 71 operaciones en categoría E (8.61%) están en recuperación judicial." }],
+        { x: X + 0.3, y: by + 1.22, w: W - 0.6, h: 0.85, fontSize: 13 });
     }
   }
 
@@ -338,9 +341,9 @@ async function icon(Comp, color = "#FFFFFF") {
   {
     const s = pres.addSlide({ masterName: "CIERRE" });
     s.addText("PRÓXIMOS PASOS", { placeholder: "kicker" });
-    s.addText("Acciones para cerrar los acuerdos de la Sesión 150", { placeholder: "title" });
+    s.addText("Acciones derivadas de los acuerdos de la Sesión 150", { placeholder: "title" });
     const steps = [
-      ["03", I.clock, C.accent3, "Requerir la presentación del análisis de cartera reestructurada", "Jefatura de Soluciones Financieras · nota recibida el 10/09/2026"],
+      ["03", I.sync, C.accent1, "Reforzar la evaluación de capacidad de pago en el otorgamiento", "Plazo, edad y proximidad al retiro, estabilidad de ingresos y endeudamiento existente"],
       ["01", I.users, C.accent2, "Monitorear el plan de afiliación y los vencimientos", "Depositante con beneficiarios no afiliados (6.40%) y depositantes jurídicos (24.20%)"],
       ["04", I.pension, C.accent4, "Solicitar respuesta formal por escrito de las instituciones", "Documentar los requisitos para que COMEDICA califique como entidad receptora de pensiones"],
     ];
