@@ -119,8 +119,8 @@ async function icon(Comp, color = "#FFFFFF") {
       num: "02", topicImg: "coins", short: "Liberación de reservas y recuperación de cartera castigada",
       title: "Liberación de reservas e ingresos por recuperación",
       name: "Ing. José Augusto De la O", cargo: "Gerente de Finanzas y Planificación",
-      status: "prog", thumb: "611e05fd-1.png", thumbTitle: "Nota del Comité",
-      thumbText: "Acuerdo CR-2026-49, literal j) · Recibida el 10/09/2026",
+      status: "ok", thumb: "287acb7a-1.png", thumbTitle: "Memorando 04_2026",
+      thumbText: "30/09/2026 · Recibido por el Consejo de Administración el 01/10/2026",
       acuerdoH: 2.35,
       acuerdo: [
         { text: "Presentar un análisis explicativo sobre la liberación de reservas reflejada como ingresos en los estados financieros, que incluya:", options: { breakLine: true, paraSpaceAfter: 4 } },
@@ -129,7 +129,6 @@ async function icon(Comp, color = "#FFFFFF") {
         { text: "Conciliación: liberación de reservas vs. recuperaciones vs. otros conceptos.", options: { bullet: { type: "number" }, breakLine: true, paraSpaceAfter: 4 } },
         { text: "Remitir a la Asistente del Consejo de Administración.", options: { italic: true, color: C.accent5 } },
       ],
-      timeline: [["27/08/2026", "Acuerdo en Sesión 150"], ["10/09/2026", "Nota recibida por Gerencia de Finanzas (Paula Calderón)"], ["Pendiente", "Presentación del análisis al Comité y Consejo"]],
     },
     {
       num: "03", topicImg: "sync", short: "Cartera en proceso de reestructuración",
@@ -175,8 +174,8 @@ async function icon(Comp, color = "#FFFFFF") {
   {
     const s = pres.addSlide({ masterName: "CONTENIDO" });
     s.addText("TABLERO DE SEGUIMIENTO", { placeholder: "kicker" });
-    s.addText("4 acuerdos en seguimiento: 2 atendidos y 2 en proceso", { placeholder: "title" });
-    const stats = [["4", "Notas emitidas por el Comité", C.text2], ["2", "Acuerdos atendidos con respuesta", C.accent2], ["2", "Análisis pendientes de presentar", C.accent3]];
+    s.addText("4 acuerdos en seguimiento: 3 atendidos y 1 en proceso", { placeholder: "title" });
+    const stats = [["4", "Notas emitidas por el Comité", C.text2], ["3", "Acuerdos atendidos con respuesta", C.accent2], ["1", "Análisis pendiente de presentar", C.accent3]];
     stats.forEach(([n, l, col], i) => {
       const x = 0.6 + i * 4.13;
       card(s, x, 1.65, 3.87, 1.35, "Indicador " + (i + 1));
@@ -212,7 +211,7 @@ async function icon(Comp, color = "#FFFFFF") {
         "Informe de visitas del 16/10/2026: 10 depositantes visitados ($27.15 M); 69.40% con beneficiarios afiliados", st("ok")],
       [num("02"), { text: resp("Ing. José Augusto De la O", "Gerente de Finanzas y Planificación") },
         "Análisis de liberación de reservas e ingresos por recuperación de cartera castigada (CR-2026-49, lit. j)",
-        "Nota recibida el 10/09/2026. Análisis pendiente de presentación", st("prog")],
+        "Memorando 04_2026 (30/09/2026): liberación $1,073,528.39 (4.33% de ingresos); recuperación castigada $121,441.73 (0.49%)", st("ok")],
       [num("03"), { text: resp("Lic. Carlos Roberto Aguilar", "Jefe de Soluciones Financieras") },
         "Análisis integral de la cartera en reestructuración: características, causas, tendencias y riesgos",
         "Nota recibida el 10/09/2026. Análisis pendiente de presentación", st("prog")],
@@ -301,6 +300,20 @@ async function icon(Comp, color = "#FFFFFF") {
       s.addImage({ data: await icon(fa.FaExclamationTriangle, "#" + H.accent4), x: X + 0.5, y: by + 2.25, w: 0.35, h: 0.35, objectName: "Icono resultado" });
       tb(s, [{ text: "Resultado: ", options: { bold: true, color: C.accent4 } }, { text: "las instituciones indicaron por teléfono que COMEDICA actualmente no califica como entidad receptora de pensiones." }],
         { x: X + 1.0, y: by + 2.15, w: W - 1.45, h: 0.55, valign: "middle" });
+    } else if (d.num === "02") {
+      const stats = [
+        ["$1,073,528.39", "Liberación de reservas", "4.33% de los ingresos totales · 100% reversión de estimaciones por incobrabilidad (cta. 1149)", C.accent1],
+        ["$121,441.73", "Recuperación de cartera castigada", "0.49% de los ingresos totales · 81.06% corresponde a intereses refinanciados", C.accent2],
+      ];
+      stats.forEach(([n, a, b, col], i) => {
+        const x = X + 0.3 + i * 3.84;
+        s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y: by, w: 3.69, h: 1.15, fill: { color: C.background1 }, line: { color: "D5DEE6", width: 1 }, rectRadius: 0.1, objectName: "Cifra " + a });
+        tb(s, n, { x: x + 0.2, y: by + 0.08, w: 3.3, h: 0.42, fontSize: 22, bold: true, color: col });
+        tb(s, [{ text: a, options: { bold: true, color: C.text2, breakLine: true } }, { text: b, options: { color: C.accent5 } }],
+          { x: x + 0.2, y: by + 0.5, w: 3.35, h: 0.6, fontSize: 11 });
+      });
+      tb(s, [{ text: "Conclusión: ", options: { bold: true } }, { text: "mismo ámbito (riesgo crediticio), origen distinto: la liberación revierte provisiones por mejora crediticia; la recuperación son cobros de créditos ya castigados." }],
+        { x: X + 0.3, y: by + 1.25, w: W - 0.6, h: 0.6, fontSize: 13 });
     } else {
       // Línea de tiempo: acuerdo -> nota recibida -> pendiente
       tb(s, [{ text: "A la fecha " }, { text: "no se ha recibido el análisis solicitado", options: { bold: true } }, { text: "; se mantiene en seguimiento." }],
@@ -325,7 +338,7 @@ async function icon(Comp, color = "#FFFFFF") {
     s.addText("PRÓXIMOS PASOS", { placeholder: "kicker" });
     s.addText("Acciones para cerrar los acuerdos de la Sesión 150", { placeholder: "title" });
     const steps = [
-      ["02 · 03", I.clock, C.accent3, "Requerir la presentación de los análisis pendientes", "Gerencia de Finanzas y Planificación · Jefatura de Soluciones Financieras"],
+      ["03", I.clock, C.accent3, "Requerir la presentación del análisis de cartera reestructurada", "Jefatura de Soluciones Financieras · nota recibida el 10/09/2026"],
       ["01", I.users, C.accent2, "Monitorear el plan de afiliación y los vencimientos", "Depositante con beneficiarios no afiliados (6.40%) y depositantes jurídicos (24.20%)"],
       ["04", I.pension, C.accent4, "Solicitar respuesta formal por escrito de las instituciones", "Documentar los requisitos para que COMEDICA califique como entidad receptora de pensiones"],
     ];
