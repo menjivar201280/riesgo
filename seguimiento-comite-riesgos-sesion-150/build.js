@@ -203,24 +203,26 @@ async function icon(Comp, color = "#FFFFFF") {
     const hd = (t) => ({ text: t, options: { bold: true, color: C.background1, fill: { color: C.text2 }, fontSize: 12, valign: "middle" } });
     const st = (k) => ({ text: STATUS[k].label, options: { bold: true, color: C.background1, fill: { color: STATUS[k].color }, align: "center", valign: "middle", fontSize: 11 } });
     const resp = (n, c) => [{ text: n, options: { bold: true, breakLine: true } }, { text: c, options: { color: C.accent5 } }];
+    const ev = (doc, concl) => ({ text: [{ text: doc, options: { color: C.accent5, breakLine: true } },
+      { text: "Conclusión: ", options: { bold: true, color: C.text2 } }, { text: concl }], options: { fontSize: 11 } });
     const num = (n) => ({ text: n, options: { bold: true, fontSize: 20, color: C.accent1, align: "center", valign: "middle" } });
     const rows = [
       [hd("N° nota"), hd("Responsable"), hd("Acuerdo"), hd("Evidencia / respuesta"), { text: "Estado", options: { bold: true, color: C.background1, fill: { color: C.text2 }, align: "center", fontSize: 12, valign: "middle" } }],
       [num("01"), { text: resp("Lic. José Humberto Barillas", "Gerente de Negocios") },
         "Visitas personalizadas a los mayores depositantes para gestionar el riesgo de concentración y promover la afiliación de sus hijos",
-        "Informe de visitas del 16/10/2026: 10 depositantes visitados ($27.15 M); 69.40% con beneficiarios afiliados", st("ok")],
+        ev("Informe de visitas del 16/10/2026 · 10 depositantes ($27.15 M)", "69.40% está mitigado con beneficiarios afiliados; el riesgo se concentra en 3 jurídicos (24.20%), sensibles a tasas, y 1 depositante sin beneficiarios afiliados (6.40%)."), st("ok")],
       [num("02"), { text: resp("Ing. José Augusto De la O", "Gerente de Finanzas y Planificación") },
         "Análisis de liberación de reservas e ingresos por recuperación de cartera castigada (CR-2026-49, lit. j)",
-        "Memorando 04_2026 (30/09/2026): liberación $1,073,528.39 (4.33% de ingresos); recuperación castigada $121,441.73 (0.49%)", st("ok")],
+        ev("Memorando 04_2026 del 30/09/2026", "liberación de reservas $1,073,528.39 (4.33% de ingresos) por mejora crediticia; recuperación de castigados $121,441.73 (0.49%) por cobros efectivos. Origen contable distinto."), st("ok")],
       [num("03"), { text: resp("Lic. Carlos Roberto Aguilar", "Jefe de Soluciones Financieras") },
         "Análisis integral de la cartera en reestructuración: características, causas, tendencias y riesgos",
-        "Nota recibida el 10/09/2026. Análisis pendiente de presentación", st("prog")],
+        ev("Nota recibida el 10/09/2026", "análisis aún no presentado; se mantiene en seguimiento para la próxima sesión."), st("prog")],
       [num("04"), { text: resp("Lic. Luis Marcelo Cruz Vigil", "Consulta del 02/10/2026") },
         "Informar gestiones para prestar el servicio de pago de pensiones en la Cooperativa",
-        "Solicitudes a AFP CONFIA, AFP CRECER, IPSFA e ISP. Respuesta 03/10/2026: COMEDICA aún no califica como entidad receptora", st("nf")],
+        ev("Solicitudes a AFP CONFIA, AFP CRECER, IPSFA e ISP · respuesta 03/10/2026", "las instituciones indicaron que COMEDICA aún no califica como entidad receptora de pensiones."), st("nf")],
     ];
     s.addTable(rows, {
-      x: 0.6, y: 1.65, w: 12.13, colW: [0.95, 2.45, 3.75, 3.48, 1.5],
+      x: 0.6, y: 1.65, w: 12.13, colW: [0.85, 2.3, 3.05, 4.55, 1.38],
       rowH: [0.45, 1.15, 1.15, 1.15, 1.15],
       fontSize: 12, color: C.text1, valign: "middle", margin: [0.06, 0.1, 0.06, 0.1],
       border: { type: "solid", pt: 0.75, color: "D5DEE6" }, fill: { color: C.background1 },
