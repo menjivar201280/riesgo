@@ -1,2 +1,3 @@
 # Contiene datos personales de asociados (nombre, DUI, correo, telefono, direccion): no versionar
 *.xlsx
+*.png
