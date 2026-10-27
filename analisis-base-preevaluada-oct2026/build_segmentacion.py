@@ -961,7 +961,7 @@ met = [
     ('SECCIÓN', 'E. Actualización'),
     ('Procedimiento', f'Para una base nueva: pegar los datos en BD FINAL y en BD_CLASIFICADA columnas A:AE respetando el orden; '
      f'extender las fórmulas de las columnas AF en adelante a todas las filas y ampliar los rangos de las fórmulas (actualmente filas '
-     f'{R1}-{RN}). Alternativamente, ejecutar el script build_segmentacion.py con el archivo nuevo, que regenera todo el libro.'),
+     f'{R1}-{RN}). Alternativamente, ejecutar build_segmentacion.py, recalcular y luego agregar_lista_cumplen.py (y recalcular de nuevo).'),
 ]
 r = 3
 for a, b in met:
