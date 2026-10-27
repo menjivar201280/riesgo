@@ -125,6 +125,18 @@ params = [
      'Memorando, otros criterios 5: con límite > $4,000 y sin solvencia en Hacienda se otorga con límite $4,000.', 'Criterio del memorando'),
     ('HIPO_SOLV_MIN', 'Monto hipotecario desde el cual se exige solvencia en Hacienda', 30000, 'USD', USD,
      'Memorando, otros criterios 6: créditos hipotecarios mayores a $30,000 requieren verificar solvencia.', 'Criterio del memorando'),
+    ('APO_L1', 'Aportaciones acumuladas: inicio nivel medio', 500, 'USD', USD,
+     'Aprox. percentil 20 de MONTO_TOTAL_APORTACIONES (P20 = $517; P25 = $696).', 'Pendiente de aprobación'),
+    ('APO_L2', 'Aportaciones acumuladas: inicio nivel alto', 2000, 'USD', USD,
+     'Aprox. percentil 73 (P75 = $2,070).', 'Pendiente de aprobación'),
+    ('MORA_L1', 'Cuotas de aportación vencidas: inicio nivel medio', 1, 'Cuotas', '0',
+     'Cualquier atraso (memorando: no estar al día condiciona la TC).', 'Pendiente de aprobación'),
+    ('MORA_L2', 'Cuotas de aportación vencidas: inicio nivel alto', 3, 'Cuotas', '0',
+     '3 o más cuotas (atraso de un trimestre o más); P95 de la base = 2 cuotas.', 'Pendiente de aprobación'),
+    ('EDAD_T1', 'Edad: inicio del tramo 2', 40, 'Años', '0', 'Tramos de 10 años dentro del rango 30-55 del memorando (descriptivo).',
+     'Pendiente de aprobación'),
+    ('EDAD_T2', 'Edad: inicio del tramo 3', 50, 'Años', '0', 'Tramo final: relevante para plazos largos (hipotecario).',
+     'Pendiente de aprobación'),
     ('CAT_OK1', 'Categoría aceptada 1', 'A1', 'Texto', '@', 'Memorando, criterios 5 y 6 (A1 y A2 interna y externa).',
      'Criterio del memorando'),
     ('CAT_OK2', 'Categoría aceptada 2', 'A2', 'Texto', '@', 'Memorando, criterios 5 y 6 (A1 y A2 interna y externa).',
@@ -235,7 +247,7 @@ add('RANGO_INGRESO',
     f'IF({V("ING")}<{P["ING_L3"]},"III - Ingreso medio alto","IV - Ingreso alto")))))')
 add('NIVEL_INGRESO',
     '=IF({RANGO_INGRESO}="I - Ingreso bajo","Alto",IF({RANGO_INGRESO}="II - Ingreso medio","Medio",'
-    'IF({RANGO_INGRESO}="III - Ingreso medio alto","Medio-bajo",IF({RANGO_INGRESO}="IV - Ingreso alto","Bajo","Pendiente"))))',
+    'IF({RANGO_INGRESO}="III - Ingreso medio alto","Bajo",IF({RANGO_INGRESO}="IV - Ingreso alto","Muy bajo","Sin información"))))',
     None, 'Nivel de riesgo DESCRIPTIVO por capacidad de ingreso; no es riesgo crediticio integral.')
 add('ALERTA_ING_ATIPICO', f'=IF(AND({ING_OK},{V("ING")}>{P["ING_ATIPICO"]}),1,0)', '0')
 # --- deuda SSF
@@ -249,16 +261,30 @@ add('RANGO_DEUDA',
     f'IF({V("SSF")}<=0,"Sin saldo (cero o a favor)",IF({V("SSF")}<{P["DEU_L1"]},"D1 - Deuda baja",'
     f'IF({V("SSF")}<{P["DEU_L2"]},"D2 - Deuda intermedia",IF({V("SSF")}<{P["DEU_L3"]},"D3 - Deuda elevada",'
     f'"D4 - Deuda muy elevada")))))')
+add('NIVEL_DEUDA',
+    '=IF({RANGO_DEUDA}="D1 - Deuda baja","Bajo",IF({RANGO_DEUDA}="D2 - Deuda intermedia","Medio",'
+    'IF({RANGO_DEUDA}="D3 - Deuda elevada","Alto",IF({RANGO_DEUDA}="D4 - Deuda muy elevada","Muy alto",'
+    'IF({RANGO_DEUDA}="Sin saldo (cero o a favor)","Sin deuda","Sin información")))))',
+    None, 'Nivel por saldo SSF. Deuda alta no significa incumplimiento.')
 add('MULT_DEUDA_INGRESO', f'=IF(AND({ING_OK},{SSF_OK}),MAX({V("SSF")},0)/{V("ING")},"")', MULT,
     'Saldo SSF / ingreso mensual, en VECES el ingreso mensual (no es relación cuota-ingreso).')
 add('RANGO_DEUDA_INGRESO',
     f'=IF(NOT({ING_OK}),"No calculable - ingreso no válido",IF(NOT({SSF_OK}),"No calculable - sin dato SSF",'
     '{MULT_DEUDA_INGRESO_IF}))')
+add('NIVEL_DEUDA_INGRESO',
+    '=IF({RANGO_DEUDA_INGRESO}="R1 - Bajo","Bajo",IF({RANGO_DEUDA_INGRESO}="R2 - Medio","Medio",'
+    'IF({RANGO_DEUDA_INGRESO}="R3 - Alto","Alto",IF({RANGO_DEUDA_INGRESO}="R4 - Muy alto","Muy alto",'
+    'IF({RANGO_DEUDA_INGRESO}="Sin deuda","Sin deuda","Sin información")))))')
 # --- fondos
 add('RANGO_FONDO',
     f'=IF(NOT({NUMV("FON")}),"Sin dato",IF({V("FON")}<=0,"Sin fondo (cero)",IF({V("FON")}<{P["FON_L1"]},"F1 - Fondo bajo",'
     f'IF({V("FON")}<{P["FON_L2"]},"F2 - Fondo medio",IF({V("FON")}<{P["FON_L3"]},"F3 - Fondo alto","F4 - Fondo muy alto")))))',
     None, 'Descriptivo: no se supone que el fondo esté disponible para pagar deudas.')
+add('NIVEL_RESPALDO_FONDO',
+    '=IF({RANGO_FONDO}="F1 - Fondo bajo","Bajo",IF({RANGO_FONDO}="F2 - Fondo medio","Medio",'
+    'IF({RANGO_FONDO}="F3 - Fondo alto","Alto",IF({RANGO_FONDO}="F4 - Fondo muy alto","Muy alto",'
+    'IF({RANGO_FONDO}="Sin fondo (cero)","Sin fondo","Sin información")))))',
+    None, 'Nivel de RESPALDO (monto del fondo), no de riesgo: falta validar si el fondo está disponible.')
 add('FON_VALIDO', f'=IF(AND({NUMV("FON")},{V("FON")}>0),{V("FON")},"")', USD, 'Auxiliar: fondo > 0.')
 add('MESES_FONDO_INGRESO', f'=IF(AND({ING_OK},{NUMV("FON")}),{V("FON")}/{V("ING")},"")', MULT,
     'Fondo compensatorio / ingreso mensual (meses de ingreso).')
@@ -266,12 +292,31 @@ add('RANGO_FONDO_INGRESO',
     f'=IF(NOT({ING_OK}),"No calculable - ingreso no válido",IF({V("FON")}<=0,"Sin fondo",'
     f'IF({{MESES_FONDO_INGRESO}}<{P["FOI_L1"]},"M1 - Cobertura baja",IF({{MESES_FONDO_INGRESO}}<{P["FOI_L2"]},"M2 - Cobertura media",'
     f'IF({{MESES_FONDO_INGRESO}}<{P["FOI_L3"]},"M3 - Cobertura alta","M4 - Cobertura muy alta")))))')
+add('NIVEL_COBERTURA_FONDO',
+    '=IF({RANGO_FONDO_INGRESO}="M1 - Cobertura baja","Bajo",IF({RANGO_FONDO_INGRESO}="M2 - Cobertura media","Medio",'
+    'IF({RANGO_FONDO_INGRESO}="M3 - Cobertura alta","Alto",IF({RANGO_FONDO_INGRESO}="M4 - Cobertura muy alta","Muy alto",'
+    'IF({RANGO_FONDO_INGRESO}="Sin fondo","Sin fondo","Sin información")))))',
+    None, 'Nivel de respaldo del fondo en meses de ingreso (no es riesgo).')
+# --- otros criterios
+add('NIVEL_APORTACIONES',
+    f'=IF(NOT({NUMV("APM")}),"Sin información",IF({V("APM")}<{P["APO_L1"]},"Bajo",IF({V("APM")}<{P["APO_L2"]},"Medio","Alto")))',
+    None, 'Nivel de aportaciones acumuladas (vínculo/ahorro con la cooperativa); no es nivel de riesgo.')
+add('NIVEL_MORA_APORTACIONES',
+    f'=IF(NOT({NUMV("CVA")}),"Sin información",IF({V("CVA")}<{P["MORA_L1"]},"Bajo",IF({V("CVA")}<{P["MORA_L2"]},"Medio","Alto")))',
+    None, 'Nivel de riesgo por cuotas de aportación vencidas.')
+add('TRAMO_EDAD',
+    f'=IF({{EDAD_RECALCULADA}}<{P["EDAD_T1"]},"30 a 39",IF({{EDAD_RECALCULADA}}<{P["EDAD_T2"]},"40 a 49",'
+    f'IF({{EDAD_RECALCULADA}}<={P["EDAD_MAX"]},"50 a 55","Mayor de 55")))',
+    None, 'Tramo descriptivo de edad al corte; no se asigna nivel de riesgo por edad.')
 # --- historial
 add('CAT_INTERNA',
     f'=IF(LEN(TRIM({V("CATI")}&""))>0,{V("CATI")},IF({V("CRED")}="SI","Dato faltante (con crédito vigente)",'
     '"Sin historial interno"))')
 add('CAT_EXTERNA_SSF',
     f'=IF(LEN(TRIM({V("CATE")}&""))>0,{V("CATE")},IF({SSF_OK},"Dato faltante (con saldo SSF)","Sin registro SSF"))')
+add('NIVEL_CAT_INTERNA', '=IF({CAT_INTERNA}="A1","Bajo",IF({CAT_INTERNA}="A2","Medio",IF(LEN({CAT_INTERNA})=2,"Alto","Sin información")))',
+    None, 'A1 = Bajo, A2 = Medio, otra categoría = Alto; sin categoría = Sin información.')
+add('NIVEL_CAT_EXTERNA', '=IF({CAT_EXTERNA_SSF}="A1","Bajo",IF({CAT_EXTERNA_SSF}="A2","Medio",IF(LEN({CAT_EXTERNA_SSF})=2,"Alto","Sin información")))')
 # --- criterios de elegibilidad del memorando
 crit_first = len(calc)
 add('C_EDAD', f'=IF(AND({{EDAD_RECALCULADA}}>={P["EDAD_MIN"]},{{EDAD_RECALCULADA}}<={P["EDAD_MAX"]}),"Cumple","No cumple")',
@@ -407,7 +452,16 @@ CATS = {
     'NIVEL_ANTIGUEDAD': ['Alto', 'Medio', 'Bajo', 'Sin dato', 'Inconsistente - revisar'],
     'RANGO_INGRESO': ['I - Ingreso bajo', 'II - Ingreso medio', 'III - Ingreso medio alto', 'IV - Ingreso alto',
                       'Ingreso cero - revisar', 'Sin dato'],
-    'NIVEL_INGRESO': ['Alto', 'Medio', 'Medio-bajo', 'Bajo', 'Pendiente'],
+    'NIVEL_INGRESO': ['Alto', 'Medio', 'Bajo', 'Muy bajo', 'Sin información'],
+    'NIVEL_DEUDA': ['Bajo', 'Medio', 'Alto', 'Muy alto', 'Sin deuda', 'Sin información'],
+    'NIVEL_DEUDA_INGRESO': ['Bajo', 'Medio', 'Alto', 'Muy alto', 'Sin deuda', 'Sin información'],
+    'NIVEL_COBERTURA_FONDO': ['Bajo', 'Medio', 'Alto', 'Muy alto', 'Sin fondo', 'Sin información'],
+    'NIVEL_APORTACIONES': ['Bajo', 'Medio', 'Alto', 'Sin información'],
+    'NIVEL_MORA_APORTACIONES': ['Bajo', 'Medio', 'Alto', 'Sin información'],
+    'TRAMO_EDAD': ['30 a 39', '40 a 49', '50 a 55', 'Mayor de 55'],
+    'NIVEL_CAT_INTERNA': ['Bajo', 'Medio', 'Alto', 'Sin información'],
+    'NIVEL_CAT_EXTERNA': ['Bajo', 'Medio', 'Alto', 'Sin información'],
+    'NIVEL_RESPALDO_FONDO': ['Bajo', 'Medio', 'Alto', 'Muy alto', 'Sin fondo', 'Sin información'],
     'ESTADO_DEUDA_SSF': ['Con saldo', 'Saldo cero', 'Saldo negativo (a favor) - revisar', 'Dato faltante',
                          'Sin registro SSF en la base'],
     'RANGO_DEUDA': ['D1 - Deuda baja', 'D2 - Deuda intermedia', 'D3 - Deuda elevada', 'D4 - Deuda muy elevada',
@@ -548,9 +602,9 @@ M += [
      'Hasta aprox. P25 de ingresos > 0; corte coincide con RANGOS TC.', 'RANGO_INGRESO', 'I - Ingreso bajo', ing_falt, ing_lim, USD),
     ('Ingreso mensual', 'INGRESO', prm('ING_L1'), prm('ING_L2', '0.01'), 'USD/mes', 'II - Ingreso medio (nivel Medio)',
      'P25 a P60 aprox.; $3,000 es el ingreso mínimo de RANGOS VEHICULO.', 'RANGO_INGRESO', 'II - Ingreso medio', ing_falt, ing_lim, USD),
-    ('Ingreso mensual', 'INGRESO', prm('ING_L2'), prm('ING_L3', '0.01'), 'USD/mes', 'III - Ingreso medio alto (nivel Medio-bajo)',
+    ('Ingreso mensual', 'INGRESO', prm('ING_L2'), prm('ING_L3', '0.01'), 'USD/mes', 'III - Ingreso medio alto (nivel Bajo)',
      'P60 a P83 aprox.; coincide con tramo de vehículo 20,000 e hipotecario 110,000.', 'RANGO_INGRESO', 'III - Ingreso medio alto', ing_falt, ing_lim, USD),
-    ('Ingreso mensual', 'INGRESO', prm('ING_L3'), 'Sin límite', 'USD/mes', 'IV - Ingreso alto (nivel Bajo)',
+    ('Ingreso mensual', 'INGRESO', prm('ING_L3'), 'Sin límite', 'USD/mes', 'IV - Ingreso alto (nivel Muy bajo)',
      'Sobre P83 aprox. Valores > umbral atípico se marcan para verificación.', 'RANGO_INGRESO', 'IV - Ingreso alto', ing_falt, ing_lim, USD),
     ('Ingreso mensual', 'INGRESO', 0, 0, 'USD/mes', 'Ingreso cero - revisar', 'Ingreso registrado en 0.',
      'RANGO_INGRESO', 'Ingreso cero - revisar', ing_falt, 'Puede ser dato no capturado; requiere verificación.', USD),
@@ -986,6 +1040,112 @@ for i, (t, p, d, rsp) in enumerate(pend, 1):
     put(wpe, rr, 5, rsp)
     put(wpe, rr, 6, 'Pendiente', Font(name=F, size=10, bold=True, color='C00000'))
 
+
+# ---------------------------------------------------------------- Variables_Rangos
+wv = wb.create_sheet('Variables_Rangos')
+wv['A1'] = 'RANGOS Y NIVELES POR VARIABLE (mismo formato de la hoja "Variables" del archivo)'
+wv['A1'].font = ftitle
+wv['A2'] = ('Propuesta pendiente de aprobación por Riesgos. Límites enlazados a la hoja Parametros; el nivel de cada asociado '
+            'está en BD_CLASIFICADA (columnas NIVEL_*). Antigüedad: niveles solicitados. Ingreso, deuda y fondo: rangos calculados '
+            'con la distribución de esta base.')
+wv['A2'].font = Font(name=F, size=9, italic=True)
+TXT = lambda pid: f'TEXT({P[pid]},"$#,##0")'
+TXTm = lambda pid: f'TEXT({P[pid]}-0.01,"$#,##0.00")'
+TXTx = lambda pid: f'TEXT({P[pid]},"0")'
+blocks = [
+    ('ANTIGUEDAD_ANIOS', 'NIVEL_ANTIGUEDAD', 'Nivel de riesgo', [
+        (f'="0 - "&{TXTx("ANT_ALTO_MAX")}', 'Alto'),
+        (f'={TXTx("ANT_ALTO_MAX")}&"+1"', None),
+    ]),
+]
+specs = [
+    ('ANTIGUEDAD_ANIOS (años)', 'NIVEL_ANTIGUEDAD', 'Nivel de riesgo', [
+        (f'="0 - "&{P["ANT_ALTO_MAX"]}', 'Alto'),
+        (f'={P["ANT_ALTO_MAX"]}+1&" - "&{P["ANT_MEDIO_MAX"]}', 'Medio'),
+        (f'={P["ANT_MEDIO_MAX"]}+1&" - Más"', 'Bajo'),
+        ('Vacío', 'Sin dato'), ('Negativo o mayor que la edad', 'Inconsistente - revisar')]),
+    ('INGRESO (USD mensual)', 'NIVEL_INGRESO', 'Nivel de riesgo', [
+        (f'="$0.01 - "&{TXTm("ING_L1")}', 'Alto'),
+        (f'={TXT("ING_L1")}&" - "&{TXTm("ING_L2")}', 'Medio'),
+        (f'={TXT("ING_L2")}&" - "&{TXTm("ING_L3")}', 'Bajo'),
+        (f'={TXT("ING_L3")}&" - Más"', 'Muy bajo'),
+        ('Vacío o $0', 'Sin información')]),
+    ('SALDO_SSF (USD, Central de Riesgo)', 'NIVEL_DEUDA', 'Nivel de riesgo', [
+        ('$0 o a favor', 'Sin deuda'),
+        (f'="$0.01 - "&{TXTm("DEU_L1")}', 'Bajo'),
+        (f'={TXT("DEU_L1")}&" - "&{TXTm("DEU_L2")}', 'Medio'),
+        (f'={TXT("DEU_L2")}&" - "&{TXTm("DEU_L3")}', 'Alto'),
+        (f'={TXT("DEU_L3")}&" - Más"', 'Muy alto'),
+        ('Sin registro SSF', 'Sin información')]),
+    ('DEUDA / INGRESO (veces el ingreso mensual)', 'NIVEL_DEUDA_INGRESO', 'Nivel de riesgo', [
+        ('0 veces', 'Sin deuda'),
+        (f'="Más de 0 - menos de "&{P["DTI_L1"]}', 'Bajo'),
+        (f'={P["DTI_L1"]}&" - menos de "&{P["DTI_L2"]}', 'Medio'),
+        (f'={P["DTI_L2"]}&" - menos de "&{P["DTI_L3"]}', 'Alto'),
+        (f'={P["DTI_L3"]}&" - Más"', 'Muy alto'),
+        ('Ingreso vacío/$0 o sin dato SSF', 'Sin información')]),
+    ('FONDO_COMPENSATORIO (USD)', 'NIVEL_RESPALDO_FONDO', 'Nivel de respaldo (no es riesgo)', [
+        ('$0', 'Sin fondo'),
+        (f'="$0.01 - "&{TXTm("FON_L1")}', 'Bajo'),
+        (f'={TXT("FON_L1")}&" - "&{TXTm("FON_L2")}', 'Medio'),
+        (f'={TXT("FON_L2")}&" - "&{TXTm("FON_L3")}', 'Alto'),
+        (f'={TXT("FON_L3")}&" - Más"', 'Muy alto')]),
+    ('OTROS CRITERIOS', None, None, None),
+    ('FONDO / INGRESO (meses de ingreso)', 'NIVEL_COBERTURA_FONDO', 'Nivel de respaldo (no es riesgo)', [
+        ('$0 de fondo', 'Sin fondo'),
+        (f'="Más de 0 - menos de "&{P["FOI_L1"]}&" mes"', 'Bajo'),
+        (f'={P["FOI_L1"]}&" - menos de "&{P["FOI_L2"]}&" meses"', 'Medio'),
+        (f'={P["FOI_L2"]}&" - menos de "&{P["FOI_L3"]}&" meses"', 'Alto'),
+        (f'={P["FOI_L3"]}&" meses - Más"', 'Muy alto'),
+        ('Ingreso vacío o $0', 'Sin información')]),
+    ('MONTO_TOTAL_APORTACIONES (USD)', 'NIVEL_APORTACIONES', 'Nivel de aportación (no es riesgo)', [
+        (f'="$0.01 - "&{TXTm("APO_L1")}', 'Bajo'),
+        (f'={TXT("APO_L1")}&" - "&{TXTm("APO_L2")}', 'Medio'),
+        (f'={TXT("APO_L2")}&" - Más"', 'Alto')]),
+    ('CUOTAS_VENC_APORT (cuotas de aportación vencidas)', 'NIVEL_MORA_APORTACIONES', 'Nivel de riesgo', [
+        (f'="0 (al día)"', 'Bajo'),
+        (f'={P["MORA_L1"]}&" - "&({P["MORA_L2"]}-1)', 'Medio'),
+        (f'={P["MORA_L2"]}&" - Más"', 'Alto')]),
+    ('MAX_CAT_RIESGO (categoría interna)', 'NIVEL_CAT_INTERNA', 'Nivel de riesgo', [
+        ('A1', 'Bajo'), ('A2', 'Medio'), ('B, C, D o E', 'Alto'), ('Sin categoría', 'Sin información')]),
+    ('CALIFICACION_SSF (categoría externa)', 'NIVEL_CAT_EXTERNA', 'Nivel de riesgo', [
+        ('A1', 'Bajo'), ('A2', 'Medio'), ('B, C, D o E', 'Alto'), ('Sin calificación', 'Sin información')]),
+    ('EDAD al 30/09/2026 (años)', 'TRAMO_EDAD', 'Tramo (descriptivo, sin nivel de riesgo)', [
+        (f'="30 - "&({P["EDAD_T1"]}-1)', '30 a 39'), (f'={P["EDAD_T1"]}&" - "&({P["EDAD_T2"]}-1)', '40 a 49'),
+        (f'={P["EDAD_T2"]}&" - "&{P["EDAD_MAX"]}', '50 a 55'), ('56 o más', 'Mayor de 55')]),
+    ('TIENE_CREDITO_VIGENTE', 'ORIG:CRED', 'Valor', [('SI', 'SI'), ('NO', 'NO')]),
+    ('TIENE_TARJETA', 'ORIG:TTC', 'Valor', [('SI', 'SI'), ('NO', 'NO')]),
+    ('CUOTA / INGRESO', None, 'Nivel', [('No disponible en la base', 'No disponible en la base')]),
+]
+r = 4
+for title, var, nivh, rows_ in specs:
+    if rows_ is None:
+        wv.cell(r, 1, title).font = fsub
+        r += 2
+        continue
+    hdr(wv, r, [title, nivh, 'Asociados', '% del total'], fill=fill_h)
+    r += 1
+    s0 = r
+    for rng_, lvl in rows_:
+        put(wv, r, 1, rng_, fb)
+        put(wv, r, 2, lvl, fill=fill_warn if 'No disponible' in lvl else None)
+        if var:
+            rg_ = ORNG(var[5:]) if var.startswith('ORIG:') else RNG(var)
+            put(wv, r, 3, f'=COUNTIF({rg_},B{r})', fmt='#,##0')
+            put(wv, r, 4, f'=C{r}/{TOTAL}', fmt=PCT)
+        else:
+            put(wv, r, 3, '—'); put(wv, r, 4, '—')
+        r += 1
+    if var:
+        put(wv, r, 1, 'Total', fb, fill=fill_note)
+        put(wv, r, 2, '', fill=fill_note)
+        put(wv, r, 3, f'=SUM(C{s0}:C{r-1})', fb, '#,##0', fill_note)
+        put(wv, r, 4, f'=SUM(D{s0}:D{r-1})', fb, PCT, fill_note)
+        r += 1
+    r += 1
+for j, w in enumerate([40, 30, 12, 12], 1):
+    wv.column_dimensions[L(j)].width = w
+
 # ---------------------------------------------------------------- Cumplimiento memorando
 wcm = wb.create_sheet('Cumplimiento_Memorando')
 wcm['A1'] = '¿LA BASE APLICA CON LAS CONDICIONES DEL MEMORANDO? (Memorando 27/10/2026, corte 30/09/2026)'
@@ -1175,6 +1335,7 @@ wl['A2'] = 'Documento de trabajo. Parámetros PROPUESTOS, pendientes de validaci
 wl['A2'].font = Font(name=F, size=10, bold=True, color='C00000')
 guide = [
     ('Cumplimiento_Memorando', '¿La base aplica con las condiciones del memorando? Veredicto por condición y global.'),
+    ('Variables_Rangos', 'Rangos y niveles (Alto/Medio/Bajo) de cada variable, en el formato de la hoja Variables del archivo.'),
     ('Parametros', 'Límites editables (celdas amarillas). Al cambiarlos, todo el libro se recalcula.'),
     ('Matriz_Segmentacion', 'Matriz de rangos y niveles: variable, columna, límites, unidad, nivel, justificación, cantidad, %, faltantes, limitaciones.'),
     ('BD_CLASIFICADA', 'Base con las 31 columnas originales (A:AE) + columnas calculadas con fórmulas (encabezado azul claro; ver comentarios).'),
@@ -1194,7 +1355,7 @@ for a, b in guide:
     put(wl, r, 2, b)
     r += 1
 
-order = ['LEEME', 'Cumplimiento_Memorando', 'Parametros', 'Matriz_Segmentacion', 'Consolidado', 'Estadisticas', 'Evaluacion_Conjunta',
+order = ['LEEME', 'Variables_Rangos', 'Cumplimiento_Memorando', 'Parametros', 'Matriz_Segmentacion', 'Consolidado', 'Estadisticas', 'Evaluacion_Conjunta',
          'Analisis_Producto', 'Calidad_Conciliacion', 'Metodologia', 'Pendientes_Aprobacion', 'BD_CLASIFICADA',
          'BD FINAL', 'Variables', 'RANGOS VEHICULO', 'RANGOS TC']
 wb._sheets = [wb[n] for n in order]

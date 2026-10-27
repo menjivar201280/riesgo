@@ -9,7 +9,7 @@ Archivos analizados (solo los de esta ejecución):
 
 - **Memorando:** "Validación de base pre evaluada de Crédito Hipotecario, vehículo y Tarjeta de Crédito". Fecha 27/10/2026. Lo dirigen Créditos, Comercial TC y Mercadeo al Jefe de Riesgos.
 - **Base:** `Base_de_Asociados_pre_evaluada_creditos_y_tc_para_analisis_de_Riesgos.xlsx`, hoja `BD FINAL`.
-- **Libro de trabajo entregado:** `Segmentacion_Riesgos_Base_PreEvaluada.xlsx`. Contiene 123,228 fórmulas y 0 errores. Cada número de este informe sale de ese libro.
+- **Libro de trabajo entregado:** `Segmentacion_Riesgos_Base_PreEvaluada.xlsx`. Contiene 143,869 fórmulas y 0 errores. Cada número de este informe sale de ese libro.
 
 ---
 
@@ -86,6 +86,8 @@ Cuatro condiciones del memorando **no se pueden verificar** con la base porque e
 
 Cada límite inferior está incluido en su rango. Los porcentajes se calculan sobre los 2,262 asociados.
 
+La hoja **`Variables_Rangos`** del libro presenta todas las variables con el mismo formato de la hoja "Variables" del archivo (rango → nivel). El nivel de cada asociado está en `BD_CLASIFICADA`, en las columnas `NIVEL_ANTIGUEDAD`, `NIVEL_INGRESO`, `NIVEL_DEUDA`, `NIVEL_DEUDA_INGRESO`, `NIVEL_RESPALDO_FONDO`, `NIVEL_COBERTURA_FONDO`, `NIVEL_APORTACIONES`, `NIVEL_MORA_APORTACIONES`, `NIVEL_CAT_INTERNA`, `NIVEL_CAT_EXTERNA` y `TRAMO_EDAD`.
+
 ## 3.1 Antigüedad como asociado (`ANTIGUEDAD_ANIOS`, años completos)
 
 Los niveles son los solicitados. La antigüedad mide permanencia, no capacidad de pago.
@@ -116,8 +118,8 @@ La base no indica si el ingreso es **bruto o disponible**. Por eso se trata como
 |---|---|---|---:|---:|---:|---|
 | I | $0.01 – $1,499.99 | Alto | 227 | 10.0% | 26.9% | ≈ P25; coincide con el corte de RANGOS TC |
 | II | $1,500 – $2,999.99 | Medio | 237 | 10.5% | 28.1% | P25–P60; $3,000 es el mínimo de la tabla de vehículo |
-| III | $3,000 – $4,999.99 | Medio-bajo | 234 | 10.3% | 27.7% | P60–P83; tramo de vehículo $20,000 e hipotecario $110,000 |
-| IV | $5,000 o más | Bajo | 146 | 6.5% | 17.3% | > P83; tramos superiores de vehículo e hipotecario |
+| III | $3,000 – $4,999.99 | Bajo | 234 | 10.3% | 27.7% | P60–P83; tramo de vehículo $20,000 e hipotecario $110,000 |
+| IV | $5,000 o más | Muy bajo | 146 | 6.5% | 17.3% | > P83; tramos superiores de vehículo e hipotecario |
 | Ingreso cero | $0 | Revisar | 135 | 6.0% | — | No se calcula ninguna razón |
 | Sin dato | vacío | Revisar | 1,283 | 56.7% | — | No se calcula ninguna razón |
 
@@ -187,7 +189,31 @@ Distribución de los fondos mayores que cero (n = 2,207): mínimo $1, P25 $2,591
 - La base no dice si el fondo está **disponible, retenido o pignorado**. Por eso se presenta como respaldo **descriptivo** y **no se le atribuye reducción de riesgo**.
 - `MONTO_TOTAL_APORTACIONES` es un concepto distinto (mediana $1,443). En 312 asociados el fondo es menor que sus aportaciones, lo que confirma que no son la misma cifra.
 
-## 3.7 Historial y clasificación
+## 3.7 Otros criterios con rango y nivel
+
+| Criterio (columna) | Rango → nivel | Asociados |
+|---|---|---|
+| Cuotas de aportación vencidas (`CUOTAS_VENC_APORT`), **nivel de riesgo** | 0 (al día) → Bajo · 1 a 2 → Medio · 3 o más → Alto | 2,076 · 79 · 107 |
+| Categoría interna (`MAX_CAT_RIESGO`), **nivel de riesgo** | A1 → Bajo · A2 → Medio · B a E → Alto · sin categoría → Sin información | 1,356 · 22 · 0 · 884 |
+| Calificación SSF (`CALIFICACION_SSF`), **nivel de riesgo** | A1 → Bajo · A2 → Medio · B a E → Alto · sin calificación → Sin información | 1,813 · 11 · 0 · 438 |
+| Aportaciones acumuladas (`MONTO_TOTAL_APORTACIONES`), nivel de aportación (no es riesgo) | menos de $500 → Bajo · $500 a $1,999.99 → Medio · $2,000 o más → Alto | 446 · 1,201 · 615 |
+| Fondo ÷ ingreso, nivel de respaldo (no es riesgo) | menos de 1 mes → Bajo · 1 a menos de 6 → Medio · 6 a menos de 12 → Alto · 12 o más → Muy alto | 349 · 190 · 86 · 164 |
+| Edad al 30/09/2026, tramo descriptivo | 30–39 · 40–49 · 50–55 · mayor de 55 | 574 · 876 · 804 · 8 |
+| Tiene crédito vigente / tiene tarjeta | SÍ / NO | 823 / 1,439 · 966 / 1,296 |
+
+Por qué algunos criterios no llevan nivel de riesgo:
+
+- **Edad:** se presenta solo como tramo descriptivo. Asignarle un nivel de riesgo requiere una política institucional.
+- **Aportaciones y fondo:** indican vínculo y respaldo con la cooperativa. No se les atribuye reducción de riesgo mientras no se valide si están disponibles.
+
+Cortes usados:
+
+- Aportaciones: $500 (≈ P20) y $2,000 (≈ P73).
+- Cuotas vencidas: 1 cuota (cualquier atraso) y 3 cuotas (un trimestre de atraso).
+
+Todos estos cortes se pueden editar en la hoja `Parametros`.
+
+## 3.8 Historial y clasificación
 
 | Variable | Disponible | Categorías encontradas |
 |---|---|---|
@@ -309,6 +335,7 @@ Observaciones por producto:
 La hoja `Pendientes_Aprobacion` del libro tiene 27 puntos con su responsable sugerido. Los principales son:
 
 - los rangos de ingreso (I–IV), de deuda SSF (D1–D4), de deuda-ingreso (R1–R4) y de fondo (F1–F4 y M1–M4);
+- los otros criterios (aportaciones, cuotas de aportación vencidas, niveles de categoría y tramos de edad);
 - el umbral para marcar un ingreso como atípico;
 - cómo tratar a los asociados sin historial interno y a los que tienen categoría A2;
 - la tabla hipotecaria;
