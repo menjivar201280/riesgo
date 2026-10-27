@@ -9,7 +9,7 @@ Archivos analizados (solo los de esta ejecución):
 
 - **Memorando:** "Validación de base pre evaluada de Crédito Hipotecario, vehículo y Tarjeta de Crédito". Fecha 27/10/2026. Lo dirigen Créditos, Comercial TC y Mercadeo al Jefe de Riesgos.
 - **Base:** `Base_de_Asociados_pre_evaluada_creditos_y_tc_para_analisis_de_Riesgos.xlsx`, hoja `BD FINAL`.
-- **Libro de trabajo entregado:** `Segmentacion_Riesgos_Base_PreEvaluada.xlsx`. Contiene 143,869 fórmulas y 0 errores. Cada número de este informe sale de ese libro.
+- **Libro de trabajo entregado:** `Segmentacion_Riesgos_Base_PreEvaluada.xlsx`. Contiene 143,780 fórmulas y 0 errores. Cada número de este informe sale de ese libro.
 
 ---
 
@@ -114,29 +114,26 @@ Distribución de los ingresos mayores que cero (n = 844):
 
 La base no indica si el ingreso es **bruto o disponible**. Por eso se trata como ingreso registrado.
 
-| Rango | Límites | Nivel (capacidad) | Asociados | % total | % con ingreso > 0 | Cómo se fijó el límite |
-|---|---|---|---:|---:|---:|---|
-| I | $0.01 – $1,499.99 | Alto | 227 | 10.0% | 26.9% | ≈ P25; coincide con el corte de RANGOS TC |
-| II | $1,500 – $2,999.99 | Medio | 237 | 10.5% | 28.1% | P25–P60; $3,000 es el mínimo de la tabla de vehículo |
-| III | $3,000 – $4,999.99 | Bajo | 234 | 10.3% | 27.7% | P60–P83; tramo de vehículo $20,000 e hipotecario $110,000 |
-| IV | $5,000 o más | Muy bajo | 146 | 6.5% | 17.3% | > P83; tramos superiores de vehículo e hipotecario |
-| Ingreso cero | $0 | Revisar | 135 | 6.0% | — | No se calcula ninguna razón |
-| Sin dato | vacío | Revisar | 1,283 | 56.7% | — | No se calcula ninguna razón |
+| Nivel de riesgo | Límites | Asociados | % total | % con ingreso > 0 | Cómo se fijó el límite |
+|---|---|---:|---:|---:|---|
+| Alto | $0.01 – $1,499.99 | 227 | 10.0% | 26.9% | ≈ P27; coincide con el corte de $1,500 de RANGOS TC |
+| Medio | $1,500 – $2,999.99 | 237 | 10.5% | 28.1% | P27–P60 |
+| Bajo | $3,000 o más | 380 | 16.8% | 45.0% | $3,000 es el ingreso mínimo de las tablas de vehículo e hipotecario |
+| Sin información | vacío (1,283) o $0 (135) | 1,418 | 62.7% | — | No se calcula ninguna razón |
 
-Se propone un cuarto rango porque la distribución tiene una cola larga: P95 = $10,561 y P99 = $21,721. También se marcan **29 ingresos atípicos**, los mayores de $12,172.65 (P75 + 3 × rango intercuartílico). Se señalan para verificación y **no se excluyen**.
+Se usan **tres niveles** (Bajo, Medio, Alto). También se marcan **29 ingresos atípicos**, los mayores de $12,172.65 (P75 + 3 × rango intercuartílico). Se señalan para verificación y **no se excluyen**.
 
 ## 3.3 Saldo de deuda en la Central de Riesgo (`SALDO_SSF`, USD)
 
 Distribución de los saldos mayores que cero (n = 1,751): P25 $571, mediana $3,334, P75 $19,609, P90 $73,940 y máximo $1,579,063.
 
-| Segmento | Límites | Asociados | % |
+| Nivel de riesgo | Límites | Asociados | % |
 |---|---|---:|---:|
-| D1 Deuda baja | $0.01 – $999.99 (≈ P33) | 584 | 25.8% |
-| D2 Deuda intermedia | $1,000 – $9,999.99 (P33–P63) | 536 | 23.7% |
-| D3 Deuda elevada | $10,000 – $49,999.99 (P63–P87) | 404 | 17.9% |
-| D4 Deuda muy elevada | $50,000 o más (> P87, nivel de saldos hipotecarios) | 227 | 10.0% |
-| Sin saldo | saldo $0 o a favor (−$0.02 a −$0.89) | 169 | 7.5% |
-| Sin registro SSF | sin saldo ni institución | 342 | 15.1% |
+| Bajo | $0.01 – $999.99 (tercil inferior, P33 = $999.81) | 584 | 25.8% |
+| Medio | $1,000 – $9,999.99 (tercil medio) | 536 | 23.7% |
+| Alto | $10,000 o más (cerca del tercil superior, P67 = $11,519; incluye saldos hipotecarios) | 631 | 27.9% |
+| Sin deuda | saldo $0 o a favor (−$0.02 a −$0.89) | 169 | 7.5% |
+| Sin información | sin registro SSF (sin saldo ni institución) | 342 | 15.1% |
 
 Cómo leer esta tabla:
 
@@ -155,10 +152,9 @@ Este indicador mide el **saldo** acumulado, no la cuota mensual. Solo se calcula
 | Nivel | Rango | Asociados | % |
 |---|---|---:|---:|
 | Sin deuda | 0x | 56 | 2.5% |
-| R1 Bajo | más de 0 y menos de 3x (≈ P60) | 421 | 18.6% |
-| R2 Medio | 3x a menos de 12x | 156 | 6.9% |
-| R3 Alto | 12x a menos de 24x (1 a 2 años de ingreso) | 73 | 3.2% |
-| R4 Muy alto | 24x o más | 63 | 2.8% |
+| Bajo | más de 0 y menos de 3x (≈ P60) | 421 | 18.6% |
+| Medio | 3x a menos de 12x | 156 | 6.9% |
+| Alto | 12x o más (1 año de ingreso o más, > P82) | 136 | 6.0% |
 | No calculable | ingreso vacío o $0 | 1,418 | 62.7% |
 | No calculable | sin dato SSF | 75 | 3.3% |
 
@@ -166,22 +162,20 @@ Este indicador mide el **saldo** acumulado, no la cuota mensual. Solo se calcula
 
 Distribución de los fondos mayores que cero (n = 2,207): mínimo $1, P25 $2,591, mediana $12,692, P75 $32,205, P90 $69,808 y máximo $1,570,712.
 
-| Segmento | Límites | Asociados | % |
+| Nivel de respaldo | Límites | Asociados | % |
 |---|---|---:|---:|
 | Sin fondo | $0 | 55 | 2.4% |
-| F1 Bajo | $0.01 – $2,999.99 (≈ P28) | 609 | 26.9% |
-| F2 Medio | $3,000 – $14,999.99 (P28–P53) | 558 | 24.7% |
-| F3 Alto | $15,000 – $49,999.99 (P53–P85) | 706 | 31.2% |
-| F4 Muy alto | $50,000 o más | 334 | 14.8% |
+| Bajo | $0.01 – $3,999.99 (tercil inferior, P33 = $4,109) | 724 | 32.0% |
+| Medio | $4,000 – $24,999.99 (tercil medio) | 742 | 32.8% |
+| Alto | $25,000 o más (tercil superior, P67 = $25,087) | 741 | 32.8% |
 
 **Relación fondo ÷ ingreso**, en meses de ingreso (solo con ingreso > 0):
 
 | Nivel | Rango | Asociados |
 |---|---|---:|
-| M1 | menos de 1 mes | 349 |
-| M2 | 1 a menos de 6 meses | 190 |
-| M3 | 6 a menos de 12 meses | 86 |
-| M4 | 12 meses o más | 164 |
+| Bajo | menos de 1 mes | 349 |
+| Medio | 1 a menos de 6 meses | 190 |
+| Alto | 6 meses o más | 250 |
 | Sin fondo | — | 55 |
 
 **Validación del campo (opinión de Riesgo, punto 3):**
@@ -197,7 +191,7 @@ Distribución de los fondos mayores que cero (n = 2,207): mínimo $1, P25 $2,591
 | Categoría interna (`MAX_CAT_RIESGO`), **nivel de riesgo** | A1 → Bajo · A2 → Medio · B a E → Alto · sin categoría → Sin información | 1,356 · 22 · 0 · 884 |
 | Calificación SSF (`CALIFICACION_SSF`), **nivel de riesgo** | A1 → Bajo · A2 → Medio · B a E → Alto · sin calificación → Sin información | 1,813 · 11 · 0 · 438 |
 | Aportaciones acumuladas (`MONTO_TOTAL_APORTACIONES`), nivel de aportación (no es riesgo) | menos de $500 → Bajo · $500 a $1,999.99 → Medio · $2,000 o más → Alto | 446 · 1,201 · 615 |
-| Fondo ÷ ingreso, nivel de respaldo (no es riesgo) | menos de 1 mes → Bajo · 1 a menos de 6 → Medio · 6 a menos de 12 → Alto · 12 o más → Muy alto | 349 · 190 · 86 · 164 |
+| Fondo ÷ ingreso, nivel de respaldo (no es riesgo) | menos de 1 mes → Bajo · 1 a menos de 6 → Medio · 6 o más → Alto | 349 · 190 · 250 |
 | Edad al 30/09/2026, tramo descriptivo | 30–39 · 40–49 · 50–55 · mayor de 55 | 574 · 876 · 804 · 8 |
 | Tiene crédito vigente / tiene tarjeta | SÍ / NO | 823 / 1,439 · 966 / 1,296 |
 
@@ -231,10 +225,10 @@ No se asigna un nivel global ponderado. La base **no contiene resultados histór
 
 | Alerta de riesgo | Definición | Asociados |
 |---|---|---:|
-| Fondo bajo con deuda elevada | Fondo $0 o F1, con deuda D3 o D4 | 228 |
+| Fondo bajo con deuda elevada | Fondo $0 o nivel Bajo, con deuda de nivel Alto | 264 |
 | Aportaciones vencidas | No está al día o tiene cuotas vencidas | 186 |
-| Deuda alta frente al ingreso | Relación deuda-ingreso de 12x o más | 136 |
-| Ingreso bajo con deuda elevada | Rango de ingreso I con deuda D3 o D4 | 49 |
+| Deuda alta frente al ingreso | Relación deuda-ingreso de nivel Alto (12x o más) | 136 |
+| Ingreso bajo con deuda elevada | Ingreso de riesgo Alto con deuda de nivel Alto | 49 |
 | Categoría A2 | A2 interna o externa | 31 |
 | Antigüedad baja sin historial | 0 a 1 año y sin categoría interna | 30 |
 
@@ -248,10 +242,10 @@ No se asigna un nivel global ponderado. La base **no contiene resultados histór
 
 | Estado | Asociados | % |
 |---|---:|---:|
-| Sin alertas identificadas | 534 | 23.6% |
-| Sin alertas, pero sin ingreso válido (no se pudo evaluar) | 1,258 | 55.6% |
-| 1 alerta de riesgo | 337 | 14.9% |
-| 2 o más alertas de riesgo | 133 | 5.9% |
+| Sin alertas identificadas | 521 | 23.0% |
+| Sin alertas, pero sin ingreso válido (no se pudo evaluar) | 1,241 | 54.9% |
+| 1 alerta de riesgo | 362 | 16.0% |
+| 2 o más alertas de riesgo | 138 | 6.1% |
 
 Hay que distinguir cuatro niveles de lectura:
 
@@ -273,7 +267,7 @@ Hay que distinguir cuatro niveles de lectura:
 | Sin ingreso válido | 869 (69.6%) | 743 (55.4%) | 261 (38.4%) |
 | Mediana monto ÷ ingreso mensual | 1.6x | 5.9x | 28.1x |
 | Cumplen los criterios verificables | 152 | 426 | 301 |
-| Con 1 o más alertas de riesgo | 246 | 259 | 179 |
+| Con 1 o más alertas de riesgo | 269 | 270 | 190 |
 
 Observaciones por producto:
 
@@ -323,7 +317,7 @@ Observaciones por producto:
 4. **Aclarar el criterio 3** (966 tarjetahabientes en la base) y el criterio 4 (antigüedad "0 meses").
 5. **Pedir evidencia de las consultas externas**: lista negra, castigos, personas relacionadas o empleados y solvencia en Hacienda. La solvencia es obligatoria para los 679 hipotecarios y para los 298 con TC > $4,000.
 6. **Incorporar las cuotas mensuales** de todas las obligaciones (internas y SSF) para medir la relación cuota-ingreso. Es el indicador clave de capacidad de pago y hoy falta.
-7. **Revisar en el Comité los 133 casos con 2 o más alertas** y los 228 con fondo bajo y deuda elevada.
+7. **Revisar en el Comité los 138 casos con 2 o más alertas** y los 264 con fondo bajo y deuda elevada.
 8. **Documentar la naturaleza del fondo compensatorio** antes de considerarlo un mitigante.
 9. **Entregar la tabla hipotecaria oficial** y unificar los nombres de los segmentos de TC.
 10. **Para un modelo ponderado futuro**, conservar el desempeño de pago de estos créditos (mora a 30, 60 y 90 días) y así calibrar y validar los pesos.
@@ -334,7 +328,7 @@ Observaciones por producto:
 
 La hoja `Pendientes_Aprobacion` del libro tiene 27 puntos con su responsable sugerido. Los principales son:
 
-- los rangos de ingreso (I–IV), de deuda SSF (D1–D4), de deuda-ingreso (R1–R4) y de fondo (F1–F4 y M1–M4);
+- los niveles Bajo/Medio/Alto de ingreso, deuda SSF, deuda-ingreso, fondo y fondo-ingreso;
 - los otros criterios (aportaciones, cuotas de aportación vencidas, niveles de categoría y tramos de edad);
 - el umbral para marcar un ingreso como atípico;
 - cómo tratar a los asociados sin historial interno y a los que tienen categoría A2;

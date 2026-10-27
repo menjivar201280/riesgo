@@ -83,44 +83,32 @@ params = [
      'Solicitado en el prompt (0 a 1 año = Alto). Coincide con la hoja "Variables" del archivo.', 'Criterio solicitado'),
     ('ANT_MEDIO_MAX', 'Antigüedad: límite superior nivel MEDIO', 4, 'Años completos', '0',
      'Solicitado en el prompt (2 a 4 años = Medio; 5 o más = Bajo).', 'Criterio solicitado'),
-    ('ING_L1', 'Ingreso mensual: inicio rango II', 1500, 'USD/mes', USD,
-     'Aprox. percentil 25 de los ingresos > 0 (P25 = $1,484.40). Coincide con el corte $1,500 de la hoja RANGOS TC.',
+    ('ING_L1', 'Ingreso mensual: inicio nivel MEDIO (debajo = riesgo ALTO)', 1500, 'USD/mes', USD,
+     'Aprox. percentil 27 de los ingresos > 0 (P25 = $1,484.40; P33 = $1,640). Coincide con el corte $1,500 de la hoja RANGOS TC.',
      'Pendiente de aprobación'),
-    ('ING_L2', 'Ingreso mensual: inicio rango III', 3000, 'USD/mes', USD,
+    ('ING_L2', 'Ingreso mensual: inicio nivel BAJO', 3000, 'USD/mes', USD,
      'Cerca del percentil 60 (P60 = $3,129.98). Es el ingreso mínimo de la tabla RANGOS VEHICULO y el mínimo '
      'observado en la pre evaluación hipotecaria.', 'Pendiente de aprobación'),
-    ('ING_L3', 'Ingreso mensual: inicio rango IV', 5000, 'USD/mes', USD,
-     'Aprox. percentil 83. Corte de RANGOS VEHICULO ($5,000) y de la pre evaluación hipotecaria observada (150,000).',
-     'Pendiente de aprobación'),
     ('ING_ATIPICO', 'Ingreso atípico: umbral de verificación (P75 + 3×RIC)', None, 'USD/mes', USD,
      'FÓRMULA VIVA sobre ingresos > 0: percentil 75 + 3 × (P75 − P25). Valores mayores se marcan para verificar, '
      'no se excluyen.', 'Método pendiente de aprobación'),
-    ('DEU_L1', 'Saldo SSF: inicio deuda intermedia', 1000, 'USD', USD,
-     'Aprox. percentil 33 de saldos > 0 (P33 = $961.95).', 'Pendiente de aprobación'),
-    ('DEU_L2', 'Saldo SSF: inicio deuda elevada', 10000, 'USD', USD,
-     'Aprox. percentil 63 de saldos > 0 (P60 = $7,539.71; P67 = $11,920.18).', 'Pendiente de aprobación'),
-    ('DEU_L3', 'Saldo SSF: inicio deuda muy elevada', 50000, 'USD', USD,
-     'Aprox. percentil 87 de saldos > 0 (P80 = $27,138.76; P90 = $73,940.01). Nivel típico de saldos hipotecarios.',
-     'Pendiente de aprobación'),
+    ('DEU_L1', 'Saldo SSF: inicio nivel MEDIO', 1000, 'USD', USD,
+     'Tercil inferior de saldos > 0 (P33 = $999.81).', 'Pendiente de aprobación'),
+    ('DEU_L2', 'Saldo SSF: inicio nivel ALTO', 10000, 'USD', USD,
+     'Cerca del tercil superior de saldos > 0 (P67 = $11,518.54), redondeado; incluye los saldos hipotecarios.', 'Pendiente de aprobación'),
     ('DTI_L1', 'Deuda/ingreso: inicio nivel medio', 3, 'Veces el ingreso mensual', MULT,
      'Aprox. percentil 60 de la relación saldo/ingreso (P60 = 2.50x). Umbral ESTADÍSTICO, no regulatorio.',
      'Pendiente de aprobación'),
     ('DTI_L2', 'Deuda/ingreso: inicio nivel alto', 12, 'Veces el ingreso mensual', MULT,
-     'Equivale a un año de ingreso; percentil 82 aprox. (P80 = 10.67x). Umbral estadístico.', 'Pendiente de aprobación'),
-    ('DTI_L3', 'Deuda/ingreso: inicio nivel muy alto', 24, 'Veces el ingreso mensual', MULT,
-     'Dos años de ingreso; percentil 92 aprox. (P90 = 20.88x). Umbral estadístico.', 'Pendiente de aprobación'),
-    ('FON_L1', 'Fondo compensatorio: inicio rango medio', 3000, 'USD', USD,
-     'Aprox. percentil 28 de fondos > 0 (P25 = $2,591.46).', 'Pendiente de aprobación'),
-    ('FON_L2', 'Fondo compensatorio: inicio rango alto', 15000, 'USD', USD,
-     'Aprox. percentil 53 (mediana = $12,692.09).', 'Pendiente de aprobación'),
-    ('FON_L3', 'Fondo compensatorio: inicio rango muy alto', 50000, 'USD', USD,
-     'Aprox. percentil 85 (P80 = $38,499.32; P90 = $69,807.93).', 'Pendiente de aprobación'),
+     'Equivale a un año de ingreso; percentil 82 aprox. (P80 = 10.67x; P90 = 20.88x). Umbral estadístico.', 'Pendiente de aprobación'),
+    ('FON_L1', 'Fondo compensatorio: inicio respaldo MEDIO', 4000, 'USD', USD,
+     'Tercil inferior de fondos > 0 (P33 = $4,108.67), redondeado.', 'Pendiente de aprobación'),
+    ('FON_L2', 'Fondo compensatorio: inicio respaldo ALTO', 25000, 'USD', USD,
+     'Tercil superior de fondos > 0 (P67 = $25,087.25), redondeado.', 'Pendiente de aprobación'),
     ('FOI_L1', 'Fondo/ingreso: inicio cobertura media', 1, 'Meses de ingreso', MULT,
      'Fondo equivalente a 1 mes de ingreso (P50 ≈ 1.22 meses).', 'Pendiente de aprobación'),
     ('FOI_L2', 'Fondo/ingreso: inicio cobertura alta', 6, 'Meses de ingreso', MULT,
-     'Seis meses de ingreso (P70 aprox.).', 'Pendiente de aprobación'),
-    ('FOI_L3', 'Fondo/ingreso: inicio cobertura muy alta', 12, 'Meses de ingreso', MULT,
-     'Un año de ingreso (P80 aprox.).', 'Pendiente de aprobación'),
+     'Seis meses de ingreso o más (P70 aprox.).', 'Pendiente de aprobación'),
     ('TC_TOPE_SIN_SOLV', 'Tope TC si no está solvente en Hacienda', 4000, 'USD', USD,
      'Memorando, otros criterios 5: con límite > $4,000 y sin solvencia en Hacienda se otorga con límite $4,000.', 'Criterio del memorando'),
     ('HIPO_SOLV_MIN', 'Monto hipotecario desde el cual se exige solvencia en Hacienda', 30000, 'USD', USD,
@@ -244,10 +232,10 @@ add('ING_VALIDO', f'=IF({ING_OK},{V("ING")},"")', USD, 'Auxiliar: ingreso > 0; v
 add('RANGO_INGRESO',
     f'=IF(NOT({NUMV("ING")}),"Sin dato",IF({V("ING")}<=0,"Ingreso cero - revisar",'
     f'IF({V("ING")}<{P["ING_L1"]},"I - Ingreso bajo",IF({V("ING")}<{P["ING_L2"]},"II - Ingreso medio",'
-    f'IF({V("ING")}<{P["ING_L3"]},"III - Ingreso medio alto","IV - Ingreso alto")))))')
+    f'"III - Ingreso alto"))))')
 add('NIVEL_INGRESO',
     '=IF({RANGO_INGRESO}="I - Ingreso bajo","Alto",IF({RANGO_INGRESO}="II - Ingreso medio","Medio",'
-    'IF({RANGO_INGRESO}="III - Ingreso medio alto","Bajo",IF({RANGO_INGRESO}="IV - Ingreso alto","Muy bajo","Sin información"))))',
+    'IF({RANGO_INGRESO}="III - Ingreso alto","Bajo","Sin información")))',
     None, 'Nivel de riesgo DESCRIPTIVO por capacidad de ingreso; no es riesgo crediticio integral.')
 add('ALERTA_ING_ATIPICO', f'=IF(AND({ING_OK},{V("ING")}>{P["ING_ATIPICO"]}),1,0)', '0')
 # --- deuda SSF
@@ -259,12 +247,11 @@ add('SSF_VALIDO', f'=IF(AND({SSF_OK},{V("SSF")}>0),{V("SSF")},"")', USD, 'Auxili
 add('RANGO_DEUDA',
     f'=IF(NOT({SSF_OK}),IF(LEN(TRIM({V("INST")}&""))=0,"Sin registro SSF","Dato faltante"),'
     f'IF({V("SSF")}<=0,"Sin saldo (cero o a favor)",IF({V("SSF")}<{P["DEU_L1"]},"D1 - Deuda baja",'
-    f'IF({V("SSF")}<{P["DEU_L2"]},"D2 - Deuda intermedia",IF({V("SSF")}<{P["DEU_L3"]},"D3 - Deuda elevada",'
-    f'"D4 - Deuda muy elevada")))))')
+    f'IF({V("SSF")}<{P["DEU_L2"]},"D2 - Deuda intermedia","D3 - Deuda elevada"))))')
 add('NIVEL_DEUDA',
     '=IF({RANGO_DEUDA}="D1 - Deuda baja","Bajo",IF({RANGO_DEUDA}="D2 - Deuda intermedia","Medio",'
-    'IF({RANGO_DEUDA}="D3 - Deuda elevada","Alto",IF({RANGO_DEUDA}="D4 - Deuda muy elevada","Muy alto",'
-    'IF({RANGO_DEUDA}="Sin saldo (cero o a favor)","Sin deuda","Sin información")))))',
+    'IF({RANGO_DEUDA}="D3 - Deuda elevada","Alto",'
+    'IF({RANGO_DEUDA}="Sin saldo (cero o a favor)","Sin deuda","Sin información"))))',
     None, 'Nivel por saldo SSF. Deuda alta no significa incumplimiento.')
 add('MULT_DEUDA_INGRESO', f'=IF(AND({ING_OK},{SSF_OK}),MAX({V("SSF")},0)/{V("ING")},"")', MULT,
     'Saldo SSF / ingreso mensual, en VECES el ingreso mensual (no es relación cuota-ingreso).')
@@ -273,17 +260,17 @@ add('RANGO_DEUDA_INGRESO',
     '{MULT_DEUDA_INGRESO_IF}))')
 add('NIVEL_DEUDA_INGRESO',
     '=IF({RANGO_DEUDA_INGRESO}="R1 - Bajo","Bajo",IF({RANGO_DEUDA_INGRESO}="R2 - Medio","Medio",'
-    'IF({RANGO_DEUDA_INGRESO}="R3 - Alto","Alto",IF({RANGO_DEUDA_INGRESO}="R4 - Muy alto","Muy alto",'
-    'IF({RANGO_DEUDA_INGRESO}="Sin deuda","Sin deuda","Sin información")))))')
+    'IF({RANGO_DEUDA_INGRESO}="R3 - Alto","Alto",'
+    'IF({RANGO_DEUDA_INGRESO}="Sin deuda","Sin deuda","Sin información"))))')
 # --- fondos
 add('RANGO_FONDO',
     f'=IF(NOT({NUMV("FON")}),"Sin dato",IF({V("FON")}<=0,"Sin fondo (cero)",IF({V("FON")}<{P["FON_L1"]},"F1 - Fondo bajo",'
-    f'IF({V("FON")}<{P["FON_L2"]},"F2 - Fondo medio",IF({V("FON")}<{P["FON_L3"]},"F3 - Fondo alto","F4 - Fondo muy alto")))))',
+    f'IF({V("FON")}<{P["FON_L2"]},"F2 - Fondo medio","F3 - Fondo alto"))))',
     None, 'Descriptivo: no se supone que el fondo esté disponible para pagar deudas.')
 add('NIVEL_RESPALDO_FONDO',
     '=IF({RANGO_FONDO}="F1 - Fondo bajo","Bajo",IF({RANGO_FONDO}="F2 - Fondo medio","Medio",'
-    'IF({RANGO_FONDO}="F3 - Fondo alto","Alto",IF({RANGO_FONDO}="F4 - Fondo muy alto","Muy alto",'
-    'IF({RANGO_FONDO}="Sin fondo (cero)","Sin fondo","Sin información")))))',
+    'IF({RANGO_FONDO}="F3 - Fondo alto","Alto",'
+    'IF({RANGO_FONDO}="Sin fondo (cero)","Sin fondo","Sin información"))))',
     None, 'Nivel de RESPALDO (monto del fondo), no de riesgo: falta validar si el fondo está disponible.')
 add('FON_VALIDO', f'=IF(AND({NUMV("FON")},{V("FON")}>0),{V("FON")},"")', USD, 'Auxiliar: fondo > 0.')
 add('MESES_FONDO_INGRESO', f'=IF(AND({ING_OK},{NUMV("FON")}),{V("FON")}/{V("ING")},"")', MULT,
@@ -291,11 +278,11 @@ add('MESES_FONDO_INGRESO', f'=IF(AND({ING_OK},{NUMV("FON")}),{V("FON")}/{V("ING"
 add('RANGO_FONDO_INGRESO',
     f'=IF(NOT({ING_OK}),"No calculable - ingreso no válido",IF({V("FON")}<=0,"Sin fondo",'
     f'IF({{MESES_FONDO_INGRESO}}<{P["FOI_L1"]},"M1 - Cobertura baja",IF({{MESES_FONDO_INGRESO}}<{P["FOI_L2"]},"M2 - Cobertura media",'
-    f'IF({{MESES_FONDO_INGRESO}}<{P["FOI_L3"]},"M3 - Cobertura alta","M4 - Cobertura muy alta")))))')
+    f'"M3 - Cobertura alta"))))')
 add('NIVEL_COBERTURA_FONDO',
     '=IF({RANGO_FONDO_INGRESO}="M1 - Cobertura baja","Bajo",IF({RANGO_FONDO_INGRESO}="M2 - Cobertura media","Medio",'
-    'IF({RANGO_FONDO_INGRESO}="M3 - Cobertura alta","Alto",IF({RANGO_FONDO_INGRESO}="M4 - Cobertura muy alta","Muy alto",'
-    'IF({RANGO_FONDO_INGRESO}="Sin fondo","Sin fondo","Sin información")))))',
+    'IF({RANGO_FONDO_INGRESO}="M3 - Cobertura alta","Alto",'
+    'IF({RANGO_FONDO_INGRESO}="Sin fondo","Sin fondo","Sin información"))))',
     None, 'Nivel de respaldo del fondo en meses de ingreso (no es riesgo).')
 # --- otros criterios
 add('NIVEL_APORTACIONES',
@@ -369,14 +356,14 @@ add('HIPO_SOBRE_INGRESO', f'=IF(AND({ING_OK},{NUMV("HIPO")}),{V("HIPO")}/{V("ING
 # --- alertas
 al_first = len(calc)
 add('AL_ING_BAJO_DEUDA_ELEVADA',
-    '=IF(AND({RANGO_INGRESO}="I - Ingreso bajo",OR({RANGO_DEUDA}="D3 - Deuda elevada",{RANGO_DEUDA}="D4 - Deuda muy elevada")),1,0)', '0')
+    '=IF(AND({RANGO_INGRESO}="I - Ingreso bajo",{RANGO_DEUDA}="D3 - Deuda elevada"),1,0)', '0')
 add('AL_DEUDA_ALTA_VS_INGRESO',
-    '=IF(OR({RANGO_DEUDA_INGRESO}="R3 - Alto",{RANGO_DEUDA_INGRESO}="R4 - Muy alto"),1,0)', '0')
+    '=IF({RANGO_DEUDA_INGRESO}="R3 - Alto",1,0)', '0')
 add('AL_ANTIG_BAJA_SIN_HISTORIAL',
     '=IF(AND({NIVEL_ANTIGUEDAD}="Alto",{CAT_INTERNA}="Sin historial interno"),1,0)', '0')
 add('AL_FONDO_BAJO_DEUDA_ELEVADA',
     '=IF(AND(OR({RANGO_FONDO}="Sin fondo (cero)",{RANGO_FONDO}="F1 - Fondo bajo"),'
-    'OR({RANGO_DEUDA}="D3 - Deuda elevada",{RANGO_DEUDA}="D4 - Deuda muy elevada")),1,0)', '0')
+    '{RANGO_DEUDA}="D3 - Deuda elevada"),1,0)', '0')
 add('AL_CATEGORIA_A2', '=IF(OR({CAT_INTERNA}="A2",{CAT_EXTERNA_SSF}="A2"),1,0)', '0')
 add('AL_APORT_VENCIDAS', f'=IF(OR({V("APD")}="NO",{V("CVA")}>0),1,0)', '0')
 al_last = len(calc) - 1
@@ -403,7 +390,7 @@ crit_rng = f'{col_of(names[crit_first])}{{r}}:{col_of(names[crit_last])}{{r}}'
 al_rng = f'{col_of(names[al_first])}{{r}}:{col_of(names[al_last])}{{r}}'
 dq_rng = f'{col_of(names[dq_first])}{{r}}:{col_of(names[dq_last])}{{r}}'
 dti_if = (f'IF({{MULT_DEUDA_INGRESO}}=0,"Sin deuda",IF({{MULT_DEUDA_INGRESO}}<{P["DTI_L1"]},"R1 - Bajo",'
-          f'IF({{MULT_DEUDA_INGRESO}}<{P["DTI_L2"]},"R2 - Medio",IF({{MULT_DEUDA_INGRESO}}<{P["DTI_L3"]},"R3 - Alto","R4 - Muy alto"))))')
+          f'IF({{MULT_DEUDA_INGRESO}}<{P["DTI_L2"]},"R2 - Medio","R3 - Alto")))')
 sin_alerta = f'IF({ING_OK},"Sin alertas identificadas","Sin alertas, información insuficiente (ingreso no válido)")'
 
 
@@ -450,28 +437,27 @@ for row in wp.iter_rows(min_row=5, max_row=40):
 # ---------------------------------------------------------------- Consolidado
 CATS = {
     'NIVEL_ANTIGUEDAD': ['Alto', 'Medio', 'Bajo', 'Sin dato', 'Inconsistente - revisar'],
-    'RANGO_INGRESO': ['I - Ingreso bajo', 'II - Ingreso medio', 'III - Ingreso medio alto', 'IV - Ingreso alto',
+    'RANGO_INGRESO': ['I - Ingreso bajo', 'II - Ingreso medio', 'III - Ingreso alto',
                       'Ingreso cero - revisar', 'Sin dato'],
-    'NIVEL_INGRESO': ['Alto', 'Medio', 'Bajo', 'Muy bajo', 'Sin información'],
-    'NIVEL_DEUDA': ['Bajo', 'Medio', 'Alto', 'Muy alto', 'Sin deuda', 'Sin información'],
-    'NIVEL_DEUDA_INGRESO': ['Bajo', 'Medio', 'Alto', 'Muy alto', 'Sin deuda', 'Sin información'],
-    'NIVEL_COBERTURA_FONDO': ['Bajo', 'Medio', 'Alto', 'Muy alto', 'Sin fondo', 'Sin información'],
+    'NIVEL_INGRESO': ['Alto', 'Medio', 'Bajo', 'Sin información'],
+    'NIVEL_DEUDA': ['Bajo', 'Medio', 'Alto', 'Sin deuda', 'Sin información'],
+    'NIVEL_DEUDA_INGRESO': ['Bajo', 'Medio', 'Alto', 'Sin deuda', 'Sin información'],
+    'NIVEL_COBERTURA_FONDO': ['Bajo', 'Medio', 'Alto', 'Sin fondo', 'Sin información'],
     'NIVEL_APORTACIONES': ['Bajo', 'Medio', 'Alto', 'Sin información'],
     'NIVEL_MORA_APORTACIONES': ['Bajo', 'Medio', 'Alto', 'Sin información'],
     'TRAMO_EDAD': ['30 a 39', '40 a 49', '50 a 55', 'Mayor de 55'],
     'NIVEL_CAT_INTERNA': ['Bajo', 'Medio', 'Alto', 'Sin información'],
     'NIVEL_CAT_EXTERNA': ['Bajo', 'Medio', 'Alto', 'Sin información'],
-    'NIVEL_RESPALDO_FONDO': ['Bajo', 'Medio', 'Alto', 'Muy alto', 'Sin fondo', 'Sin información'],
+    'NIVEL_RESPALDO_FONDO': ['Bajo', 'Medio', 'Alto', 'Sin fondo', 'Sin información'],
     'ESTADO_DEUDA_SSF': ['Con saldo', 'Saldo cero', 'Saldo negativo (a favor) - revisar', 'Dato faltante',
                          'Sin registro SSF en la base'],
-    'RANGO_DEUDA': ['D1 - Deuda baja', 'D2 - Deuda intermedia', 'D3 - Deuda elevada', 'D4 - Deuda muy elevada',
+    'RANGO_DEUDA': ['D1 - Deuda baja', 'D2 - Deuda intermedia', 'D3 - Deuda elevada',
                     'Sin saldo (cero o a favor)', 'Dato faltante', 'Sin registro SSF'],
-    'RANGO_DEUDA_INGRESO': ['Sin deuda', 'R1 - Bajo', 'R2 - Medio', 'R3 - Alto', 'R4 - Muy alto',
+    'RANGO_DEUDA_INGRESO': ['Sin deuda', 'R1 - Bajo', 'R2 - Medio', 'R3 - Alto',
                             'No calculable - ingreso no válido', 'No calculable - sin dato SSF'],
-    'RANGO_FONDO': ['Sin fondo (cero)', 'F1 - Fondo bajo', 'F2 - Fondo medio', 'F3 - Fondo alto', 'F4 - Fondo muy alto',
+    'RANGO_FONDO': ['Sin fondo (cero)', 'F1 - Fondo bajo', 'F2 - Fondo medio', 'F3 - Fondo alto',
                     'Sin dato'],
-    'RANGO_FONDO_INGRESO': ['Sin fondo', 'M1 - Cobertura baja', 'M2 - Cobertura media', 'M3 - Cobertura alta',
-                            'M4 - Cobertura muy alta', 'No calculable - ingreso no válido'],
+    'RANGO_FONDO_INGRESO': ['Sin fondo', 'M1 - Cobertura baja', 'M2 - Cobertura media', 'M3 - Cobertura alta', 'No calculable - ingreso no válido'],
     'CAT_INTERNA': ['A1', 'A2', 'Sin historial interno', 'Dato faltante (con crédito vigente)'],
     'CAT_EXTERNA_SSF': ['A1', 'A2', 'Dato faltante (con saldo SSF)', 'Sin registro SSF'],
     'C_EDAD': ['Cumple', 'No cumple'],
@@ -599,13 +585,12 @@ ing_lim = 'INGRESO es el ingreso registrado en el sistema; la base no indica si 
 ing_falt = 'Vacío = "Sin dato"; 0 = "Ingreso cero - revisar". No se calculan razones con ingreso 0 o vacío.'
 M += [
     ('Ingreso mensual', 'INGRESO', 0.01, prm('ING_L1', '0.01'), 'USD/mes', 'I - Ingreso bajo (nivel Alto)',
-     'Hasta aprox. P25 de ingresos > 0; corte coincide con RANGOS TC.', 'RANGO_INGRESO', 'I - Ingreso bajo', ing_falt, ing_lim, USD),
+     'Hasta aprox. P27 de ingresos > 0; corte coincide con RANGOS TC.', 'RANGO_INGRESO', 'I - Ingreso bajo', ing_falt, ing_lim, USD),
     ('Ingreso mensual', 'INGRESO', prm('ING_L1'), prm('ING_L2', '0.01'), 'USD/mes', 'II - Ingreso medio (nivel Medio)',
      'P25 a P60 aprox.; $3,000 es el ingreso mínimo de RANGOS VEHICULO.', 'RANGO_INGRESO', 'II - Ingreso medio', ing_falt, ing_lim, USD),
-    ('Ingreso mensual', 'INGRESO', prm('ING_L2'), prm('ING_L3', '0.01'), 'USD/mes', 'III - Ingreso medio alto (nivel Bajo)',
-     'P60 a P83 aprox.; coincide con tramo de vehículo 20,000 e hipotecario 110,000.', 'RANGO_INGRESO', 'III - Ingreso medio alto', ing_falt, ing_lim, USD),
-    ('Ingreso mensual', 'INGRESO', prm('ING_L3'), 'Sin límite', 'USD/mes', 'IV - Ingreso alto (nivel Muy bajo)',
-     'Sobre P83 aprox. Valores > umbral atípico se marcan para verificación.', 'RANGO_INGRESO', 'IV - Ingreso alto', ing_falt, ing_lim, USD),
+    ('Ingreso mensual', 'INGRESO', prm('ING_L2'), 'Sin límite', 'USD/mes', 'III - Ingreso alto (nivel Bajo)',
+     'Sobre P60 aprox.; $3,000 es el ingreso mínimo de las tablas de vehículo e hipotecario. Valores > umbral atípico se marcan para verificación.',
+     'RANGO_INGRESO', 'III - Ingreso alto', ing_falt, ing_lim, USD),
     ('Ingreso mensual', 'INGRESO', 0, 0, 'USD/mes', 'Ingreso cero - revisar', 'Ingreso registrado en 0.',
      'RANGO_INGRESO', 'Ingreso cero - revisar', ing_falt, 'Puede ser dato no capturado; requiere verificación.', USD),
     ('Ingreso mensual', 'INGRESO', '—', '—', '—', 'Sin dato', 'Celda vacía.', 'RANGO_INGRESO', 'Sin dato', ing_falt,
@@ -615,14 +600,12 @@ deu_lim = ('SALDO_SSF trae UNA institución por asociado; no se puede confirmar 
            'obligaciones. Deuda elevada NO implica incumplimiento.')
 deu_falt = 'Sin saldo ni institución = "Sin registro SSF" (no se puede distinguir entre sin deuda y no consultado). 0 = "Sin saldo".'
 M += [
-    ('Saldo total de deuda (Central de Riesgo)', 'SALDO_SSF', 0.01, prm('DEU_L1', '0.01'), 'USD', 'D1 - Deuda baja',
-     'Hasta aprox. P33 de saldos > 0.', 'RANGO_DEUDA', 'D1 - Deuda baja', deu_falt, deu_lim, USD),
-    ('Saldo total de deuda (Central de Riesgo)', 'SALDO_SSF', prm('DEU_L1'), prm('DEU_L2', '0.01'), 'USD', 'D2 - Deuda intermedia',
-     'P33 a P63 aprox.', 'RANGO_DEUDA', 'D2 - Deuda intermedia', deu_falt, deu_lim, USD),
-    ('Saldo total de deuda (Central de Riesgo)', 'SALDO_SSF', prm('DEU_L2'), prm('DEU_L3', '0.01'), 'USD', 'D3 - Deuda elevada',
-     'P63 a P87 aprox.', 'RANGO_DEUDA', 'D3 - Deuda elevada', deu_falt, deu_lim, USD),
-    ('Saldo total de deuda (Central de Riesgo)', 'SALDO_SSF', prm('DEU_L3'), 'Sin límite', 'USD', 'D4 - Deuda muy elevada',
-     'Sobre P87 aprox.; nivel de saldos hipotecarios.', 'RANGO_DEUDA', 'D4 - Deuda muy elevada', deu_falt, deu_lim, USD),
+    ('Saldo total de deuda (Central de Riesgo)', 'SALDO_SSF', 0.01, prm('DEU_L1', '0.01'), 'USD', 'D1 - Deuda baja (nivel Bajo)',
+     'Tercil inferior de saldos > 0 (P33).', 'RANGO_DEUDA', 'D1 - Deuda baja', deu_falt, deu_lim, USD),
+    ('Saldo total de deuda (Central de Riesgo)', 'SALDO_SSF', prm('DEU_L1'), prm('DEU_L2', '0.01'), 'USD', 'D2 - Deuda intermedia (nivel Medio)',
+     'P33 a P64 aprox.', 'RANGO_DEUDA', 'D2 - Deuda intermedia', deu_falt, deu_lim, USD),
+    ('Saldo total de deuda (Central de Riesgo)', 'SALDO_SSF', prm('DEU_L2'), 'Sin límite', 'USD', 'D3 - Deuda elevada (nivel Alto)',
+     'Tercil superior aprox. (> P64); incluye saldos hipotecarios.', 'RANGO_DEUDA', 'D3 - Deuda elevada', deu_falt, deu_lim, USD),
     ('Saldo total de deuda (Central de Riesgo)', 'SALDO_SSF', '≤ 0', 0, 'USD', 'Sin saldo (cero o a favor)',
      'Saldo 0 o saldos negativos mínimos (−$0.02 a −$0.89).', 'RANGO_DEUDA', 'Sin saldo (cero o a favor)', deu_falt,
      'Puede ser tarjeta sin uso o crédito cancelado.', None),
@@ -636,10 +619,8 @@ M += [
      'Hasta P60 aprox. (< 3 veces).', 'RANGO_DEUDA_INGRESO', 'R1 - Bajo', dti_falt, dti_lim, MULT),
     ('Relación deuda-ingreso', 'SALDO_SSF / INGRESO', prm('DTI_L1'), prm('DTI_L2'), 'Veces ingreso mensual', 'R2 - Medio',
      'P60 a P82 aprox. (límite superior excluido).', 'RANGO_DEUDA_INGRESO', 'R2 - Medio', dti_falt, dti_lim, MULT),
-    ('Relación deuda-ingreso', 'SALDO_SSF / INGRESO', prm('DTI_L2'), prm('DTI_L3'), 'Veces ingreso mensual', 'R3 - Alto',
-     '1 a 2 años de ingreso (límite superior excluido).', 'RANGO_DEUDA_INGRESO', 'R3 - Alto', dti_falt, dti_lim, MULT),
-    ('Relación deuda-ingreso', 'SALDO_SSF / INGRESO', prm('DTI_L3'), 'Sin límite', 'Veces ingreso mensual', 'R4 - Muy alto',
-     '2 años o más de ingreso (≈ P92).', 'RANGO_DEUDA_INGRESO', 'R4 - Muy alto', dti_falt, dti_lim, MULT),
+    ('Relación deuda-ingreso', 'SALDO_SSF / INGRESO', prm('DTI_L2'), 'Sin límite', 'Veces ingreso mensual', 'R3 - Alto',
+     '1 año de ingreso o más (> P82 aprox.).', 'RANGO_DEUDA_INGRESO', 'R3 - Alto', dti_falt, dti_lim, MULT),
     ('Relación deuda-ingreso', 'SALDO_SSF / INGRESO', 0, 0, 'Veces', 'Sin deuda', 'Saldo SSF ≤ 0 con ingreso válido.',
      'RANGO_DEUDA_INGRESO', 'Sin deuda', dti_falt, dti_lim, None),
     ('Relación deuda-ingreso', 'SALDO_SSF / INGRESO', '—', '—', '—', 'No calculable - ingreso no válido', '',
@@ -656,24 +637,20 @@ fon_lim = ('La base no indica si el fondo está disponible, retenido o pignorado
            'no se le atribuye reducción de riesgo hasta validar su naturaleza.')
 fon_falt = 'Fondo 0 = "Sin fondo (cero)". No hay vacíos en la columna.'
 M += [
-    ('Fondo compensatorio', 'FONDO_COMPENSATORIO', 0.01, prm('FON_L1', '0.01'), 'USD', 'F1 - Fondo bajo',
-     'Hasta P28 aprox. de fondos > 0.', 'RANGO_FONDO', 'F1 - Fondo bajo', fon_falt, fon_lim, USD),
-    ('Fondo compensatorio', 'FONDO_COMPENSATORIO', prm('FON_L1'), prm('FON_L2', '0.01'), 'USD', 'F2 - Fondo medio',
-     'P28 a P53 aprox.', 'RANGO_FONDO', 'F2 - Fondo medio', fon_falt, fon_lim, USD),
-    ('Fondo compensatorio', 'FONDO_COMPENSATORIO', prm('FON_L2'), prm('FON_L3', '0.01'), 'USD', 'F3 - Fondo alto',
-     'P53 a P85 aprox.', 'RANGO_FONDO', 'F3 - Fondo alto', fon_falt, fon_lim, USD),
-    ('Fondo compensatorio', 'FONDO_COMPENSATORIO', prm('FON_L3'), 'Sin límite', 'USD', 'F4 - Fondo muy alto',
-     'Sobre P85 aprox.', 'RANGO_FONDO', 'F4 - Fondo muy alto', fon_falt, fon_lim, USD),
+    ('Fondo compensatorio', 'FONDO_COMPENSATORIO', 0.01, prm('FON_L1', '0.01'), 'USD', 'F1 - Fondo bajo (respaldo Bajo)',
+     'Tercil inferior de fondos > 0 (P33).', 'RANGO_FONDO', 'F1 - Fondo bajo', fon_falt, fon_lim, USD),
+    ('Fondo compensatorio', 'FONDO_COMPENSATORIO', prm('FON_L1'), prm('FON_L2', '0.01'), 'USD', 'F2 - Fondo medio (respaldo Medio)',
+     'Tercil medio (P33 a P67).', 'RANGO_FONDO', 'F2 - Fondo medio', fon_falt, fon_lim, USD),
+    ('Fondo compensatorio', 'FONDO_COMPENSATORIO', prm('FON_L2'), 'Sin límite', 'USD', 'F3 - Fondo alto (respaldo Alto)',
+     'Tercil superior de fondos > 0 (> P67).', 'RANGO_FONDO', 'F3 - Fondo alto', fon_falt, fon_lim, USD),
     ('Fondo compensatorio', 'FONDO_COMPENSATORIO', 0, 0, 'USD', 'Sin fondo (cero)', 'Fondo igual a 0.',
      'RANGO_FONDO', 'Sin fondo (cero)', fon_falt, 'No cumple criterio "existencia de fondos".', USD),
     ('Fondo / ingreso', 'FONDO_COMPENSATORIO / INGRESO', '>0', prm('FOI_L1'), 'Meses de ingreso', 'M1 - Cobertura baja',
      'Menos de 1 mes de ingreso.', 'RANGO_FONDO_INGRESO', 'M1 - Cobertura baja', 'Ingreso no válido = no calculable.', fon_lim, MULT),
     ('Fondo / ingreso', 'FONDO_COMPENSATORIO / INGRESO', prm('FOI_L1'), prm('FOI_L2'), 'Meses de ingreso', 'M2 - Cobertura media',
      '1 a < 6 meses.', 'RANGO_FONDO_INGRESO', 'M2 - Cobertura media', 'Ingreso no válido = no calculable.', fon_lim, MULT),
-    ('Fondo / ingreso', 'FONDO_COMPENSATORIO / INGRESO', prm('FOI_L2'), prm('FOI_L3'), 'Meses de ingreso', 'M3 - Cobertura alta',
-     '6 a < 12 meses.', 'RANGO_FONDO_INGRESO', 'M3 - Cobertura alta', 'Ingreso no válido = no calculable.', fon_lim, MULT),
-    ('Fondo / ingreso', 'FONDO_COMPENSATORIO / INGRESO', prm('FOI_L3'), 'Sin límite', 'Meses de ingreso', 'M4 - Cobertura muy alta',
-     '12 meses o más.', 'RANGO_FONDO_INGRESO', 'M4 - Cobertura muy alta', 'Ingreso no válido = no calculable.', fon_lim, MULT),
+    ('Fondo / ingreso', 'FONDO_COMPENSATORIO / INGRESO', prm('FOI_L2'), 'Sin límite', 'Meses de ingreso', 'M3 - Cobertura alta',
+     '6 meses o más.', 'RANGO_FONDO_INGRESO', 'M3 - Cobertura alta', 'Ingreso no válido = no calculable.', fon_lim, MULT),
 ]
 M += [
     ('Categoría interna', 'MAX_CAT_RIESGO', '—', '—', 'Categoría', 'A1', 'Valor del archivo.', 'CAT_INTERNA', 'A1',
@@ -755,7 +732,7 @@ wx.column_dimensions['A'].width = 44
 for j in range(2, 12):
     wx.column_dimensions[L(j)].width = 17
 cross('1. Ingreso × saldo de deuda SSF', 'RANGO_INGRESO', CATS['RANGO_INGRESO'], 'RANGO_DEUDA', CATS['RANGO_DEUDA'],
-      'Combinación crítica: ingreso bajo con deuda elevada o muy elevada.')
+      'Combinación crítica: ingreso bajo con deuda elevada.')
 cross('2. Relación deuda-ingreso × antigüedad', 'RANGO_DEUDA_INGRESO', CATS['RANGO_DEUDA_INGRESO'], 'NIVEL_ANTIGUEDAD',
       CATS['NIVEL_ANTIGUEDAD'])
 cross('3. Fondo compensatorio × saldo de deuda SSF', 'RANGO_FONDO', CATS['RANGO_FONDO'], 'RANGO_DEUDA', CATS['RANGO_DEUDA'],
@@ -770,10 +747,10 @@ r += 1
 hdr(wx, r, ['Alerta', 'Asociados con la alerta', '% del total', 'Tipo', 'Definición'], fill=fill_calc)
 r += 1
 AL_DEF = {
-    'AL_ING_BAJO_DEUDA_ELEVADA': ('Riesgo', 'Rango ingreso I y deuda D3 o D4.'),
-    'AL_DEUDA_ALTA_VS_INGRESO': ('Riesgo', 'Saldo SSF ≥ DTI_L2 veces el ingreso mensual (R3 o R4).'),
+    'AL_ING_BAJO_DEUDA_ELEVADA': ('Riesgo', 'Rango ingreso I (riesgo Alto) y deuda D3 (nivel Alto).'),
+    'AL_DEUDA_ALTA_VS_INGRESO': ('Riesgo', 'Saldo SSF ≥ DTI_L2 veces el ingreso mensual (R3 - Alto).'),
     'AL_ANTIG_BAJA_SIN_HISTORIAL': ('Riesgo', 'Antigüedad nivel Alto (0-1 año) y sin historial interno.'),
-    'AL_FONDO_BAJO_DEUDA_ELEVADA': ('Riesgo', 'Fondo cero o F1 y deuda D3 o D4.'),
+    'AL_FONDO_BAJO_DEUDA_ELEVADA': ('Riesgo', 'Fondo cero o F1 y deuda D3 (nivel Alto).'),
     'AL_CATEGORIA_A2': ('Riesgo', 'Categoría A2 interna o en SSF (cumple criterio pero es señal de atención).'),
     'AL_APORT_VENCIDAS': ('Riesgo', 'APORTACIONES_AL_DIA = NO o cuotas de aportación vencidas > 0.'),
     'DQ_PRECA_SIN_INGRESO': ('Calidad de datos', 'Tiene monto pre evaluado (TC, vehículo o hipoteca) pero ingreso vacío o 0.'),
@@ -821,8 +798,8 @@ rows = [
      lambda k, nm, m: f'=COUNTIFS({ORNG(k)},">0",{RNG("ELEGIBILIDAD_TC" if k=="TC" else "ELEGIBILIDAD_GENERAL")},"No cumple criterio verificable")', '#,##0', ''),
     ('Pre evaluados con 1 o más alertas de riesgo',
      lambda k, nm, m: f'=COUNTIFS({ORNG(k)},">0",{RNG("TOTAL_ALERTAS_RIESGO")},">=1")', '#,##0', ''),
-    ('Pre evaluados con deuda/ingreso R3 o R4',
-     lambda k, nm, m: f'=COUNTIFS({ORNG(k)},">0",{RNG("RANGO_DEUDA_INGRESO")},"R3 - Alto")+COUNTIFS({ORNG(k)},">0",{RNG("RANGO_DEUDA_INGRESO")},"R4 - Muy alto")',
+    ('Pre evaluados con deuda/ingreso Alto (R3)',
+     lambda k, nm, m: f'=COUNTIFS({ORNG(k)},">0",{RNG("RANGO_DEUDA_INGRESO")},"R3 - Alto")',
      '#,##0', ''),
 ]
 r = 4
@@ -948,9 +925,9 @@ met = [
     ('SECCIÓN', 'B. Fórmulas'),
     ('Edad recalculada', 'AÑO(corte) − AÑO(nacimiento) − 1 si aún no cumplía años a la fecha de corte.'),
     ('Nivel antigüedad', 'Vacío → Sin dato; <0 o > EDAD → Inconsistente; ≤ ANT_ALTO_MAX → Alto; ≤ ANT_MEDIO_MAX → Medio; resto → Bajo.'),
-    ('Rango ingreso', 'Vacío → Sin dato; ≤0 → Ingreso cero; < ING_L1 → I; < ING_L2 → II; < ING_L3 → III; resto → IV.'),
+    ('Rango ingreso', 'Vacío → Sin dato; ≤0 → Ingreso cero; < ING_L1 → I (Alto); < ING_L2 → II (Medio); resto → III (Bajo).'),
     ('Ingreso atípico', 'INGRESO > P75 + 3 × (P75 − P25), calculado sobre ingresos > 0 (regla de Tukey, valla "extrema").'),
-    ('Rango deuda', 'Sin saldo y sin institución → Sin registro SSF; ≤ 0 → Sin saldo; < DEU_L1 → D1; < DEU_L2 → D2; < DEU_L3 → D3; resto → D4.'),
+    ('Rango deuda', 'Sin saldo y sin institución → Sin registro SSF; ≤ 0 → Sin saldo; < DEU_L1 → D1 (Bajo); < DEU_L2 → D2 (Medio); resto → D3 (Alto).'),
     ('Relación deuda-ingreso', 'MAX(SALDO_SSF,0) / INGRESO, expresada en VECES el ingreso mensual. Solo si INGRESO > 0 y hay dato SSF.'),
     ('Relación cuota-ingreso', 'NO CALCULADA: la base no contiene cuotas mensuales. Fórmula prevista: Σ cuotas mensuales / INGRESO × 100.'),
     ('Carga financiera mensual', 'NO CALCULADA por la misma razón. Fórmula prevista: Σ cuotas mensuales de todas las obligaciones.'),
@@ -1010,15 +987,15 @@ pend = [
     ('61 registros sin deuda SSF', 'No se reproduce: 342 sin registro SSF y 166 con saldo 0.', 'Explicar el criterio usado para 61.', 'Créditos'),
     ('54 asociados con aportaciones no al día', 'En la base hay 186 no al día; 54 son los pre evaluados en TC.', 'Confirmar tratamiento de los 132 de hipotecario/vehículo.', 'Créditos / Riesgos'),
     ('Fecha de edad / corte', 'Memorando: 30/09/2026; EDAD coincide con 02/09/2026.', 'Confirmar fecha de extracción.', 'TI / Riesgos'),
-    ('Rangos de ingreso', 'I < $1,500; II $1,500-$2,999.99; III $3,000-$4,999.99; IV ≥ $5,000.', 'Aprobar o ajustar límites.', 'Riesgos'),
+    ('Rangos de ingreso', 'Alto < $1,500; Medio $1,500-$2,999.99; Bajo ≥ $3,000.', 'Aprobar o ajustar límites.', 'Riesgos'),
     ('Naturaleza del ingreso', 'Se desconoce si es bruto, neto o disponible, y su fecha de actualización.', 'Definir y documentar la fuente.', 'Negocios / TI'),
     ('Ingreso cero y vacío', '1,418 asociados (62.7%) sin ingreso válido y todos con algún monto pre evaluado.',
      'Definir si se excluyen, se completan o se evalúan con otra fuente.', 'Riesgos / Negocios'),
-    ('Rangos de deuda SSF', 'D1 < $1,000; D2 < $10,000; D3 < $50,000; D4 ≥ $50,000.', 'Aprobar o ajustar.', 'Riesgos'),
+    ('Rangos de deuda SSF', 'Bajo < $1,000; Medio $1,000-$9,999.99; Alto ≥ $10,000.', 'Aprobar o ajustar.', 'Riesgos'),
     ('Saldo SSF consolidado', 'Una institución por asociado.', 'Confirmar si SALDO_SSF es total consolidado o sólo la principal.', 'Riesgos / TI'),
-    ('Relación deuda-ingreso', 'R1 < 3x; R2 < 12x; R3 < 24x; R4 ≥ 24x (estadístico).', 'Aprobar; definir si se diferencia por producto.', 'Riesgos'),
+    ('Relación deuda-ingreso', 'Bajo < 3x; Medio 3x a < 12x; Alto ≥ 12x (estadístico).', 'Aprobar; definir si se diferencia por producto.', 'Riesgos'),
     ('Relación cuota-ingreso', 'No calculable.', 'Proveer cuotas de todas las obligaciones (internas y SSF) y aprobar límite institucional por producto.', 'Riesgos / TI'),
-    ('Rangos de fondo compensatorio', 'F1 < $3,000; F2 < $15,000; F3 < $50,000; F4 ≥ $50,000.', 'Aprobar o ajustar.', 'Riesgos'),
+    ('Rangos de fondo compensatorio', 'Bajo < $4,000; Medio $4,000-$24,999.99; Alto ≥ $25,000.', 'Aprobar o ajustar.', 'Riesgos'),
     ('Disponibilidad del fondo', 'Naturaleza no documentada.', 'Definir si es retirable, pignorable o garantía, y si mitiga riesgo.', 'Riesgos / Legal'),
     ('Asociados sin historial interno', 'Se marcan "Sin información" en categoría interna.', '¿Cumplen el criterio A1/A2 o requieren otro tratamiento?', 'Riesgos'),
     ('Categoría A2', 'Cumple criterio, pero se marca alerta.', 'Confirmar tratamiento.', 'Riesgos'),
@@ -1067,36 +1044,31 @@ specs = [
     ('INGRESO (USD mensual)', 'NIVEL_INGRESO', 'Nivel de riesgo', [
         (f'="$0.01 - "&{TXTm("ING_L1")}', 'Alto'),
         (f'={TXT("ING_L1")}&" - "&{TXTm("ING_L2")}', 'Medio'),
-        (f'={TXT("ING_L2")}&" - "&{TXTm("ING_L3")}', 'Bajo'),
-        (f'={TXT("ING_L3")}&" - Más"', 'Muy bajo'),
+        (f'={TXT("ING_L2")}&" - Más"', 'Bajo'),
         ('Vacío o $0', 'Sin información')]),
     ('SALDO_SSF (USD, Central de Riesgo)', 'NIVEL_DEUDA', 'Nivel de riesgo', [
         ('$0 o a favor', 'Sin deuda'),
         (f'="$0.01 - "&{TXTm("DEU_L1")}', 'Bajo'),
         (f'={TXT("DEU_L1")}&" - "&{TXTm("DEU_L2")}', 'Medio'),
-        (f'={TXT("DEU_L2")}&" - "&{TXTm("DEU_L3")}', 'Alto'),
-        (f'={TXT("DEU_L3")}&" - Más"', 'Muy alto'),
+        (f'={TXT("DEU_L2")}&" - Más"', 'Alto'),
         ('Sin registro SSF', 'Sin información')]),
     ('DEUDA / INGRESO (veces el ingreso mensual)', 'NIVEL_DEUDA_INGRESO', 'Nivel de riesgo', [
         ('0 veces', 'Sin deuda'),
         (f'="Más de 0 - menos de "&{P["DTI_L1"]}', 'Bajo'),
         (f'={P["DTI_L1"]}&" - menos de "&{P["DTI_L2"]}', 'Medio'),
-        (f'={P["DTI_L2"]}&" - menos de "&{P["DTI_L3"]}', 'Alto'),
-        (f'={P["DTI_L3"]}&" - Más"', 'Muy alto'),
+        (f'={P["DTI_L2"]}&" - Más"', 'Alto'),
         ('Ingreso vacío/$0 o sin dato SSF', 'Sin información')]),
     ('FONDO_COMPENSATORIO (USD)', 'NIVEL_RESPALDO_FONDO', 'Nivel de respaldo (no es riesgo)', [
         ('$0', 'Sin fondo'),
         (f'="$0.01 - "&{TXTm("FON_L1")}', 'Bajo'),
         (f'={TXT("FON_L1")}&" - "&{TXTm("FON_L2")}', 'Medio'),
-        (f'={TXT("FON_L2")}&" - "&{TXTm("FON_L3")}', 'Alto'),
-        (f'={TXT("FON_L3")}&" - Más"', 'Muy alto')]),
+        (f'={TXT("FON_L2")}&" - Más"', 'Alto')]),
     ('OTROS CRITERIOS', None, None, None),
     ('FONDO / INGRESO (meses de ingreso)', 'NIVEL_COBERTURA_FONDO', 'Nivel de respaldo (no es riesgo)', [
         ('$0 de fondo', 'Sin fondo'),
         (f'="Más de 0 - menos de "&{P["FOI_L1"]}&" mes"', 'Bajo'),
         (f'={P["FOI_L1"]}&" - menos de "&{P["FOI_L2"]}&" meses"', 'Medio'),
-        (f'={P["FOI_L2"]}&" - menos de "&{P["FOI_L3"]}&" meses"', 'Alto'),
-        (f'={P["FOI_L3"]}&" meses - Más"', 'Muy alto'),
+        (f'={P["FOI_L2"]}&" meses - Más"', 'Alto'),
         ('Ingreso vacío o $0', 'Sin información')]),
     ('MONTO_TOTAL_APORTACIONES (USD)', 'NIVEL_APORTACIONES', 'Nivel de aportación (no es riesgo)', [
         (f'="$0.01 - "&{TXTm("APO_L1")}', 'Bajo'),
@@ -1290,10 +1262,10 @@ r += 1
 hdr(wcm, r, ['#', 'Solicitud', 'Respuesta en este libro', '', '', '', '', '', ''], fill=fill_calc)
 r += 1
 for n_, a, b in [(1, 'Validar la base actual', 'Secciones A-C de esta hoja; Calidad_Conciliacion.'),
-                 (2, 'Incorporar nuevos parámetros (deudas de la Central de Riesgo)', 'Rangos D1-D4 de SALDO_SSF y relación deuda/ingreso R1-R4 (Matriz_Segmentacion).'),
-                 (3, 'Validar el campo de fondo compensatorio', 'Estadisticas, rangos F1-F4, fondo/ingreso M1-M4 y limitaciones sobre su disponibilidad.'),
+                 (2, 'Incorporar nuevos parámetros (deudas de la Central de Riesgo)', 'Niveles Bajo/Medio/Alto de SALDO_SSF y de la relación deuda/ingreso (Matriz_Segmentacion).'),
+                 (3, 'Validar el campo de fondo compensatorio', 'Estadisticas, niveles de fondo y de fondo/ingreso y limitaciones sobre su disponibilidad.'),
                  (4, 'Rango de ingreso', 'Rangos I-IV (Matriz_Segmentacion, Parametros).'),
-                 (5, 'Rango de fondos compensatorios', 'Rangos F1-F4 (Matriz_Segmentacion, Parametros).')]:
+                 (5, 'Rango de fondos compensatorios', 'Niveles Bajo/Medio/Alto de fondo (Variables_Rangos, Parametros).')]:
     put(wcm, r, 1, n_)
     put(wcm, r, 2, a, fb)
     put(wcm, r, 3, b)
