@@ -5,6 +5,7 @@ from xml.sax.saxutils import escape
 
 DOCX = sys.argv[1]
 SOFFICE = sys.argv[2]
+MARKER = sys.argv[3] if len(sys.argv) > 3 else "Esta guía explica, de forma ordenada"
 
 def read_doc(path):
     with zipfile.ZipFile(path) as z:
@@ -52,7 +53,7 @@ def page_numbers(path, hs):
         t = subprocess.run(["pdftotext", "-f", str(i), "-l", str(i), "-layout", pdf, "-"], capture_output=True, text=True).stdout
         texts.append(re.sub(r"\s+", " ", t))
     # saltar portada e índice: el cuerpo empieza en la página con el primer párrafo de la Presentación
-    start = next(i for i, t in enumerate(texts) if "Esta guía explica, de forma ordenada" in t)
+    start = next(i for i, t in enumerate(texts) if MARKER in t)
     res = []
     for _, t in hs:
         key = re.sub(r"\s+", " ", unesc(t))[:45]

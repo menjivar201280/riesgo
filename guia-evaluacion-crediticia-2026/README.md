@@ -11,3 +11,13 @@ python3 -I toc.py ../Guia_Integral_Evaluacion_Crediticia_El_Salvador_2026.docx <
 ```
 
 Todos los casos y cifras de ejemplo son ficticios. Fecha de consulta normativa: 27/10/2026.
+
+## Metodología de precalificación y preevaluación
+
+Entregable: `Metodologia_Precalificacion_Preevaluacion_Crediticia_El_Salvador_2026.docx` (35 páginas).
+
+```bash
+cd src
+node pre_build.js
+python3 -I toc.py ../Metodologia_Precalificacion_Preevaluacion_Crediticia_El_Salvador_2026.docx <ruta>/soffice.py "Este documento describe una metodología"
+```
