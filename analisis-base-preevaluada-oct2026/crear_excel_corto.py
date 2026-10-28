@@ -183,17 +183,17 @@ for n, t, d in pasos:
 r += 1
 merge_put(ws, f'B{r}:H{r}', f'¿QUÉ SE LES OFRECE A LOS {cnt(SI)} RECOMENDADOS?', size=13, bold=True, color='FFFFFF', bg=GREEN)
 r += 1
-for j, h in zip('BCD', ['Producto', 'Asociados', 'Monto total']):
+for j, h in zip('BCD', ['Producto (columna de la base)', 'Asociados', 'Monto a ofrecer']):
     put(ws, f'{j}{r}', h, 11, True, bg='E2EFDA', h='center')
 r += 1
-for lab, col in (('Hipotecario', 'HIPO'), ('Vehículo', 'VEH'), ('Tarjeta de crédito', 'TC')):
+for lab, col in (('Hipotecario (PRECA HIPO)', 'HIPO'), ('Vehículo (PRECA VEHICULO)', 'VEH'), ('Tarjeta (PRECA TC)', 'TC')):
     put(ws, f'B{r}', lab, 11, True)
     put(ws, f'C{r}', cnt(x[col].notna()), h='center', fmt='#,##0')
     put(ws, f'D{r}', float(x[col].sum()), h='right', fmt='$#,##0')
     for j in 'BCD':
         ws[f'{j}{r}'].border = box
     r += 1
-merge_put(ws, f'B{r}:H{r}', 'Hipotecario: se toma como viene en la base (si dice N/A, no aplica). Un asociado puede tener más de un producto. '
+merge_put(ws, f'B{r}:H{r}', 'Los montos son los de la base (PRECA HIPO, PRECA VEHICULO, PRECA TC): lo que la Cooperativa piensa ofrecer. Riesgo no los cambia; solo dice a quién sí. N/A = no se le ofrece. Un asociado puede tener más de un producto. '
           'Cada producto se revisó por separado: si se le da más de uno, Créditos debe ver que pueda pagar todas las cuotas.',
           size=9, italic=True, color=GRAY)
 ws.row_dimensions[r].height = 26
@@ -279,17 +279,17 @@ def lista(name, color, title, nota, df, cols):
 USD = '$#,##0'
 base = [('N° ASOCIADO', 'ASOCIADO', '@', 11), ('NOMBRE', 'NOMBRE', None, 36), ('DUI', 'DUI', '@', 11),
         ('AGENCIA', 'AGENCIA', None, 16), ('GANA AL MES', 'INGRESO', USD, 12), ('DEBE EN OTROS BANCOS', 'SALDO_SSF', USD, 13)]
-lista('RECOMENDADOS', GREEN, 'RECOMENDADOS', 'Pasaron todas las revisiones. Ordenados del mejor al peor puntaje '
+lista('RECOMENDADOS', GREEN, 'RECOMENDADOS', 'Pasaron todas las revisiones. Montos PRECA = lo que la Cooperativa piensa ofrecer (tal cual la base). Ordenados del mejor al peor puntaje '
       '(pesos: antigüedad 13%, ingreso 30%, deuda 20%, aportaciones 12%, categoría SSF 25%).',
       x[SI].sort_values(['PUNTAJE', 'NOMBRE'], ascending=[False, True]),
-      base + [('HIPOTECARIO', 'HIPO', USD, 13), ('VEHÍCULO', 'VEH', USD, 12), ('TARJETA', 'TC', USD, 11),
+      base + [('PRECA HIPO', 'HIPO', USD, 13), ('PRECA VEHICULO', 'VEH', USD, 13), ('PRECA TC', 'TC', USD, 11),
               ('PUNTAJE (1 a 3)', 'PUNTAJE', '0.00', 10), ('CALIFICACIÓN', 'CALIFICACION', None, 12),
               ('QUÉ FALTA ANTES DE OTORGAR', 'FALTA', None, 60)])
 lista('NO APLICAN POR AHORA', ORANGE, 'NO APLICAN POR AHORA', 'Cumplen el memorando, pero hoy no pasan al menos una revisión. '
-      'La última columna dice cuál, con el dato exacto. Los montos son los que trae la base.',
+      'La última columna dice cuál, con el dato exacto. Montos PRECA = lo que la Cooperativa pensaba ofrecer.',
       x[NO].sort_values('ASOCIADO', key=lambda s: s.astype(int)),
-      base + [('HIPOTECARIO (base)', 'PRECA HIPO', USD, 13), ('VEHÍCULO (base)', 'PRECA VEHICULO', USD, 12),
-              ('TARJETA (base)', 'PRECA TC', USD, 11), ('POR QUÉ NO APLICA POR AHORA', 'POR_QUE_NO', None, 70)])
+      base + [('PRECA HIPO', 'PRECA HIPO', USD, 13), ('PRECA VEHICULO', 'PRECA VEHICULO', USD, 13),
+              ('PRECA TC', 'PRECA TC', USD, 11), ('POR QUÉ NO APLICA POR AHORA', 'POR_QUE_NO', None, 70)])
 
 # ================================================================ TABLAS Y RANGOS + ASOCIADOS POR RANGO
 P = {r_[0].value: r_[2].value for r_ in openpyxl.load_workbook(SRC, data_only=True)['Parametros'].iter_rows(min_row=5, max_row=60)
