@@ -137,10 +137,15 @@ def tablas(r):
 x['TABLA_USADA'] = x.apply(tablas, axis=1)
 
 
+VEH_SOLV_MIN = 25000  # regla propuesta por el usuario (no está en el memorando): vehículo mayor de $25,000 pide solvencia
+
+
 def pendientes(r):
     p = []
     if pd.notna(r['PRECA HIPO']):
         p.append('Hipotecario: solvencia en Hacienda')
+    if pd.notna(r['PRECA VEHICULO']) and r['PRECA VEHICULO'] > VEH_SOLV_MIN:
+        p.append('Vehículo: solvencia en Hacienda')
     if pd.notna(r['PRECA TC']) and r['PRECA TC'] > 4000:
         p.append('TC: solvencia en Hacienda o bajar a $4,000')
     if pd.notna(r['PRECA TC']) and r['APORTACIONES_AL_DIA'] == 'NO':
@@ -151,7 +156,9 @@ def pendientes(r):
 x['PENDIENTE_ANTES_DE_OTORGAR'] = x.apply(pendientes, axis=1)
 GEN = 'Solo las revisiones generales (lista negra, castigados, relacionados)'
 x['PEND_HIPO'] = 'Solvencia en Hacienda (todo hipotecario es mayor de $30,000)'
-x['PEND_VEH'] = GEN
+x['PEND_VEH'] = x['PRECA VEHICULO'].map(
+    lambda v: 'Solvencia en Hacienda (vehículo mayor de $25,000: regla propuesta, no está en el memorando)'
+    if pd.notna(v) and v > VEH_SOLV_MIN else GEN)
 
 
 def pend_tc(r):
@@ -391,9 +398,12 @@ for lab, m, key in motivos:
 r = title_bar(r + 1, 'ANTES DE OTORGAR A LOS RECOMENDADOS (no viene en la base)', RED)
 hip4 = cnt(n4 & x['PRECA HIPO'].notna())
 tc4_big = cnt(n4 & tc_ok & (x['PRECA TC'] > 4000))
+veh4_big = cnt(n4 & (x['PRECA VEHICULO'] > VEH_SOLV_MIN))
 for t in ['✔ Revisar lista negra y créditos castigados con la Cooperativa.',
           '✔ Revisar que no sea persona relacionada ni empleado.',
           f'✔ Solvencia en Hacienda: obligatoria para los {hip4} hipotecarios recomendados.',
+          f'✔ Solvencia en Hacienda también para vehículo mayor de $25,000 ({veh4_big} recomendados). '
+          f'Regla propuesta por usted: el memorando no la pide.',
           f'✔ Tarjeta mayor de $4,000 ({tc4_big} recomendados): si no está solvente en Hacienda, se da con $4,000.',
           '✔ La base vence 3 meses después de que la apruebe el Comité.']:
     ws.merge_cells(f'B{r}:{LAST}{r}')
@@ -619,8 +629,8 @@ list_sheet('3_Recomendados', GREEN, 'RECOMENDADOS (se pueden ofrecer)',
 list_sheet('4_Hipotecario', GREEN, 'HIPOTECARIO – RECOMENDADOS', 'Todos requieren solvencia en Hacienda. ' + EXT,
            x[n4 & x['PRECA HIPO'].notna()], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_H] + LVL_COLS + PEND_H, by_score=True)
 list_sheet('5_Vehiculo', GREEN, 'VEHÍCULO – RECOMENDADOS',
-           'Para vehículo el memorando no pide condiciones extra. Falta: lista negra, créditos castigados y relacionados/empleados. '
-           'No es aprobación de crédito.', x[n4 & x['PRECA VEHICULO'].notna()], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_V] + LVL_COLS + PEND_V, by_score=True)
+           'Vehículo mayor de $25,000 ($30,000 y $40,000): pedir solvencia en Hacienda (regla propuesta, el memorando no la pide). '
+           'Falta además: lista negra, créditos castigados y relacionados/empleados. No es aprobación de crédito.', x[n4 & x['PRECA VEHICULO'].notna()], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_V] + LVL_COLS + PEND_V, by_score=True)
 list_sheet('6_Tarjeta', GREEN, 'TARJETA DE CRÉDITO – RECOMENDADOS',
            'No tienen tarjeta actualmente. Límite > $4,000 sin solvencia en Hacienda: se otorga con $4,000. ' + EXT,
            x[n4 & tc_ok & x['PRECA TC'].notna()],
