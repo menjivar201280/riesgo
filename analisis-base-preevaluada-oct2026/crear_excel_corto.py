@@ -23,7 +23,7 @@ RISK = ['NIVEL_ANTIGUEDAD', 'NIVEL_INGRESO', 'NIVEL_DEUDA', 'NIVEL_DEUDA_INGRESO
 # Ganar mucho no es un dato malo: el ingreso muy alto solo se confirma antes de otorgar.
 DATO_MAL = ((x.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar') | (x.ALERTA_ANT_EDAD == 1) | (x.CHK_EDAD != 'Coincide')
             | x.ESTADO_DEUDA_SSF.astype(str).str.startswith('Saldo negativo') | (x.DUI.astype(str).str.len() != 9))
-# Solo quedan para revisar quienes hoy tienen deuda alta para su ingreso o ingreso ajustado.
+# Quedan "con observaciones" (verificar) quienes hoy tienen deuda alta para su ingreso o ingreso ajustado.
 # Lo que el memorando permite (A2, antigüedad baja, atraso en aportaciones con condición) y los datos por corregir
 # no dejan fuera: quedan como "antes de otorgar". El nivel de riesgo (pesos) dice a quién cuidar más.
 PAGA = n1 & (x.NIVEL_DEUDA_INGRESO != 'Alto') & (x.AL_ING_BAJO_DEUDA_ELEVADA != 1) & (x.DQ_PRECA_SIN_INGRESO == 0)
@@ -31,7 +31,7 @@ PAGA = n1 & (x.NIVEL_DEUDA_INGRESO != 'Alto') & (x.AL_ING_BAJO_DEUDA_ELEVADA != 
 # hipotecario, con la condición de que pague primero lo que debe en otros bancos (vehículo y tarjeta no).
 TRAE = n1 & ~PAGA & (x.DQ_PRECA_SIN_INGRESO == 0) & x['PRECA HIPO'].notna() & (x.SALDO_SSF <= x['PRECA HIPO'])
 # Tarjeta: si su deuda es alta, igual se le puede dar la tarjeta que la base trae, porque su límite es el que su propia
-# tabla de tarjeta le asigna según lo que gana (monto pequeño). Hipotecario y vehículo quedan para revisar más adelante.
+# tabla de tarjeta le asigna según lo que gana (monto pequeño). Hipotecario y vehículo quedan con observaciones.
 tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
 SOLO_TC = (n1 & ~PAGA & ~TRAE & (x.DQ_PRECA_SIN_INGRESO == 0) & x['PRECA TC'].notna() & tc_ok
            & (x.CONSIST_TC == 'Coincide con tabla'))
@@ -87,7 +87,7 @@ def falta(e):
     if e.COMO == 'Solo tarjeta (límite de su tabla)':
         otros = [n_ for n_, c_ in (('hipotecario', 'PRECA HIPO'), ('vehículo', 'PRECA VEHICULO')) if pd.notna(e[c_])]
         p.append(f'Solo tarjeta: su límite ({money(e.TC)}) es el que su tabla de tarjeta da para lo que gana ({money(e.INGRESO)} al mes)'
-                 + (f'; {" y ".join(otros)} para revisar más adelante, por su deuda ({money(e.SALDO_SSF)})' if otros else ''))
+                 + (f'; {" y ".join(otros)}: con observaciones, verificar su deuda ({money(e.SALDO_SSF)})' if otros else ''))
     if e.COMO == 'Con el hipotecario paga su deuda':
         p.append(f'El hipotecario paga primero su deuda en otros bancos ({money(e.SALDO_SSF)}); '
                  f'le quedan {money(e["PRECA HIPO"] - e.SALDO_SSF)}. Vehículo no'
@@ -165,7 +165,7 @@ merge_put(ws, 'B3:H3', 'Recomendación de Riesgo para ayudar a decidir. No es la
 cards = [('B', 'C', TOTAL, 'asociados en la base', NAVY, 'BD FINAL'),
          ('D', 'D', cnt(n1), 'cumplen el memorando', '2E75B6', None),
          ('F', 'F', cnt(SI), 'RECOMENDADOS', GREEN, 'RECOMENDADOS'),
-         ('G', 'H', cnt(NO), 'para revisar más adelante', ORANGE, 'PARA REVISAR')]
+         ('G', 'H', cnt(NO), 'con observaciones (verificar)', ORANGE, 'CON OBSERVACIONES')]
 for a, b, n, lab, col, sh in cards:
     for rr in (5, 6):
         for cc in range(ws[f'{a}{rr}'].column, ws[f'{b}{rr}'].column + 1):
@@ -186,12 +186,13 @@ r = 9
 merge_put(ws, f'B{r}:H{r}', '¿CÓMO SE DECIDE?', size=13, bold=True, color='FFFFFF', bg=NAVY)
 pasos = [('1', 'Cumple el memorando', 'Tiene ingreso y fondo, edad de 30 a 55 años, categoría A1 o A2. '
           f'De {TOTAL:,} asociados, {cnt(n1):,} cumplen.'),
-         ('2', 'Capacidad de pago', f'Gana bien para lo que debe = RECOMENDADO ({cnt(PAGA)}). Si debe mucho para su ingreso, pero su deuda '
-          f'es menor que el hipotecario que se le ofrece, con el hipotecario paga esa deuda = RECOMENDADO ({cnt(TRAE)}): hipotecario, '
-          f'y tarjeta después de pagar la deuda ({cnt(TRAE_TC)} la tienen en la base); vehículo no. '
-          f'Si su deuda es alta pero tiene tarjeta en la base, se le da SOLO la tarjeta, con el límite de su tabla ({cnt(SOLO_TC)}).'),
-         ('3', 'Resultado', f'RECOMENDADO = {cnt(SI)}, con su nivel de riesgo BAJO / MEDIO / ALTO (pesos de la hoja de rangos). '
-          f'Para revisar más adelante = {cnt(NO)}. Atrasos en aportaciones o datos por corregir no lo sacan: van en "QUÉ FALTA ANTES DE OTORGAR".')]
+         ('2a', 'Gana bien para lo que debe', f'RECOMENDADO con todo lo de PRECA ({cnt(PAGA)}).'),
+         ('2b', 'Su deuda cabe en el hipotecario', f'RECOMENDADO ({cnt(TRAE)}): con el hipotecario paga su deuda; '
+          f'tarjeta después de pagarla ({cnt(TRAE_TC)}); vehículo no.'),
+         ('2c', 'Deuda alta, pero tiene tarjeta', f'RECOMENDADO solo la tarjeta ({cnt(SOLO_TC)}): su límite es el de su tabla de tarjeta.'),
+         ('2d', 'Deuda alta, sin tarjeta', f'Se recomienda CON OBSERVACIONES ({cnt(NO)}): verificar su deuda antes de otorgar.'),
+         ('3', 'Resultado', f'RECOMENDADOS = {cnt(SI)} (riesgo BAJO / MEDIO / ALTO con los pesos). Con observaciones = {cnt(NO)}. '
+          'Atrasos en aportaciones o datos por corregir van en "QUÉ FALTA ANTES DE OTORGAR".')]
 r += 1
 for n, t, d in pasos:
     put(ws, f'B{r}', f'{n}.  {t}', 11, True, NAVY, 'EAF1FB')
@@ -220,7 +221,7 @@ ws.row_dimensions[r].height = 26
 
 # por qué no
 r += 2
-merge_put(ws, f'B{r}:H{r}', f'¿POR QUÉ {cnt(NO)} QUEDAN PARA REVISAR MÁS ADELANTE?', size=13, bold=True,
+merge_put(ws, f'B{r}:H{r}', f'¿QUÉ HAY QUE VERIFICAR EN LOS {cnt(NO)} CON OBSERVACIONES?', size=13, bold=True,
           color='FFFFFF', bg=ORANGE)
 r += 1
 put(ws, f'B{r}', 'Motivo', 11, True, bg='FBE5D6')
@@ -310,16 +311,16 @@ lista('RECOMENDADOS', GREEN, 'RECOMENDADOS', 'Pueden pagar. Montos PRECA = lo qu
               ('PUNTAJE (1 a 3)', 'PUNTAJE', '0.00', 10), ('NIVEL DE RIESGO', 'CALIFICACION', None, 12),
               ('¿POR QUÉ SÍ?', 'COMO', None, 22),
               ('QUÉ FALTA ANTES DE OTORGAR', 'FALTA', None, 60)])
-lista('PARA REVISAR', ORANGE, 'PARA REVISAR MÁS ADELANTE', 'Cumplen el memorando; hoy su deuda es alta comparada con su ingreso. '
-      'La última columna dice cuál, con el dato exacto. Montos PRECA = lo que la Cooperativa pensaba ofrecer.',
+lista('CON OBSERVACIONES', ORANGE, 'SE RECOMIENDAN CON OBSERVACIONES', 'Cumplen el memorando; antes de otorgar hay que verificar su deuda. '
+      'La última columna dice qué verificar, con el dato exacto. Montos PRECA = lo que la Cooperativa quiere ofrecer.',
       x[NO].sort_values('ASOCIADO', key=lambda s: s.astype(int)),
       base + [('PRECA HIPO', 'PRECA HIPO', USD, 13), ('PRECA VEHICULO', 'PRECA VEHICULO', USD, 13),
-              ('PRECA TC', 'PRECA TC', USD, 11), ('MOTIVO', 'POR_QUE_NO', None, 70)])
+              ('PRECA TC', 'PRECA TC', USD, 11), ('OBSERVACIÓN: QUÉ VERIFICAR', 'POR_QUE_NO', None, 70)])
 
 # ================================================================ TABLAS Y RANGOS + ASOCIADOS POR RANGO
 P = {r_[0].value: r_[2].value for r_ in openpyxl.load_workbook(SRC, data_only=True)['Parametros'].iter_rows(min_row=5, max_row=60)
      if r_[0].value}
-x['RESULTADO'] = SI.map({True: 'RECOMENDADO', False: 'Para revisar'})
+x['RESULTADO'] = SI.map({True: 'RECOMENDADO', False: 'Con observaciones'})
 d528 = x[n1]
 years = lambda e: f'{int(e.ANTIGUEDAD_ANIOS)} año(s)'
 # (título, peso, [(nivel, rango, máscara, dato)])
@@ -444,7 +445,7 @@ put(wt, f'F{r}', 1, 11, True, NAVY, h='center', fmt='0%')
 r += 1
 merge_put(wt, f'B{r}:F{r}', 'Antigüedad: rango de su hoja "Variables". Los demás rangos son propuesta de Riesgo hecha con los datos de esta base. '
           'Puntaje: verde = 3, amarillo = 2, rojo = 1, por su peso. Riesgo BAJO = 2.6 a 3; MEDIO = 2.2 a 2.59; ALTO = menos de 2.2. '
-          'Quedan para revisar más adelante: deuda alta para su ingreso (rojo de la última fila) o ingreso ajustado para su deuda.', size=9, italic=True, color=GRAY)
+          'Con observaciones (verificar): deuda alta para su ingreso (rojo de la última fila) o ingreso ajustado para su deuda.', size=9, italic=True, color=GRAY)
 wt.row_dimensions[r].height = 26
 
 r += 2
