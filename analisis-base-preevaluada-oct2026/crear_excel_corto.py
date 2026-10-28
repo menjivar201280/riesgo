@@ -26,6 +26,12 @@ DATO_MAL = ((x.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar') | (x.ALERTA_ANT_ED
 # Quedan "con observaciones" (verificar) quienes hoy tienen deuda alta para su ingreso o ingreso ajustado.
 # Lo que el memorando permite (A2, antigüedad baja, atraso en aportaciones con condición) y los datos por corregir
 # no dejan fuera: quedan como "antes de otorgar". El nivel de riesgo (pesos) dice a quién cuidar más.
+# Nivel de riesgo fácil de explicar: cuántos de sus 5 datos están en rojo. 0 = BAJO, 1 = MEDIO, 2 o más = ALTO.
+PESOS = [('NIVEL_ANTIGUEDAD', .13), ('NIVEL_INGRESO', .30), ('NIVEL_DEUDA', .20), ('NIVEL_MORA_APORTACIONES', .12),
+         ('NIVEL_CAT_EXTERNA', .25)]
+x['ROJOS'] = sum((x[c] == 'Alto').astype(int) for c, _w in PESOS)
+x['CALIFICACION'] = x.ROJOS.map(lambda n_: 'BAJO' if n_ == 0 else 'MEDIO' if n_ == 1 else 'ALTO')
+ALTO = x.ROJOS >= 2  # riesgo ALTO: solo la tarjeta (monto pequeño); hipotecario y vehículo con observaciones
 PAGA = n1 & (x.NIVEL_DEUDA_INGRESO != 'Alto') & (x.AL_ING_BAJO_DEUDA_ELEVADA != 1) & (x.DQ_PRECA_SIN_INGRESO == 0)
 # Si su deuda es menor que el hipotecario que se le ofrece, con el hipotecario paga esa deuda: se le recomienda SOLO el
 # hipotecario, con la condición de que pague primero lo que debe en otros bancos (vehículo y tarjeta no).
@@ -33,13 +39,16 @@ TRAE = n1 & ~PAGA & (x.DQ_PRECA_SIN_INGRESO == 0) & x['PRECA HIPO'].notna() & (x
 # Tarjeta: si su deuda es alta, igual se le puede dar la tarjeta que la base trae, porque su límite es el que su propia
 # tabla de tarjeta le asigna según lo que gana (monto pequeño). Hipotecario y vehículo quedan con observaciones.
 tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
-SOLO_TC = (n1 & ~PAGA & ~TRAE & (x.DQ_PRECA_SIN_INGRESO == 0) & x['PRECA TC'].notna() & tc_ok
+SOLO_TC = (n1 & (~(PAGA | TRAE) | ALTO) & (x.DQ_PRECA_SIN_INGRESO == 0) & x['PRECA TC'].notna() & tc_ok
            & (x.CONSIST_TC == 'Coincide con tabla'))
-SI = PAGA | TRAE | SOLO_TC
+SI = ((PAGA | TRAE) & ~ALTO) | SOLO_TC
 # Los montos PRECA son lo que la Cooperativa quiere ofrecer: las tablas de vehículo y tarjeta solo se muestran, no deciden.
 NO = n1 & ~SI
 money = lambda v: f'${v:,.0f}'
 
+ROJO_TXT = {'NIVEL_ANTIGUEDAD': 'asociado nuevo', 'NIVEL_INGRESO': 'ingreso bajo', 'NIVEL_DEUDA': 'deuda alta en otros bancos',
+            'NIVEL_MORA_APORTACIONES': 'cuotas de aportación vencidas', 'NIVEL_CAT_EXTERNA': 'categoría SSF'}
+rojos_txt = lambda e: ', '.join(t for c, t in ROJO_TXT.items() if e[c] == 'Alto')
 deuda_alta = lambda e: e.NIVEL_DEUDA_INGRESO == 'Alto' or e.AL_ING_BAJO_DEUDA_ELEVADA == 1
 
 # Revisiones en palabras simples: (¿falló?, frase con el dato exacto)
@@ -52,34 +61,32 @@ REVISIONES = [
     (lambda e: deuda_alta(e) and pd.notna(e['PRECA HIPO']) and e.SALDO_SSF > e['PRECA HIPO'],
      lambda e: f'Su deuda es mayor que el hipotecario que se le ofrece ({money(e["PRECA HIPO"])}): no alcanza para pagarla'),
     (lambda e: deuda_alta(e) and pd.isna(e['PRECA HIPO']), lambda e: 'No tiene hipotecario en la base con el cual pagar su deuda'),
+    (lambda e: e.ROJOS >= 2, lambda e: f'Riesgo ALTO: {int(e.ROJOS)} datos en rojo ({rojos_txt(e)}); verificar antes de dar hipotecario o vehículo'),
 ]
-MOTIVO_CORTO = ['Deuda alta para su ingreso', 'Ingreso ajustado para su deuda actual', 'Monto pre evaluado sin ingreso válido', 'Su deuda es mayor que el hipotecario ofrecido', 'No tiene hipotecario para pagar su deuda']
+MOTIVO_CORTO = ['Deuda alta para su ingreso', 'Ingreso ajustado para su deuda actual', 'Monto pre evaluado sin ingreso válido', 'Su deuda es mayor que el hipotecario ofrecido', 'No tiene hipotecario para pagar su deuda', 'Riesgo ALTO (2 o más datos en rojo), sin tarjeta']
 assert len(MOTIVO_CORTO) == len(REVISIONES)
 x['POR_QUE_NO'] = ''
 for i in x.index[NO]:
     e = x.loc[i]
     x.at[i, 'POR_QUE_NO'] = '; '.join(f(e) for falla, f in REVISIONES if falla(e))
 assert (x.loc[NO, 'POR_QUE_NO'] != '').all()           # todo NO tiene su motivo
-assert not any(falla(x.loc[i]) for i in x.index[PAGA] for falla, _ in REVISIONES)  # y ningún SÍ por capacidad falla nada
+assert not any(falla(x.loc[i]) for i in x.index[PAGA & ~ALTO] for falla, _ in REVISIONES)  # y ningún SÍ por capacidad falla nada
 
 # Productos que se recomiendan a los SÍ (la tarjeta solo si no tiene tarjeta: memorando)
-x['HIPO'] = x['PRECA HIPO'].where(PAGA | TRAE)
-x['VEH'] = x['PRECA VEHICULO'].where(PAGA)
+x['HIPO'] = x['PRECA HIPO'].where((PAGA | TRAE) & ~ALTO)
+x['VEH'] = x['PRECA VEHICULO'].where(PAGA & ~ALTO)
 x['TC'] = x['PRECA TC'].where(SI & tc_ok)  # a los que pagan su deuda con el hipotecario, después de pagarla
 x['COMO'] = ''
-x.loc[PAGA, 'COMO'] = 'Puede pagar'
-x.loc[TRAE, 'COMO'] = 'Con el hipotecario paga su deuda'
+x.loc[PAGA & ~ALTO, 'COMO'] = 'Puede pagar'
+x.loc[TRAE & ~ALTO, 'COMO'] = 'Con el hipotecario paga su deuda'
 x.loc[SOLO_TC, 'COMO'] = 'Solo tarjeta (límite de su tabla)'
-TRAE_TC = TRAE & x.TC.notna()
+TRAE_TC = TRAE & ~ALTO & x.TC.notna()
 SI_PROD = SI & x[['HIPO', 'VEH', 'TC']].notna().any(axis=1)
 assert (SI == SI_PROD).all()
 
 # Puntaje con los pesos del usuario (solo para ordenar a los SÍ)
-PESOS = [('NIVEL_ANTIGUEDAD', .13), ('NIVEL_INGRESO', .30), ('NIVEL_DEUDA', .20), ('NIVEL_MORA_APORTACIONES', .12),
-         ('NIVEL_CAT_EXTERNA', .25)]
 PTS = {'Bajo': 3, 'Sin deuda': 3, 'Medio': 2, 'Alto': 1, 'Sin fondo': 1}
 x['PUNTAJE'] = sum(x[c].map(PTS) * w for c, w in PESOS).round(2)
-x['CALIFICACION'] = x.PUNTAJE.map(lambda v: 'BAJO' if v >= 2.6 else 'MEDIO' if v >= 2.2 else 'ALTO')  # nivel de riesgo
 DATO = {'NIVEL_ANTIGUEDAD': lambda e: f'antigüedad {int(e.ANTIGUEDAD_ANIOS)} año(s)',
         'NIVEL_INGRESO': lambda e: f'ingreso ${e.INGRESO:,.0f} al mes',
         'NIVEL_DEUDA': lambda e: f'deuda en otros bancos ${e.SALDO_SSF:,.0f}',
@@ -103,8 +110,9 @@ def falta(e):
     p = ['Lista negra, castigados y relacionados/empleados']
     if e.COMO == 'Solo tarjeta (límite de su tabla)':
         otros = [n_ for n_, c_ in (('hipotecario', 'PRECA HIPO'), ('vehículo', 'PRECA VEHICULO')) if pd.notna(e[c_])]
+        por = f'riesgo ALTO ({rojos_txt(e)})' if e.ROJOS >= 2 else f'su deuda ({money(e.SALDO_SSF)})'
         p.append(f'Solo tarjeta: su límite ({money(e.TC)}) es el que su tabla de tarjeta da para lo que gana ({money(e.INGRESO)} al mes)'
-                 + (f'; {" y ".join(otros)}: con observaciones, verificar su deuda ({money(e.SALDO_SSF)})' if otros else ''))
+                 + (f'; {" y ".join(otros)}: con observaciones, verificar por {por}' if otros else ''))
     if e.COMO == 'Con el hipotecario paga su deuda':
         p.append(f'El hipotecario paga primero su deuda en otros bancos ({money(e.SALDO_SSF)}); '
                  f'le quedan {money(e["PRECA HIPO"] - e.SALDO_SSF)}. Vehículo no'
@@ -206,9 +214,10 @@ pasos = [('1', 'Cumple el memorando', 'Tiene ingreso y fondo, edad de 30 a 55 a�
          ('2a', 'Gana bien para lo que debe', f'RECOMENDADO con todo lo de PRECA ({cnt(PAGA)}).'),
          ('2b', 'Su deuda cabe en el hipotecario', f'RECOMENDADO ({cnt(TRAE)}): con el hipotecario paga su deuda; '
           f'tarjeta después de pagarla ({cnt(TRAE_TC)}); vehículo no.'),
-         ('2c', 'Deuda alta, pero tiene tarjeta', f'RECOMENDADO solo la tarjeta ({cnt(SOLO_TC)}): su límite es el de su tabla de tarjeta.'),
-         ('2d', 'Deuda alta, sin tarjeta', f'Se recomienda CON OBSERVACIONES ({cnt(NO)}): verificar su deuda antes de otorgar.'),
-         ('3', 'Resultado', f'RECOMENDADOS = {cnt(SI)} (riesgo BAJO / MEDIO / ALTO con los pesos). Con observaciones = {cnt(NO)}. '
+         ('2c', 'Deuda alta o riesgo ALTO, con tarjeta', f'RECOMENDADO solo la tarjeta ({cnt(SOLO_TC)}): su límite es el de su tabla de tarjeta; '
+          'hipotecario y vehículo con observaciones.'),
+         ('2d', 'Deuda alta o riesgo ALTO, sin tarjeta', f'Se recomienda CON OBSERVACIONES ({cnt(NO)}): verificar antes de otorgar.'),
+         ('3', 'Resultado', f'RECOMENDADOS = {cnt(SI)} (riesgo BAJO = ningún dato en rojo; MEDIO = 1 en rojo; ALTO = 2 o más en rojo). Con observaciones = {cnt(NO)}. '
           'Atrasos en aportaciones o datos por corregir van en "QUÉ FALTA ANTES DE OTORGAR".')]
 r += 1
 for n, t, d in pasos:
@@ -321,15 +330,15 @@ def lista(name, color, title, nota, df, cols):
 USD = '$#,##0'
 base = [('N° ASOCIADO', 'ASOCIADO', '@', 11), ('NOMBRE', 'NOMBRE', None, 36), ('DUI', 'DUI', '@', 11),
         ('AGENCIA', 'AGENCIA', None, 16), ('GANA AL MES', 'INGRESO', USD, 12), ('DEBE EN OTROS BANCOS', 'SALDO_SSF', USD, 13)]
-lista('RECOMENDADOS', GREEN, 'RECOMENDADOS', 'Pueden pagar. Montos PRECA = lo que la Cooperativa piensa ofrecer (tal cual la base). Ordenados de menor a mayor riesgo '
-      '(pesos: antigüedad 13%, ingreso 30%, deuda 20%, aportaciones 12%, categoría SSF 25%).',
-      x[SI].sort_values(['PUNTAJE', 'NOMBRE'], ascending=[False, True]),
+lista('RECOMENDADOS', GREEN, 'RECOMENDADOS', 'Pueden pagar. Montos PRECA = lo que la Cooperativa piensa ofrecer (tal cual la base). '
+      'Riesgo: BAJO = ningún dato en rojo; MEDIO = 1 en rojo; ALTO = 2 o más en rojo. Ordenados de menor a mayor riesgo.',
+      x[SI].sort_values(['ROJOS', 'PUNTAJE', 'NOMBRE'], ascending=[True, False, True]),
       base + [('PRECA HIPO', 'HIPO', USD, 13), ('PRECA VEHICULO', 'VEH', USD, 13), ('PRECA TC', 'TC', USD, 11),
-              ('PUNTAJE (1 a 3)', 'PUNTAJE', '0.00', 10), ('NIVEL DE RIESGO', 'CALIFICACION', None, 12),
+              ('NIVEL DE RIESGO', 'CALIFICACION', None, 12), ('DATOS EN ROJO (de 5)', 'ROJOS', '0', 10),
               ('¿A QUÉ SE DEBE EL NIVEL DE RIESGO?', 'A_QUE_SE_DEBE', None, 46),
               ('¿POR QUÉ SÍ?', 'COMO', None, 22),
               ('QUÉ FALTA ANTES DE OTORGAR', 'FALTA', None, 60)])
-lista('CON OBSERVACIONES', ORANGE, 'SE RECOMIENDAN CON OBSERVACIONES', 'Cumplen el memorando; antes de otorgar hay que verificar su deuda. '
+lista('CON OBSERVACIONES', ORANGE, 'SE RECOMIENDAN CON OBSERVACIONES', 'Cumplen el memorando; antes de otorgar hay que verificar su deuda o su riesgo ALTO. '
       'La última columna dice qué verificar, con el dato exacto. Montos PRECA = lo que la Cooperativa quiere ofrecer.',
       x[NO].sort_values('ASOCIADO', key=lambda s: s.astype(int)),
       base + [('PRECA HIPO', 'PRECA HIPO', USD, 13), ('PRECA VEHICULO', 'PRECA VEHICULO', USD, 13),
@@ -442,7 +451,7 @@ def nlink(cell, key, extra=''):
 
 
 r = 5
-merge_put(wt, f'B{r}:F{r}', '1. RANGOS BAJO / MEDIO / ALTO (dan el puntaje y el nivel de riesgo)', size=12, bold=True, color='FFFFFF', bg=NAVY)
+merge_put(wt, f'B{r}:F{r}', '1. RANGOS: VERDE / AMARILLO / ROJO (los rojos dan el nivel de riesgo)', size=12, bold=True, color='FFFFFF', bg=NAVY)
 r += 1
 for j, h in zip('BCDEF', ['Dato', 'BAJO (verde)', 'MEDIO (amarillo)', 'ALTO (rojo)', 'Peso']):
     put(wt, f'{j}{r}', h, 10, True, bg='D9E1F2', h='center')
@@ -462,7 +471,8 @@ put(wt, f'E{r}', 'Total pesos', 10, True, h='right')
 put(wt, f'F{r}', 1, 11, True, NAVY, h='center', fmt='0%')
 r += 1
 merge_put(wt, f'B{r}:F{r}', 'Antigüedad: rango de su hoja "Variables". Los demás rangos son propuesta de Riesgo hecha con los datos de esta base. '
-          'Puntaje: verde = 3, amarillo = 2, rojo = 1, por su peso. Riesgo BAJO = 2.6 a 3; MEDIO = 2.2 a 2.59; ALTO = menos de 2.2. '
+          'Nivel de riesgo: se cuentan los datos en rojo de las 5 primeras filas. Ninguno = BAJO; 1 = MEDIO; 2 o más = ALTO. '
+          'El peso solo ordena la lista (dentro de cada nivel, primero los de mejor peso). '
           'Con observaciones (verificar): deuda alta para su ingreso (rojo de la última fila) o ingreso ajustado para su deuda.', size=9, italic=True, color=GRAY)
 wt.row_dimensions[r].height = 26
 
