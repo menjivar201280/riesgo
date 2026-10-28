@@ -313,7 +313,7 @@ VT = [('$15,000 o más', 40000), ('$10,000 a $14,999.99', 30000), ('$5,000 a $9,
       ('Menos de $3,000', 'NO APLICA')]
 for ing, mto in VT:
     m = n1 & x['PRECA VEHICULO'].notna() & (x.ESPERADO_VEHICULO.astype(str) == str(mto))
-    GRUPOS.append((f'VEH|{mto}', f'Tabla de VEHÍCULO – gana {ing} → le toca {money(mto) if mto != "NO APLICA" else "NO APLICA"}', m,
+    GRUPOS.append((f'VEH|{mto}', f'Tabla de VEHÍCULO – gana {ing} → le toca {money(mto) if mto != "NO APLICA" else "sin monto en la tabla (solo referencia)"}', m,
                    lambda e: f'gana {money(e.INGRESO)}, le dieron {money(e["PRECA VEHICULO"])}'))
 TT = [('$500 a $749.99', 500, 'Clásica local'), ('$750 a $999.99', 1500, 'Clásica internacional'), ('$1,000 a $1,499.99', 2000, 'Clásica internacional'),
       ('$1,500 a $1,699.99', 2500, 'Dorada'), ('$1,700 a $1,999.99', 3000, 'Dorada'), ('$2,000 a $2,499.99', 3500, 'Platinum'),
@@ -336,7 +336,8 @@ for col, wd in zip('ABCDEF', [12, 38, 17, 40, 22, 2]):
 put(wa, 'A1', 'ASOCIADOS EN CADA RANGO Y EN CADA TABLA (solo los 528 que cumplen el memorando)', 14, True, NAVY, wrap=False)
 link(wa, 'A2', 'TABLAS Y RANGOS', '◄ Volver a TABLAS Y RANGOS', 10)
 ANCLA = {}
-rr = 4
+IDX = 4  # índice con enlaces a cada lista
+rr = IDX + len(GRUPOS) + 3
 for key, tit, m, dato in GRUPOS:
     d = x[m].sort_values('ASOCIADO', key=lambda s_: s_.astype(int))
     ANCLA[key] = (rr, len(d))
@@ -355,8 +356,15 @@ for key, tit, m, dato in GRUPOS:
             c.font = font(9, bold=(j == 5), color=(GREEN if v == 'RECOMENDADO' else ORANGE) if j == 5 else '000000')
             c.border = box
         rr += 1
-    link(wa, f'A{rr}', 'TABLAS Y RANGOS', '▲ volver', 9)
+    link(wa, f'A{rr}', 'ÍNDICE', '▲ volver al índice', 9)
+    wa.cell(rr, 1).hyperlink = f"#'ASOCIADOS POR RANGO'!A{IDX}"
     rr += 2
+wa.merge_cells(f'A{IDX}:E{IDX}')
+put(wa, f'A{IDX}', 'ÍNDICE: haga clic en una línea para ir a esa lista', 11, True, 'FFFFFF', '2E75B6')
+for k, (key, tit, m, _d) in enumerate(GRUPOS, 1):
+    c = put(wa, f'A{IDX + k}', f'{tit}  —  {ANCLA[key][1]} asociados', 10, False, '0563C1', wrap=False)
+    c.font = font(10, False, '0563C1', u='single')
+    c.hyperlink = f"#'ASOCIADOS POR RANGO'!A{ANCLA[key][0]}"
 
 # hoja de tablas
 wt = wb.create_sheet('TABLAS Y RANGOS', 1)
