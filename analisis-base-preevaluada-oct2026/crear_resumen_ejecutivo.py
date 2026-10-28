@@ -754,7 +754,7 @@ for c1, c2, t, col in groups:
         w7.cell(H7 - 1, k).fill = PatternFill('solid', fgColor=col)
         w7.cell(H7, k).fill = PatternFill('solid', fgColor=col)
 heads = (['N° ASOCIADO', 'NOMBRE', 'AGENCIA', '¿RECOMENDADO?'] + [h for h, _ in CHECKS]
-         + ['¿POR QUÉ NO? (en palabras)', 'TABLA USADA (clic)', 'HIPOTECARIO', 'VEHÍCULO', 'TARJETA', 'PUNTAJE (1 a 3)', 'CALIFICACIÓN'])
+         + ['EXPLICACIÓN: POR QUÉ SÍ O POR QUÉ NO', 'TABLA USADA (clic)', 'HIPOTECARIO', 'VEHÍCULO', 'TARJETA', 'PUNTAJE (1 a 3)', 'CALIFICACIÓN'])
 widths = [11, 34, 15, 17] + [12] * len(CHECKS) + [62, 18, 12, 11, 10, 10, 12]
 for j, (h, w) in enumerate(zip(heads, widths), 1):
     c = w7.cell(H7, j, h)
