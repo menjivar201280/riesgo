@@ -343,18 +343,32 @@ r = title_bar(r + 1, 'PROBLEMAS DE LA BASE (para que Créditos los corrija)', GR
 ing_vacio = int(x.INGRESO.isna().sum())
 ing_cero = int((num('INGRESO') == 0).sum())
 veh = num('PRECA VEHICULO')
-for t in [f'• {ing_vacio + ing_cero:,} asociados tienen monto asignado pero no tienen ingreso (vacío o $0).',
-          f'• {cnt(x.EDAD_RECALCULADA > 55)} asociados ya tienen 56 años (el memorando pide hasta 55).',
-          f'• {cnt(num("FONDO_COMPENSATORIO") == 0)} asociados tienen fondo compensatorio $0.',
-          f'• {cnt(veh == 150000)} asociado tiene $150,000 de vehículo; ese monto no existe en la tabla.',
-          '• El memorando dice 2,263 registros, 61 sin deuda y 54 atrasados; la base tiene 2,262, 342 sin deuda registrada y 186 atrasados.',
-          '• Crédito de consumo: no viene en la base ni en el memorando.']:
+for a_, b_, h in [('B', 'G', 'Problema'), ('H', 'H', 'Asociados'), ('I', 'I', 'Ver quiénes')]:
+    if a_ != b_:
+        ws.merge_cells(f'{a_}{r}:{b_}{r}')
+    cellw(ws, r, CI(a_), h, bold=True, fill='E7E6E6', align='center')
+r += 1
+PROB_ROWS = []  # (fila, clave de la hoja 11)
+for lab, val, key in [('Tienen monto asignado pero no tienen ingreso (vacío o $0)', ing_vacio + ing_cero, 'P1'),
+                      ('Ya tienen 56 años al 30/09/2026 (el memorando pide hasta 55)', cnt(x.EDAD_RECALCULADA > 55), 'P2'),
+                      ('Tienen fondo compensatorio $0 (el memorando pide fondo)', cnt(num('FONDO_COMPENSATORIO') == 0), 'P3'),
+                      ('Están atrasados en aportaciones (el memorando dice 54; son los que tienen tarjeta)',
+                       cnt(x.APORTACIONES_AL_DIA == 'NO'), 'P4'),
+                      ('Datos mal anotados: antigüedad imposible, deuda en negativo, DUI mal escrito, vehículo de $150,000',
+                       cnt((x.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar') | (num('SALDO_SSF') < 0)
+                           | (x.DUI.astype(str).str.len() != 9) | (veh == 150000)), 'P5')]:
+    ws.merge_cells(f'B{r}:G{r}')
+    cellw(ws, r, 2, lab)
+    cellw(ws, r, 8, val, '#,##0', align='center')
+    cellw(ws, r, 9, '▶ Ver', align='center')
+    PROB_ROWS.append((r, key))
+    r += 1
+for t in ['El memorando dice 2,263 registros y 61 sin deuda; la base tiene 2,262 y 342 sin deuda registrada en la Central de Riesgo.',
+          'Crédito de consumo: no viene en la base ni en el memorando.']:
     ws.merge_cells(f'B{r}:{LAST}{r}')
     c = ws[f'B{r}']
-    c.value = t
-    c.font = font(10)
-    c.alignment = Alignment(vertical='center', indent=1)
-    ws.row_dimensions[r].height = 18
+    c.value = '• ' + t
+    c.font = font(9, italic=True, color=GRAY)
     r += 1
 
 # ---- índice de hojas
@@ -368,6 +382,7 @@ for sh, desc in [('2_Niveles_y_Rangos', 'Los rangos Bajo / Medio / Alto de cada 
                  ('8_Tablas_usadas', 'Las tablas con las que se comparó a cada asociado.'),
                  ('9_Como_explicarlo', 'Ejemplos paso a paso para explicar un NO.'),
                  ('10_Asociados_por_tabla', 'Los NO recomendados agrupados por motivo.'),
+                 ('11_Problemas_de_la_base', 'Los asociados con problemas en la base (sin ingreso, 56 años, fondo $0...).'),
                  ('BD FINAL', 'Su base original, sin cambios.')]:
     ws.merge_cells(f'B{r}:D{r}')
     cellw(ws, r, 2, '')
@@ -911,6 +926,108 @@ for cell, key, cnt_cell in RES_LINKS:
     if key == 'T6':
         ws[cnt_cell].value = SEC[key][1]
         ws[cnt_cell].number_format = '#,##0'
+
+# ================================================================ HOJA 11: PROBLEMAS DE LA BASE (toda la base)
+w11 = wb.create_sheet('11_Problemas_de_la_base')
+w11.sheet_properties.tabColor = GRAY
+w11.sheet_view.showGridLines = False
+for col, w in zip('ABCDEFGHIJ', [2, 12, 38, 12, 16, 16, 16, 16, 16, 16]):
+    w11.column_dimensions[col].width = w
+w11['B1'] = 'PROBLEMAS ENCONTRADOS EN LA BASE (para que Créditos los revise y corrija)'
+w11['B1'].font = font(15, True, NAVY)
+link(w11, 'B2', '1_RESUMEN', '◄ Volver al RESUMEN')
+w11['B3'] = ('Aquí aparecen asociados de TODA la base (2,262), no solo de los 528. Son errores o faltantes del archivo: '
+             'no se pudo decidir con ellos hasta que se corrijan.')
+w11['B3'].font = font(10, italic=True)
+PSEC = {}
+numc = lambda c_: pd.to_numeric(x[c_], errors='coerce')  # 'num' se reutiliza como variable de ciclo más arriba
+r = 5
+age_txt = lambda e: f'{int(e.EDAD_RECALCULADA)}'
+
+
+def psection(r, key, title, explica, mask, cols):
+    d = x[mask].sort_values('ASOCIADO', key=lambda s_: s_.astype(int))
+    PSEC[key] = r
+    w11.merge_cells(start_row=r, start_column=2, end_row=r, end_column=10)
+    c = w11.cell(r, 2, f'{title} — {len(d):,} asociados')
+    c.font = font(12, True, 'FFFFFF')
+    c.fill = PatternFill('solid', fgColor=GRAY)
+    w11.merge_cells(start_row=r + 1, start_column=2, end_row=r + 1, end_column=9)
+    c = w11.cell(r + 1, 2, explica)
+    c.font = font(9)
+    c.alignment = Alignment(wrap_text=True, vertical='top')
+    w11.row_dimensions[r + 1].height = 28
+    c = w11.cell(r + 1, 10, '◄ RESUMEN')
+    c.hyperlink = "#'1_RESUMEN'!A1"
+    c.font = Font(name=F, size=10, bold=True, color='0563C1', underline='single')
+    r += 2
+    for j, h in enumerate(['N° ASOCIADO', 'NOMBRE', 'DUI', 'AGENCIA'] + [h for h, _ in cols], 2):
+        cellw(w11, r, j, h, bold=True, fill='E7E6E6', align='center', size=9)
+    r += 1
+    for _, e in d.iterrows():
+        a = str(e.ASOCIADO)
+        c = cellw(w11, r, 2, a, size=9, bold=True)
+        if a in ROW7:
+            c.hyperlink = f"#'7_Los_528'!A{ROW7[a]}"
+            c.font = Font(name=F, size=9, bold=True, color='0563C1', underline='single')
+        cellw(w11, r, 3, e.NOMBRE, size=9)
+        cellw(w11, r, 4, str(e.DUI), size=9)
+        cellw(w11, r, 5, e.AGENCIA, size=9)
+        for j, (h, fn) in enumerate(cols, 6):
+            cellw(w11, r, j, fn(e), size=9, align='center')
+        r += 1
+    return r + 2
+
+
+ing_txt = lambda e: 'VACÍO' if pd.isna(e.INGRESO) else money2(e.INGRESO)
+montos = [('HIPOTECARIO', lambda e: money0(e['PRECA HIPO'])), ('VEHÍCULO', lambda e: money0(e['PRECA VEHICULO'])),
+          ('TARJETA', lambda e: money0(e['PRECA TC']))]
+r = psection(r, 'P1', 'MONTO ASIGNADO SIN INGRESO',
+             'La base les asignó un monto, pero la columna INGRESO está vacía o en $0. Con qué ingreso se calculó el monto, '
+             'no se sabe. Créditos debe completar el ingreso.', ~(numc('INGRESO') > 0),
+             [('INGRESO', ing_txt)] + montos)
+r = psection(r, 'P2', 'YA TIENEN 56 AÑOS AL 30/09/2026',
+             'El memorando pide de 30 a 55 años cumplidos. La columna EDAD dice 55 porque se calculó antes; por la fecha de '
+             'nacimiento, al 30/09/2026 ya tienen 56.', x.EDAD_RECALCULADA > 55,
+             [('FECHA DE NACIMIENTO', lambda e: e.CLI_FECHA_NACIMIENTO), ('EDAD EN LA BASE', lambda e: int(e.EDAD)),
+              ('EDAD AL 30/09/2026', age_txt)])
+r = psection(r, 'P3', 'FONDO COMPENSATORIO EN $0',
+             'El memorando dice que todos poseen fondo compensatorio; estos tienen $0.', numc('FONDO_COMPENSATORIO') == 0,
+             [('FONDO', lambda e: money2(e.FONDO_COMPENSATORIO))] + montos)
+r = psection(r, 'P4', 'ATRASADOS EN APORTACIONES',
+             'El memorando habla de 54 (son los que tienen tarjeta pre evaluada). En la base hay más: también los que solo '
+             'tienen hipotecario o vehículo.', x.APORTACIONES_AL_DIA == 'NO',
+             [('CUOTAS VENCIDAS', lambda e: int(e.CUOTAS_VENC_APORT)),
+              ('¿TIENE TARJETA PRE EVALUADA?', lambda e: 'SÍ' if pd.notna(e['PRECA TC']) else 'NO')] + montos[:2])
+
+
+def que_esta_mal(e):
+    out = []
+    if e.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar':
+        out.append(f'Antigüedad imposible: {int(e.ANTIGUEDAD_ANIOS)} años')
+    if pd.notna(e.SALDO_SSF) and e.SALDO_SSF < 0:
+        out.append(f'Deuda en negativo: ${e.SALDO_SSF:,.2f}')
+    if len(str(e.DUI)) != 9:
+        out.append(f'DUI mal escrito: "{e.DUI}"')
+    if e['PRECA VEHICULO'] == 150000:
+        out.append('Vehículo de $150,000 (no existe en la tabla)')
+    return '; '.join(out)
+
+
+w11.column_dimensions['F'].width = 16
+r = psection(r, 'P5', 'DATOS MAL ANOTADOS',
+             'Datos que no pueden ser correctos y deben corregirse en el sistema.',
+             (x.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar') | (numc('SALDO_SSF') < 0)
+             | (x.DUI.astype(str).str.len() != 9) | (numc('PRECA VEHICULO') == 150000),
+             [('QUÉ ESTÁ MAL', que_esta_mal)])
+for rr in range(1, w11.max_row + 1):
+    c = w11.cell(rr, 6)
+    if isinstance(c.value, str) and len(c.value) > 20:
+        c.alignment = Alignment(wrap_text=True, vertical='center')
+for rr, key in PROB_ROWS:
+    c = ws.cell(rr, 9)
+    c.hyperlink = f"#'11_Problemas_de_la_base'!B{PSEC[key]}"
+    c.font = Font(name=F, size=10, bold=True, color='0563C1', underline='single')
 
 # ================================================================ BD FINAL original (copia sin cambios)
 BD_SRC = sys.argv[3] if len(sys.argv) > 3 else None
