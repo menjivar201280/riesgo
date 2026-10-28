@@ -35,7 +35,12 @@ VBAD = x.CONSIST_VEHICULO == 'No coincide con tabla'
 TBAD = x.CONSIST_TC == 'No coincide con tabla'
 x['DQ_FUERA_TABLA_OFICIAL'] = (VBAD | TBAD).astype(int)
 tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
-BASE_OK = (n3 & (x.DQ_DATO_INCONSISTENTE == 0) & (x.DQ_PRECA_SIN_INGRESO == 0)
+# Ganar mucho NO es un dato malo: el ingreso muy alto solo se confirma antes de otorgar (no decide SÍ / NO).
+DATO_MAL = ((x.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar') | (x.ALERTA_ANT_EDAD == 1) | (x.CHK_EDAD != 'Coincide')
+            | x.ESTADO_DEUDA_SSF.astype(str).str.startswith('Saldo negativo') | (x.DUI.astype(str).str.len() != 9))
+assert ((DATO_MAL | (x.ALERTA_ING_ATIPICO == 1)).astype(int) == x.DQ_DATO_INCONSISTENTE).all()
+x['DQ_DATO_MAL'] = DATO_MAL.astype(int)
+BASE_OK = (n3 & (x.DQ_DATO_MAL == 0) & (x.DQ_PRECA_SIN_INGRESO == 0)
            & (x.NIVEL_CAT_INTERNA == 'Bajo') & (x.NIVEL_CAT_EXTERNA == 'Bajo'))
 # Hipotecario "trayendo la deuda": la base les dio hipotecario porque tienen capacidad o se les puede traer la deuda.
 # Si su ÚNICO problema es la deuda (debe mucho / deuda vs. sueldo / poco fondo para lo que debe) y esa deuda cabe dentro
@@ -45,7 +50,7 @@ for c in ('SALDO_SSF', 'INGRESO', 'FONDO_COMPENSATORIO'):
 RISK_NO_DEUDA = [c for c in RISK if c not in ('NIVEL_DEUDA', 'NIVEL_DEUDA_INGRESO')]
 AL_NO_DEUDA = ['AL_ING_BAJO_DEUDA_ELEVADA', 'AL_ANTIG_BAJA_SIN_HISTORIAL', 'AL_CATEGORIA_A2', 'AL_APORT_VENCIDAS']
 SOLO_DEUDA = (n1 & (x[AL_NO_DEUDA].sum(axis=1) == 0) & ~(x[RISK_NO_DEUDA] == 'Alto').any(axis=1)
-              & (x.DQ_DATO_INCONSISTENTE == 0) & (x.DQ_PRECA_SIN_INGRESO == 0)
+              & (x.DQ_DATO_MAL == 0) & (x.DQ_PRECA_SIN_INGRESO == 0)
               & (x.NIVEL_CAT_INTERNA == 'Bajo') & (x.NIVEL_CAT_EXTERNA == 'Bajo'))
 HIPO_DEUDA = SOLO_DEUDA & ~BASE_OK & x['PRECA HIPO'].notna() & (x.SALDO_SSF <= x['PRECA HIPO'])
 REC_H = (BASE_OK & x['PRECA HIPO'].notna()) | HIPO_DEUDA
@@ -131,12 +136,12 @@ def motivo(r):
     if r.CONSIST_VEHICULO == 'No coincide con tabla':
         esp = r.ESPERADO_VEHICULO if isinstance(r.ESPERADO_VEHICULO, str) else f'${r.ESPERADO_VEHICULO:,.0f}'
         out.append(f'Le dieron ${r["PRECA VEHICULO"]:,.0f} de vehículo, pero con su ingreso la tabla dice {esp}')
+        if pd.isna(r['PRECA HIPO']) and pd.isna(r['PRECA TC']):
+            out.append('En la base no tiene hipotecario ni tarjeta (N/A): no queda otro producto para ofrecerle')
     if r.CONSIST_TC == 'No coincide con tabla':
         out.append('El límite de tarjeta no coincide con la tabla')
     if r.CHK_EDAD != 'Coincide':
         out.append('La edad anotada no coincide con su fecha de nacimiento')
-    if r.ALERTA_ING_ATIPICO == 1:
-        out.append(f'Su ingreso es muy alto (${r.INGRESO:,.0f}): hay que confirmarlo')
     if len(str(r.DUI)) != 9:
         out.append('El DUI está mal escrito en la base')
     if r.ALERTA_ANT_EDAD == 1:
@@ -170,7 +175,7 @@ def tablas(r):
     if (r.NIVEL_INGRESO == 'Alto' or r.NIVEL_DEUDA == 'Alto' or r.NIVEL_DEUDA_INGRESO == 'Alto'
             or r.AL_FONDO_BAJO_DEUDA_ELEVADA == 1 or r.AL_APORT_VENCIDAS == 1 or r.AL_CATEGORIA_A2 == 1):
         t.append(T_LIM)
-    if (r.CHK_EDAD != 'Coincide' or r.ALERTA_ING_ATIPICO == 1 or len(str(r.DUI)) != 9 or r.ALERTA_ANT_EDAD == 1
+    if (r.CHK_EDAD != 'Coincide' or len(str(r.DUI)) != 9 or r.ALERTA_ANT_EDAD == 1
             or str(r.ESTADO_DEUDA_SSF).startswith('Saldo negativo')):
         t.append(T_DATOS)
     return ', '.join(t)
@@ -186,6 +191,8 @@ def pendientes(r):
     p = []
     if pd.notna(r.HIPO_REC):
         p.append('Hipotecario: solvencia en Hacienda')
+    if r.ALERTA_ING_ATIPICO == 1:
+        p.append(f'Confirmar ingreso (es muy alto: ${r.INGRESO:,.0f})')
     if r.RECOMENDADO == L_HD:
         p.append('Hipotecario: confirmar garantía y que el crédito pague primero su deuda en la SSF')
     if pd.notna(r.VEH_REC) and r.VEH_REC > VEH_SOLV_MIN:
@@ -434,7 +441,7 @@ motivos = [
     ('Tienen poco fondo compensatorio para lo que deben', nb & (x.AL_FONDO_BAJO_DEUDA_ELEVADA == 1), 'T5d'),
     ('Deben 12 meses o más de su sueldo', nb & (x.NIVEL_DEUDA_INGRESO == 'Alto'), 'T5c'),
     ('Están atrasados en sus aportaciones', nb & (x.AL_APORT_VENCIDAS == 1), 'T5e'),
-    ('Tienen un dato mal anotado en la base (edad, DUI, ingreso)', None, 'T6'),
+    ('Tienen un dato mal anotado en la base (edad, DUI, años de asociado)', None, 'T6'),
     ('Son asociados nuevos (0 a 1 año)', nb & (x.NIVEL_ANTIGUEDAD == 'Alto'), 'T3'),
     ('Su categoría es A2 (no A1)', nb & (x.AL_CATEGORIA_A2 == 1), 'T5f'),
 ]
@@ -457,6 +464,8 @@ for t in ['✔ Revisar lista negra y créditos castigados con la Cooperativa.',
           f'✔ Solvencia en Hacienda también para vehículo mayor de $25,000 ({veh4_big} recomendados). '
           f'Regla propuesta por usted: el memorando no la pide.',
           f'✔ Tarjeta mayor de $4,000 ({tc4_big} recomendados): si no está solvente en Hacienda, se da con $4,000.',
+          f'✔ Confirmar el ingreso de los {cnt(n4 & (x.ALERTA_ING_ATIPICO == 1))} recomendados que ganan muy alto (más de $12,000 al mes). '
+          'Ganar mucho no es motivo de NO.',
           '✔ La base vence 3 meses después de que la apruebe el Comité.']:
     ws.merge_cells(f'B{r}:{LAST}{r}')
     c = ws[f'B{r}']
@@ -704,7 +713,7 @@ CHECKS = [  # (encabezado, ¿está bien?)
     ('MÁS DE 1 AÑO DE ASOCIADO', lambda e: e.NIVEL_ANTIGUEDAD != 'Alto'),
     ('CATEGORÍA A1', lambda e: e.AL_CATEGORIA_A2 != 1),
     ('VEHÍCULO / TARJETA SEGÚN SU TABLA', lambda e: e.DQ_FUERA_TABLA_OFICIAL != 1),
-    ('SUS DATOS ESTÁN BIEN ANOTADOS', lambda e: e.DQ_DATO_INCONSISTENTE != 1),
+    ('SUS DATOS ESTÁN BIEN ANOTADOS', lambda e: e.DQ_DATO_MAL != 1),
 ]
 d7 = x[n1].sort_values('ASOCIADO', key=lambda s_: s_.astype(int))
 for idx, e in d7.iterrows():  # todo ✔ debe ser exactamente lo mismo que RECOMENDADO
@@ -904,7 +913,6 @@ r = table_title(r, 6, 'REVISIÓN DE DATOS', 'errores encontrados en su propia ba
 r = table_rows(r, ['Se marca NO si…', 'Dato de su base'],
                [('La edad no coincide con la fecha de nacimiento', 'EDAD y CLI_FECHA_NACIMIENTO'),
                 ('El DUI no tiene 9 dígitos', 'DUI'),
-                ('El ingreso es muy alto y hay que confirmarlo', 'INGRESO'),
                 ('Los años de asociado no cuadran con la edad', 'ANTIGUEDAD_ANIOS y EDAD'),
                 ('La deuda aparece en negativo', 'SALDO_SSF')])
 
@@ -1087,8 +1095,6 @@ def dato_malo(e):
         out.append(f'Edad anotada {int(e.EDAD)}, por su fecha de nacimiento ({e.CLI_FECHA_NACIMIENTO}) tiene {int(e.EDAD_RECALCULADA)}')
     if len(str(e.DUI)) != 9:
         out.append(f'DUI "{e.DUI}" no tiene 9 dígitos')
-    if e.ALERTA_ING_ATIPICO == 1:
-        out.append(f'Ingreso muy alto: ${e.INGRESO:,.0f}')
     if e.ALERTA_ANT_EDAD == 1:
         out.append(f'{int(e.ANTIGUEDAD_ANIOS)} años de asociado con {int(e.EDAD)} años de edad')
     if str(e.ESTADO_DEUDA_SSF).startswith('Saldo negativo'):
@@ -1099,7 +1105,7 @@ def dato_malo(e):
 w10.column_dimensions['E'].width = 24
 r = section(r, 'T6', 'TABLA 6 – DATOS MAL ANOTADOS EN LA BASE',
             'No es riesgo del asociado: es un dato que hay que corregir o confirmar con Créditos. Si se corrige, puede pasar a SÍ.', 6,
-            nb & (x.TOTAL_ALERTAS_DATOS > 0) & (x.MOTIVO_NO_MAXIMA.str.contains('edad anotada|DUI|ingreso es muy alto|no cuadran|negativo', case=False)),
+            nb & (x.TOTAL_ALERTAS_DATOS > 0) & (x.MOTIVO_NO_MAXIMA.str.contains('edad anotada|DUI|no cuadran|negativo', case=False)),
             [('QUÉ DATO ESTÁ MAL', dato_malo)])
 # la hoja 7 se ordena por N° de asociado: sus filas sirven de destino para los enlaces
 for rr in range(FIRST7, LAST7 + 1):
