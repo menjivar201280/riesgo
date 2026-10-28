@@ -23,7 +23,7 @@ RISK = ['NIVEL_ANTIGUEDAD', 'NIVEL_INGRESO', 'NIVEL_DEUDA', 'NIVEL_DEUDA_INGRESO
 # Ganar mucho no es un dato malo: el ingreso muy alto solo se confirma antes de otorgar.
 DATO_MAL = ((x.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar') | (x.ALERTA_ANT_EDAD == 1) | (x.CHK_EDAD != 'Coincide')
             | x.ESTADO_DEUDA_SSF.astype(str).str.startswith('Saldo negativo') | (x.DUI.astype(str).str.len() != 9))
-# Solo deja fuera lo que muestra que NO puede pagar: deber más de lo que gana en un año, o ganar poco para lo que debe.
+# Solo quedan para revisar quienes hoy tienen deuda alta para su ingreso (mayor que un año de ingreso) o ingreso ajustado.
 # Lo que el memorando permite (A2, antigüedad baja, atraso en aportaciones con condición) y los datos por corregir
 # no dejan fuera: quedan como "antes de otorgar". El nivel de riesgo (pesos) dice a quién cuidar más.
 SI = n1 & (x.NIVEL_DEUDA_INGRESO != 'Alto') & (x.AL_ING_BAJO_DEUDA_ELEVADA != 1) & (x.DQ_PRECA_SIN_INGRESO == 0)
@@ -34,12 +34,12 @@ money = lambda v: f'${v:,.0f}'
 # Revisiones en palabras simples: (¿falló?, frase con el dato exacto)
 REVISIONES = [
     (lambda e: e.NIVEL_DEUDA_INGRESO == 'Alto',
-     lambda e: f'Debe más de lo que gana en todo un año: debe {money(e.SALDO_SSF)} y gana {money(e.INGRESO * 12)} al año'),
+     lambda e: f'Su deuda actual ({money(e.SALDO_SSF)}) es alta comparada con su ingreso de un año ({money(e.INGRESO * 12)})'),
     (lambda e: e.AL_ING_BAJO_DEUDA_ELEVADA == 1,
-     lambda e: f'Gana poco para lo que debe: gana {money(e.INGRESO)} al mes y debe {money(e.SALDO_SSF)}'),
+     lambda e: f'Su ingreso ({money(e.INGRESO)} al mes) queda ajustado para su deuda actual ({money(e.SALDO_SSF)})'),
     (lambda e: e.DQ_PRECA_SIN_INGRESO == 1, lambda e: 'Tiene monto pre evaluado sin ingreso válido'),
 ]
-MOTIVO_CORTO = ['Debe más de lo que gana en todo un año', 'Gana poco para lo que debe', 'Monto pre evaluado sin ingreso válido']
+MOTIVO_CORTO = ['Deuda alta comparada con su ingreso de un año', 'Ingreso ajustado para su deuda actual', 'Monto pre evaluado sin ingreso válido']
 assert len(MOTIVO_CORTO) == len(REVISIONES)
 x['POR_QUE_NO'] = ''
 for i in x.index[NO]:
@@ -139,7 +139,7 @@ merge_put(ws, 'B3:H3', 'Recomendación de Riesgo para ayudar a decidir. No es la
 cards = [('B', 'C', TOTAL, 'asociados en la base', NAVY, 'BD FINAL'),
          ('D', 'D', cnt(n1), 'cumplen el memorando', '2E75B6', None),
          ('F', 'F', cnt(SI), 'RECOMENDADOS', GREEN, 'RECOMENDADOS'),
-         ('G', 'H', cnt(NO), 'no aplican por ahora', ORANGE, 'NO APLICAN POR AHORA')]
+         ('G', 'H', cnt(NO), 'para revisar más adelante', ORANGE, 'PARA REVISAR')]
 for a, b, n, lab, col, sh in cards:
     for rr in (5, 6):
         for cc in range(ws[f'{a}{rr}'].column, ws[f'{b}{rr}'].column + 1):
@@ -160,10 +160,10 @@ r = 9
 merge_put(ws, f'B{r}:H{r}', '¿CÓMO SE DECIDE?', size=13, bold=True, color='FFFFFF', bg=NAVY)
 pasos = [('1', 'Cumple el memorando', 'Tiene ingreso y fondo, edad de 30 a 55 años, categoría A1 o A2. '
           f'De {TOTAL:,} asociados, {cnt(n1):,} cumplen.'),
-         ('2', 'Puede pagar', 'Solo queda fuera quien debe más de lo que gana en todo un año, o gana poco para lo que debe. '
+         ('2', 'Capacidad de pago', 'Quedan para revisar más adelante solo quienes hoy tienen una deuda alta comparada con su ingreso. '
           'Quien gana bien y debe poco, SÍ se recomienda.'),
          ('3', 'Resultado', f'RECOMENDADO = {cnt(SI)}, con su nivel de riesgo BAJO / MEDIO / ALTO (pesos de la hoja de rangos). '
-          f'No aplica por ahora = {cnt(NO)}. Atrasos en aportaciones o datos por corregir no lo sacan: van en "QUÉ FALTA ANTES DE OTORGAR".')]
+          f'Para revisar más adelante = {cnt(NO)}. Atrasos en aportaciones o datos por corregir no lo sacan: van en "QUÉ FALTA ANTES DE OTORGAR".')]
 r += 1
 for n, t, d in pasos:
     put(ws, f'B{r}', f'{n}.  {t}', 11, True, NAVY, 'EAF1FB')
@@ -192,7 +192,7 @@ ws.row_dimensions[r].height = 26
 
 # por qué no
 r += 2
-merge_put(ws, f'B{r}:H{r}', f'¿POR QUÉ {cnt(NO)} NO APLICAN POR AHORA?  (uno puede tener varios motivos)', size=13, bold=True,
+merge_put(ws, f'B{r}:H{r}', f'¿POR QUÉ {cnt(NO)} QUEDAN PARA REVISAR MÁS ADELANTE?', size=13, bold=True,
           color='FFFFFF', bg=ORANGE)
 r += 1
 put(ws, f'B{r}', 'Motivo', 11, True, bg='FBE5D6')
@@ -277,16 +277,16 @@ lista('RECOMENDADOS', GREEN, 'RECOMENDADOS', 'Pueden pagar. Montos PRECA = lo qu
       base + [('PRECA HIPO', 'HIPO', USD, 13), ('PRECA VEHICULO', 'VEH', USD, 13), ('PRECA TC', 'TC', USD, 11),
               ('PUNTAJE (1 a 3)', 'PUNTAJE', '0.00', 10), ('NIVEL DE RIESGO', 'CALIFICACION', None, 12),
               ('QUÉ FALTA ANTES DE OTORGAR', 'FALTA', None, 60)])
-lista('NO APLICAN POR AHORA', ORANGE, 'NO APLICAN POR AHORA', 'Cumplen el memorando, pero hoy no pasan al menos una revisión. '
+lista('PARA REVISAR', ORANGE, 'PARA REVISAR MÁS ADELANTE', 'Cumplen el memorando; hoy su deuda es alta comparada con su ingreso. '
       'La última columna dice cuál, con el dato exacto. Montos PRECA = lo que la Cooperativa pensaba ofrecer.',
       x[NO].sort_values('ASOCIADO', key=lambda s: s.astype(int)),
       base + [('PRECA HIPO', 'PRECA HIPO', USD, 13), ('PRECA VEHICULO', 'PRECA VEHICULO', USD, 13),
-              ('PRECA TC', 'PRECA TC', USD, 11), ('POR QUÉ NO APLICA POR AHORA', 'POR_QUE_NO', None, 70)])
+              ('PRECA TC', 'PRECA TC', USD, 11), ('MOTIVO', 'POR_QUE_NO', None, 70)])
 
 # ================================================================ TABLAS Y RANGOS + ASOCIADOS POR RANGO
 P = {r_[0].value: r_[2].value for r_ in openpyxl.load_workbook(SRC, data_only=True)['Parametros'].iter_rows(min_row=5, max_row=60)
      if r_[0].value}
-x['RESULTADO'] = SI.map({True: 'RECOMENDADO', False: 'No aplica por ahora'})
+x['RESULTADO'] = SI.map({True: 'RECOMENDADO', False: 'Para revisar'})
 d528 = x[n1]
 years = lambda e: f'{int(e.ANTIGUEDAD_ANIOS)} año(s)'
 # (título, peso, [(nivel, rango, máscara, dato)])
@@ -301,7 +301,7 @@ RANGOS = [
      lambda e: f'{int(e.CUOTAS_VENC_APORT)} cuota(s)'),
     ('Categoría SSF (externa)', .25, 'NIVEL_CAT_EXTERNA', ['A1', 'A2', 'B, C, D o E'], lambda e: str(e.CALIFICACION_SSF)),
     ('Deuda comparada con lo que gana (no lleva peso)', None, 'NIVEL_DEUDA_INGRESO',
-     ['Debe menos de lo que gana en 3 meses (o sin deuda)', 'Debe entre 3 meses y un año de sueldo', 'Debe más de lo que gana en un año'],
+     ['Deuda baja para su ingreso (o sin deuda)', 'Deuda moderada para su ingreso', 'Deuda alta: mayor que su ingreso de un año'],
      lambda e: f'debe {money(e.SALDO_SSF)} / gana {money(e.INGRESO * 12)} al año'),
 ]
 GRUPOS = []  # (clave, título del bloque, máscara, dato)
@@ -399,7 +399,7 @@ put(wt, f'F{r}', 1, 11, True, NAVY, h='center', fmt='0%')
 r += 1
 merge_put(wt, f'B{r}:F{r}', 'Antigüedad: rango de su hoja "Variables". Los demás rangos son propuesta de Riesgo hecha con los datos de esta base. '
           'Puntaje: verde = 3, amarillo = 2, rojo = 1, por su peso. Riesgo BAJO = 2.6 a 3; MEDIO = 2.2 a 2.59; ALTO = menos de 2.2. '
-          'Solo deja fuera: deber más de lo que gana en un año (rojo de la última fila) o ganar poco para lo que debe.', size=9, italic=True, color=GRAY)
+          'Quedan para revisar más adelante: deuda alta para su ingreso (rojo de la última fila) o ingreso ajustado para su deuda.', size=9, italic=True, color=GRAY)
 wt.row_dimensions[r].height = 26
 
 r += 2
