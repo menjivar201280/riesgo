@@ -80,6 +80,23 @@ PESOS = [('NIVEL_ANTIGUEDAD', .13), ('NIVEL_INGRESO', .30), ('NIVEL_DEUDA', .20)
 PTS = {'Bajo': 3, 'Sin deuda': 3, 'Medio': 2, 'Alto': 1, 'Sin fondo': 1}
 x['PUNTAJE'] = sum(x[c].map(PTS) * w for c, w in PESOS).round(2)
 x['CALIFICACION'] = x.PUNTAJE.map(lambda v: 'BAJO' if v >= 2.6 else 'MEDIO' if v >= 2.2 else 'ALTO')  # nivel de riesgo
+DATO = {'NIVEL_ANTIGUEDAD': lambda e: f'antigüedad {int(e.ANTIGUEDAD_ANIOS)} año(s)',
+        'NIVEL_INGRESO': lambda e: f'ingreso ${e.INGRESO:,.0f} al mes',
+        'NIVEL_DEUDA': lambda e: f'deuda en otros bancos ${e.SALDO_SSF:,.0f}',
+        'NIVEL_MORA_APORTACIONES': lambda e: f'{int(e.CUOTAS_VENC_APORT)} cuota(s) de aportación vencidas',
+        'NIVEL_CAT_EXTERNA': lambda e: f'categoría SSF {e.CALIFICACION_SSF}'}
+
+
+def a_que_se_debe(e):
+    """Los datos que le bajaron el puntaje (rojo pesa más que amarillo), con su peso."""
+    malos = [(PTS.get(e[c], 3), w, c) for c, w in PESOS if PTS.get(e[c], 3) < 3]
+    if not malos:
+        return 'Todo en verde'
+    malos.sort(key=lambda t: (t[0], -t[1]))
+    return '; '.join(f'{"ROJO" if p_ == 1 else "amarillo"}: {DATO[c](e)} (pesa {w:.0%})' for p_, w, c in malos)
+
+
+x['A_QUE_SE_DEBE'] = x.apply(a_que_se_debe, axis=1)
 
 
 def falta(e):
@@ -309,6 +326,7 @@ lista('RECOMENDADOS', GREEN, 'RECOMENDADOS', 'Pueden pagar. Montos PRECA = lo qu
       x[SI].sort_values(['PUNTAJE', 'NOMBRE'], ascending=[False, True]),
       base + [('PRECA HIPO', 'HIPO', USD, 13), ('PRECA VEHICULO', 'VEH', USD, 13), ('PRECA TC', 'TC', USD, 11),
               ('PUNTAJE (1 a 3)', 'PUNTAJE', '0.00', 10), ('NIVEL DE RIESGO', 'CALIFICACION', None, 12),
+              ('¿A QUÉ SE DEBE EL NIVEL DE RIESGO?', 'A_QUE_SE_DEBE', None, 46),
               ('¿POR QUÉ SÍ?', 'COMO', None, 22),
               ('QUÉ FALTA ANTES DE OTORGAR', 'FALTA', None, 60)])
 lista('CON OBSERVACIONES', ORANGE, 'SE RECOMIENDAN CON OBSERVACIONES', 'Cumplen el memorando; antes de otorgar hay que verificar su deuda. '
