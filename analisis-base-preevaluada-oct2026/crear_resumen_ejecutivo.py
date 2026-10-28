@@ -29,7 +29,27 @@ ALL_LOW = ['NIVEL_ANTIGUEDAD', 'NIVEL_INGRESO', 'NIVEL_DEUDA', 'NIVEL_DEUDA_INGR
 n1 = x.ELEGIBILIDAD_GENERAL == CUMPLE
 n2 = n1 & (x.TOTAL_ALERTAS_RIESGO == 0)
 n3 = n2 & ~(x[RISK] == 'Alto').any(axis=1)
-n4 = n3 & (x.TOTAL_ALERTAS_DATOS == 0) & (x.NIVEL_CAT_INTERNA == 'Bajo') & (x.NIVEL_CAT_EXTERNA == 'Bajo')
+# Decisión POR PRODUCTO. El hipotecario se toma tal como viene en el Excel (no tiene tabla de rangos).
+# El vehículo y la tarjeta se comparan con su tabla oficial: si el monto no coincide, se bloquea SOLO ese producto.
+VBAD = x.CONSIST_VEHICULO == 'No coincide con tabla'
+TBAD = x.CONSIST_TC == 'No coincide con tabla'
+x['DQ_FUERA_TABLA_OFICIAL'] = (VBAD | TBAD).astype(int)
+tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
+BASE_OK = (n3 & (x.DQ_DATO_INCONSISTENTE == 0) & (x.DQ_PRECA_SIN_INGRESO == 0)
+           & (x.NIVEL_CAT_INTERNA == 'Bajo') & (x.NIVEL_CAT_EXTERNA == 'Bajo'))
+REC_H = BASE_OK & x['PRECA HIPO'].notna()
+REC_V = BASE_OK & x['PRECA VEHICULO'].notna() & ~VBAD
+REC_T = BASE_OK & tc_ok & x['PRECA TC'].notna() & ~TBAD
+n4 = REC_H | REC_V | REC_T
+PARCIAL = n4 & ((x['PRECA VEHICULO'].notna() & VBAD) | (x['PRECA TC'].notna() & TBAD))
+x['RECOMENDADO'] = 'NO'
+x.loc[n4, 'RECOMENDADO'] = 'SÍ'
+x.loc[PARCIAL, 'RECOMENDADO'] = 'SÍ, sin vehículo'
+x['PRODUCTOS_REC'] = [', '.join(p for p, f in (('Hipotecario', h), ('Vehículo', v), ('Tarjeta', t)) if f)
+                      for h, v, t in zip(REC_H, REC_V, REC_T)]
+x['HIPO_REC'] = x['PRECA HIPO'].where(REC_H)
+x['VEH_REC'] = x['PRECA VEHICULO'].where(REC_V)
+x['TC_REC'] = x['PRECA TC'].where(REC_T)
 n5 = n4 & x[ALL_LOW].isin(['Bajo', 'Sin deuda']).all(axis=1)
 LEVELS = [
     (1, 'Cumple el memorando', 'Pasa los requisitos del memorando que se pueden revisar con la base.', n1),
@@ -68,8 +88,12 @@ for k, *_rest, m in LEVELS:
 
 def motivo(r):
     """Motivo de "no recomendado" en palabras simples, con el dato que lo comprueba."""
-    if r.NIVEL_SEGURIDAD >= 4:
+    if r.RECOMENDADO == 'SÍ':
         return ''
+    if r.RECOMENDADO == 'SÍ, sin vehículo':
+        esp = r.ESPERADO_VEHICULO if isinstance(r.ESPERADO_VEHICULO, str) else f'${r.ESPERADO_VEHICULO:,.0f}'
+        return (f'Se le recomienda: {r.PRODUCTOS_REC}. El vehículo NO: le dieron ${r["PRECA VEHICULO"]:,.0f}, '
+                f'pero con su ingreso la tabla de vehículo dice {esp}.')
     out = []
     if r.NIVEL_INGRESO == 'Alto':
         out.append(f'Gana poco: ${r.INGRESO:,.0f} al mes (menos de $1,500)')
@@ -88,9 +112,6 @@ def motivo(r):
     if r.CONSIST_VEHICULO == 'No coincide con tabla':
         esp = r.ESPERADO_VEHICULO if isinstance(r.ESPERADO_VEHICULO, str) else f'${r.ESPERADO_VEHICULO:,.0f}'
         out.append(f'Le dieron ${r["PRECA VEHICULO"]:,.0f} de vehículo, pero con su ingreso la tabla dice {esp}')
-    if r.CONSIST_HIPO == 'No coincide con tabla':
-        esp = r.ESPERADO_HIPO if isinstance(r.ESPERADO_HIPO, str) else f'${r.ESPERADO_HIPO:,.0f}'
-        out.append(f'Le dieron ${r["PRECA HIPO"]:,.0f} de hipotecario, pero con su ingreso corresponde: {esp}')
     if r.CONSIST_TC == 'No coincide con tabla':
         out.append('El límite de tarjeta no coincide con la tabla')
     if r.CHK_EDAD != 'Coincide':
@@ -109,13 +130,15 @@ def motivo(r):
 x['MOTIVO_NO_MAXIMA'] = x.apply(motivo, axis=1)
 
 T_VEH, T_TC, T_ANT = 'Tabla 1 (vehículo)', 'Tabla 2 (tarjeta)', 'Tabla 3 (antigüedad)'
-T_HIPO, T_LIM, T_DATOS = 'Tabla 4 (hipotecario)', 'Tabla 5 (límites de riesgo)', 'Tabla 6 (revisión de datos)'
+T_LIM, T_DATOS = 'Tabla 5 (límites de riesgo)', 'Tabla 6 (revisión de datos)'
 
 
 def tablas(r):
     """Tablas de la hoja 8 con las que se comparó al asociado para decidir el NO."""
-    if r.NIVEL_SEGURIDAD >= 4:
+    if r.RECOMENDADO == 'SÍ':
         return ''
+    if r.RECOMENDADO == 'SÍ, sin vehículo':
+        return T_VEH
     t = []
     if r.CONSIST_VEHICULO == 'No coincide con tabla':
         t.append(T_VEH)
@@ -123,8 +146,6 @@ def tablas(r):
         t.append(T_TC)
     if r.NIVEL_ANTIGUEDAD == 'Alto':
         t.append(T_ANT)
-    if r.CONSIST_HIPO == 'No coincide con tabla':
-        t.append(T_HIPO)
     if (r.NIVEL_INGRESO == 'Alto' or r.NIVEL_DEUDA == 'Alto' or r.NIVEL_DEUDA_INGRESO == 'Alto'
             or r.AL_FONDO_BAJO_DEUDA_ELEVADA == 1 or r.AL_APORT_VENCIDAS == 1 or r.AL_CATEGORIA_A2 == 1):
         t.append(T_LIM)
@@ -142,13 +163,13 @@ VEH_SOLV_MIN = 25000  # regla propuesta por el usuario (no está en el memorando
 
 def pendientes(r):
     p = []
-    if pd.notna(r['PRECA HIPO']):
+    if pd.notna(r.HIPO_REC):
         p.append('Hipotecario: solvencia en Hacienda')
-    if pd.notna(r['PRECA VEHICULO']) and r['PRECA VEHICULO'] > VEH_SOLV_MIN:
+    if pd.notna(r.VEH_REC) and r.VEH_REC > VEH_SOLV_MIN:
         p.append('Vehículo: solvencia en Hacienda')
-    if pd.notna(r['PRECA TC']) and r['PRECA TC'] > 4000:
+    if pd.notna(r.TC_REC) and r.TC_REC > 4000:
         p.append('TC: solvencia en Hacienda o bajar a $4,000')
-    if pd.notna(r['PRECA TC']) and r['APORTACIONES_AL_DIA'] == 'NO':
+    if pd.notna(r.TC_REC) and r['APORTACIONES_AL_DIA'] == 'NO':
         p.append('TC: ponerse al día en aportaciones')
     return '; '.join(p)
 
@@ -218,7 +239,6 @@ def link(ws, cell, sheet, text=None):
 cnt = lambda m: int(m.sum())
 pct = lambda m: m.sum() / TOTAL
 prod = {'Hipotecario': 'PRECA HIPO', 'Vehículo': 'PRECA VEHICULO', 'Tarjeta de crédito': 'PRECA TC'}
-tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
 
 # ================================================================ HOJA 1: RESUMEN
 ws = wb.create_sheet('1_RESUMEN')
@@ -284,7 +304,7 @@ ws.row_dimensions[r + 1].height = 20
 ws.row_dimensions[r + 2].height = 30
 card(r, 'B', 'C', TOTAL, 'ASOCIADOS EN LA BASE', 'Todos los que vienen en su archivo', NAVY, "#'BD FINAL'!A1")
 card(r, 'E', 'F', cnt(n1), 'CUMPLEN EL MEMORANDO', 'Pasan los requisitos que se pueden revisar', BLUE, "#'7_Los_528'!A1")
-card(r, 'H', 'I', cnt(n4), 'RECOMENDADOS', 'Se pueden ofrecer: sin ningún problema', GREEN, "#'3_Recomendados'!A1")
+card(r, 'H', 'I', cnt(n4), 'RECOMENDADOS', 'Se les puede ofrecer al menos un producto', GREEN, "#'3_Recomendados'!A1")
 card(r, 'L', 'M', cnt(nb), 'NO RECOMENDADOS', 'Cumplen el memorando pero tienen algún problema', ORANGE,
      "#'10_Asociados_por_tabla'!A1")
 ws.merge_cells(f'B{r + 3}:{LAST}{r + 3}')  # nota bajo los cuadros
@@ -323,7 +343,7 @@ for a, b, h in heads:
 r += 1
 for pl, col, sh in [('Hipotecario', 'PRECA HIPO', '4_Hipotecario'), ('Vehículo', 'PRECA VEHICULO', '5_Vehiculo'),
                     ('Tarjeta de crédito', 'PRECA TC', '6_Tarjeta')]:
-    mm = n4 & x[col].notna() & (tc_ok if col == 'PRECA TC' else True)
+    mm = {'PRECA HIPO': REC_H, 'PRECA VEHICULO': REC_V, 'PRECA TC': REC_T}[col]
     ws.merge_cells(f'B{r}:D{r}')
     cellw(ws, r, 2, pl, bold=True)
     cellw(ws, r, 5, cnt(mm), '#,##0', align='center')
@@ -382,15 +402,14 @@ for a, b, h in [('B', 'G', 'Motivo'), ('H', 'H', 'Asociados'), ('I', 'I', 'Ver q
 r += 1
 motivos = [
     ('Deben $10,000 o más en bancos y otras entidades', nb & (x.NIVEL_DEUDA == 'Alto'), 'T5b'),
-    ('Les dieron vehículo, pero su tabla dice que NO APLICA (ganan menos de $3,000)',
-     nb & (x.CONSIST_VEHICULO == 'No coincide con tabla'), 'T1'),
+    (f'No se les da el VEHÍCULO: su tabla dice NO APLICA (ganan menos de $3,000). '
+     f'Ojo: {cnt(PARCIAL)} de ellos SÍ reciben hipotecario o tarjeta', n1 & VBAD, 'T1'),
     ('Ganan menos de $1,500 al mes', nb & (x.NIVEL_INGRESO == 'Alto'), 'T5a'),
     ('Tienen poco fondo compensatorio para lo que deben', nb & (x.AL_FONDO_BAJO_DEUDA_ELEVADA == 1), 'T5d'),
     ('Deben 12 meses o más de su sueldo', nb & (x.NIVEL_DEUDA_INGRESO == 'Alto'), 'T5c'),
     ('Están atrasados en sus aportaciones', nb & (x.AL_APORT_VENCIDAS == 1), 'T5e'),
     ('Tienen un dato mal anotado en la base (edad, DUI, ingreso)', None, 'T6'),
     ('Son asociados nuevos (0 a 1 año)', nb & (x.NIVEL_ANTIGUEDAD == 'Alto'), 'T3'),
-    ('Les dieron hipotecario ganando menos de $3,000', nb & (x.CONSIST_HIPO == 'No coincide con tabla'), 'T4'),
     ('Su categoría es A2 (no A1)', nb & (x.AL_CATEGORIA_A2 == 1), 'T5f'),
 ]
 for lab, m, key in motivos:
@@ -403,9 +422,9 @@ for lab, m, key in motivos:
 
 # ---- antes de otorgar
 r = title_bar(r + 1, 'ANTES DE OTORGAR A LOS RECOMENDADOS (no viene en la base)', RED)
-hip4 = cnt(n4 & x['PRECA HIPO'].notna())
-tc4_big = cnt(n4 & tc_ok & (x['PRECA TC'] > 4000))
-veh4_big = cnt(n4 & (x['PRECA VEHICULO'] > VEH_SOLV_MIN))
+hip4 = cnt(REC_H)
+tc4_big = cnt(REC_T & (x['PRECA TC'] > 4000))
+veh4_big = cnt(REC_V & (x['PRECA VEHICULO'] > VEH_SOLV_MIN))
 for t in ['✔ Revisar lista negra y créditos castigados con la Cooperativa.',
           '✔ Revisar que no sea persona relacionada ni empleado.',
           f'✔ Solvencia en Hacienda: obligatoria para los {hip4} hipotecarios recomendados.',
@@ -616,7 +635,7 @@ def list_sheet(name, color, title, note, df, cols, by_score=False):
     ws.auto_filter.ref = f'A5:{L(len(cols))}{end}'
     # totales de montos
     rr = end + 2
-    monto = [j for j, (h, src, fmt, w) in enumerate(cols, 1) if src in ('PRECA HIPO', 'PRECA VEHICULO', 'PRECA TC')]
+    monto = [j for j, (h, src, fmt, w) in enumerate(cols, 1) if src in ('HIPO_REC', 'VEH_REC', 'TC_REC')]
     if monto:
         ws.cell(rr, monto[0] - 1, 'Total:').font = font(10, True)
     for j in monto:
@@ -626,24 +645,26 @@ def list_sheet(name, color, title, note, df, cols, by_score=False):
     return ws
 
 
-M_H = ('HIPOTECARIO', 'PRECA HIPO', INT, 13)
-M_V = ('VEHÍCULO', 'PRECA VEHICULO', INT, 12)
-M_T = ('TARJETA', 'PRECA TC', INT, 11)
+M_H = ('HIPOTECARIO', 'HIPO_REC', INT, 13)
+M_V = ('VEHÍCULO', 'VEH_REC', INT, 12)
+M_T = ('TARJETA', 'TC_REC', INT, 11)
+M_P = ('PRODUCTOS RECOMENDADOS', 'PRODUCTOS_REC', None, 26)
 EXT = 'Falta: lista negra, créditos castigados, relacionados/empleados y solvencia en Hacienda. No es aprobación de crédito.'
 list_sheet('3_Recomendados', GREEN, 'RECOMENDADOS (se pueden ofrecer)',
-           'Cumplen el memorando y no tienen ningún problema: no deben mucho, no ganan poco, están al día, el monto les corresponde según la tabla y son categoría A1. ' + EXT,
-           x[n4], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_H, M_V, M_T] + LVL_COLS + PEND, by_score=True)
+           'Cumplen el memorando, no deben mucho, no ganan poco, están al día y son categoría A1. Se decide por producto: '
+           'el hipotecario se toma como viene en el Excel; vehículo y tarjeta deben coincidir con su tabla (si el vehículo no '
+           'coincide, se le ofrece solo lo demás). Los montos vacíos = ese producto no se recomienda. ' + EXT,
+           x[n4], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_P, M_H, M_V, M_T] + LVL_COLS + PEND, by_score=True)
 list_sheet('4_Hipotecario', GREEN, 'HIPOTECARIO – RECOMENDADOS', 'Todos requieren solvencia en Hacienda. ' + EXT,
-           x[n4 & x['PRECA HIPO'].notna()], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_H] + LVL_COLS + PEND_H, by_score=True)
+           x[REC_H], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_H] + LVL_COLS + PEND_H, by_score=True)
 list_sheet('5_Vehiculo', GREEN, 'VEHÍCULO – RECOMENDADOS',
            'Vehículo mayor de $25,000 ($30,000 y $40,000): pedir solvencia en Hacienda (regla propuesta, el memorando no la pide). '
-           'Falta además: lista negra, créditos castigados y relacionados/empleados. No es aprobación de crédito.', x[n4 & x['PRECA VEHICULO'].notna()], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_V] + LVL_COLS + PEND_V, by_score=True)
+           'Falta además: lista negra, créditos castigados y relacionados/empleados. No es aprobación de crédito.', x[REC_V], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_V] + LVL_COLS + PEND_V, by_score=True)
 list_sheet('6_Tarjeta', GREEN, 'TARJETA DE CRÉDITO – RECOMENDADOS',
            'No tienen tarjeta actualmente. Límite > $4,000 sin solvencia en Hacienda: se otorga con $4,000. ' + EXT,
-           x[n4 & tc_ok & x['PRECA TC'].notna()],
+           x[REC_T],
            BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_T, ('SEGMENTO', 'SEGMENTO', None, 20)] + LVL_COLS + PEND_T, by_score=True)
 x['NIVEL_SEGURIDAD_TXT'] = x.NIVEL_SEGURIDAD.map({k: f'{k}. {nm}' for k, nm, *_ in LEVELS})
-x['RECOMENDADO'] = x.NIVEL_SEGURIDAD.ge(4).map({True: 'SÍ', False: 'NO'})
 # ================================================================ HOJA 7: LOS 528, CON LISTA DE REVISIÓN ✔ / ✗
 CHECKS = [  # (encabezado, ¿está bien?)
     ('GANA $1,500 O MÁS AL MES', lambda e: e.NIVEL_INGRESO != 'Alto'),
@@ -653,12 +674,12 @@ CHECKS = [  # (encabezado, ¿está bien?)
     ('AL DÍA EN APORTACIONES', lambda e: e.AL_APORT_VENCIDAS != 1),
     ('MÁS DE 1 AÑO DE ASOCIADO', lambda e: e.NIVEL_ANTIGUEDAD != 'Alto'),
     ('CATEGORÍA A1', lambda e: e.AL_CATEGORIA_A2 != 1),
-    ('EL MONTO LE CORRESPONDE SEGÚN SU TABLA', lambda e: e.DQ_PRECA_FUERA_TABLA != 1),
+    ('VEHÍCULO / TARJETA SEGÚN SU TABLA', lambda e: e.DQ_FUERA_TABLA_OFICIAL != 1),
     ('SUS DATOS ESTÁN BIEN ANOTADOS', lambda e: e.DQ_DATO_INCONSISTENTE != 1),
 ]
 d7 = x[n1].sort_values('ASOCIADO', key=lambda s_: s_.astype(int))
 for idx, e in d7.iterrows():  # todo ✔ debe ser exactamente lo mismo que RECOMENDADO
-    assert all(f(e) for _h, f in CHECKS) == bool(n4[idx]), e.ASOCIADO
+    assert all(f(e) for _h, f in CHECKS) == (e.RECOMENDADO == 'SÍ'), e.ASOCIADO
 H7 = 9          # fila de encabezados de la hoja 7
 FIRST7 = H7 + 1  # primera fila de datos
 w7 = wb.create_sheet('7_Los_528')
@@ -669,9 +690,9 @@ w7['A1'].font = font(15, True, NAVY)
 link(w7, 'A2', '1_RESUMEN', '◄ Volver al RESUMEN')
 guia = [
     ('CÓMO LEER ESTA HOJA', None),
-    ('1. Cada fila es un asociado. La columna ¿RECOMENDADO? dice SÍ (verde) o NO (rojo).', None),
+    ('1. Cada fila es un asociado. La columna ¿RECOMENDADO? dice SÍ (verde), NO (rojo) o SÍ, sin vehículo (amarillo).', None),
     ('2. Las columnas del medio son una lista de revisión: ✔ verde = está bien;  ✗ rojo = ahí está el problema.', None),
-    ('3. Si tiene aunque sea un ✗, es NO. La columna ¿POR QUÉ NO? lo explica en palabras, con el dato exacto.', None),
+    ('3. Si tiene aunque sea un ✗, es NO. Única excepción: si el ✗ es solo el vehículo, dice "SÍ, sin vehículo" (se le ofrece lo demás).', None),
     ('4. Para ver solo los NO (o solo los SÍ), use la flechita del encabezado ¿RECOMENDADO?.', None),
 ]
 for i, (t, _) in enumerate(guia):
@@ -709,7 +730,7 @@ for i, (idx, e) in enumerate(d7.iterrows()):
     rr = FIRST7 + i
     a = str(e.ASOCIADO)
     ROW7[a] = rr
-    vals = ([a, e.NOMBRE, e.AGENCIA, 'SÍ' if n4[idx] else 'NO'] + ['✔' if f(e) else '✗' for _h, f in CHECKS]
+    vals = ([a, e.NOMBRE, e.AGENCIA, e.RECOMENDADO] + ['✔' if f(e) else '✗' for _h, f in CHECKS]
             + [e.MOTIVO_NO_MAXIMA or '', e.TABLA_USADA or '']
             + [None if pd.isna(e[k]) else float(e[k]) for k in ('PRECA HIPO', 'PRECA VEHICULO', 'PRECA TC')]
             + ([float(e.PUNTAJE), e.CALIFICACION] if n4[idx] else [None, 'No se califica (es NO)']))
@@ -734,6 +755,7 @@ LAST7 = FIRST7 + len(d7) - 1
 rngR = f'D{FIRST7}:D{LAST7}'
 rngC = f'E{FIRST7}:{L(4 + len(CHECKS))}{LAST7}'
 for rng_, txt, fc, fcol in ((rngR, 'SÍ', 'C6E0B4', '006100'), (rngR, 'NO', 'F8CBAD', '9C0006'),
+                            (rngR, 'SÍ, sin vehículo', 'FFF2CC', '7F6000'),
                             (rngC, '✔', 'E2EFDA', '548235'), (rngC, '✗', 'F8CBAD', 'C00000')):
     w7.conditional_formatting.add(rng_, CellIsRule(operator='equal', formula=[f'"{txt}"'],
                                                    fill=PatternFill('solid', fgColor=fc, bgColor=fc),
@@ -752,7 +774,7 @@ w8['B1'] = 'TABLAS CON LAS QUE SE COMPARÓ A CADA ASOCIADO'
 w8['B1'].font = font(15, True, NAVY)
 link(w8, 'B2', '1_RESUMEN', '◄ Volver al RESUMEN')
 w8['B3'] = ('La hoja 7 dice, para cada asociado, con qué tabla se comparó. Aquí están las tablas completas. '
-            'Las tablas 1, 2 y 3 son de SU archivo; la 4 y la 5 son propuestas hechas con sus datos.')
+            'Las tablas 1, 2 y 3 son de SU archivo; la 4 es solo informativa (no decide nada); la 5 es una propuesta hecha con sus datos.')
 w8['B3'].font = font(10, True)
 w8['B3'].alignment = Alignment(wrap_text=True)
 w8.merge_cells('B3:E3')
@@ -793,9 +815,10 @@ def table_rows(r, head, rows, fills=None):
 OWN, PROP = '2E75B6', 'BF8F00'
 NA = 'F8CBAD'
 r = table_title(r, 1, 'VEHÍCULO (monto según ingreso)', 'su hoja "RANGOS VEHICULO" (copiada tal cual)', OWN,
-                f'{cnt(n1 & ~n4 & (x.CONSIST_VEHICULO == "No coincide con tabla") & (x.INGRESO < 3000))} de los NO ganan menos de $3,000 '
+                f'{cnt(n1 & VBAD & (x.INGRESO < 3000))} de los 528 ganan menos de $3,000 '
                 f'y aun así la base les dio vehículo (esta tabla dice NO APLICA). '
-                f'{cnt(n1 & ~n4 & (x.CONSIST_VEHICULO == "No coincide con tabla") & (x.INGRESO >= 3000))} tiene $150,000, monto que no existe en la tabla.')
+                f'{cnt(n1 & VBAD & (x.INGRESO >= 3000))} tiene $150,000, monto que no existe en la tabla. '
+                f'A ellos no se les recomienda el vehículo (lo demás sí, si no tienen otro problema).')
 r = table_rows(r, ['Ingreso mensual', 'Monto de vehículo'],
                [('$15,000 o más', '$40,000'), ('$10,000 a $14,999.99', '$30,000'), ('$5,000 a $9,999.99', '$25,000'),
                 ('$3,000 a $4,999.99', '$20,000'), ('Menos de $3,000', 'NO APLICA')], [None] * 4 + [NA])
@@ -812,9 +835,10 @@ r = table_title(r, 3, 'ANTIGÜEDAD COMO ASOCIADO', 'su hoja "Variables" (la que 
                 f'{cnt(n1 & ~n4 & (x.NIVEL_ANTIGUEDAD == "Alto"))} de los NO son asociados nuevos (0 a 1 año).')
 r = table_rows(r, ['Años como asociado', 'Nivel de riesgo'],
                [('0 a 1', 'Alto'), ('2 a 4', 'Medio'), ('5 o más', 'Bajo')], [NA, 'FFE699', 'C6E0B4'])
-r = table_title(r, 4, 'HIPOTECARIO (monto según ingreso)',
-                'PROPUESTA. Su archivo NO trae tabla de hipotecario; esta se armó viendo cómo se asignaron los montos en su base',
-                PROP, f'{noc("CONSIST_HIPO")} de los NO ganan menos de $3,000 y aun así la base les dio hipotecario. Créditos debe dar la tabla oficial.')
+r = table_title(r, 4, 'HIPOTECARIO – SOLO INFORMATIVA (NO se usa para decidir SÍ / NO)',
+                'su archivo NO trae tabla de hipotecario. Esta solo muestra cómo se asignaron los montos en su base',
+                GRAY, 'Como no es una tabla oficial, ningún asociado queda en NO por el monto hipotecario. '
+                'Créditos debe entregar la tabla oficial para poder revisarlo.')
 r = table_rows(r, ['Ingreso mensual', 'Monto hipotecario'],
                [('$9,000 o más', '$205,000'), ('$5,000 a $8,999.99', '$150,000'), ('$3,000 a $4,999.99', '$110,000'),
                 ('Menos de $3,000', 'NO APLICA')], [None] * 3 + [NA])
@@ -831,8 +855,8 @@ for lab, lo, hi in tramos:
 r = table_rows(r, ['Ingreso mensual', 'Les dieron $110,000', 'Les dieron $150,000', 'Les dieron $205,000'], ev)
 sin_ing = cnt(x['PRECA HIPO'].notna() & ~(num('INGRESO') > 0))
 w8.merge_cells(start_row=r - 1, start_column=2, end_row=r - 1, end_column=5)
-c = w8.cell(r - 1, 2, f'Se ve una regla clara: cada tramo de ingreso recibió un solo monto. En toda la base, solo {ev[0][1]} + {ev[0][2]} + {ev[0][3]} asociados '
-                      f'con menos de $3,000 se salen de la regla ({noc("CONSIST_HIPO")} de ellos están entre los 528). Otros {sin_ing} con hipotecario no tienen ingreso registrado (vacío o $0).')
+c = w8.cell(r - 1, 2, f'Para información: casi todos siguen el mismo patrón, pero {ev[0][1]} + {ev[0][2]} + {ev[0][3]} asociados recibieron hipotecario '
+                      f'ganando menos de $3,000, y {sin_ing} no tienen ingreso registrado. Conviene preguntarle a Créditos qué regla usó.')
 c.font = font(9, italic=True)
 c.alignment = Alignment(wrap_text=True)
 w8.row_dimensions[r - 1].height = 30
@@ -905,18 +929,8 @@ r = ejemplo(r, 'EJEMPLO 1 – VEHÍCULO: "Le dieron vehículo, pero la tabla dic
     '"Según nuestra tabla de vehículo, con lo que gana no le corresponde ese crédito. Hay que confirmar con Créditos '
     'por qué se le asignó."',
     f'{cnt(nb & (x.CONSIST_VEHICULO == "No coincide con tabla") & (x.INGRESO < 3000))} asociados de los 528 están en este caso.')
-e = x[nb & (x.CONSIST_HIPO == 'No coincide con tabla')].iloc[0]
-r = ejemplo(r, 'EJEMPLO 2 – HIPOTECARIO: "Le dieron hipotecario con ingreso menor de $3,000"', [
-    f'Busque al asociado: {e.ASOCIADO} – {e.NOMBRE}.',
-    f'Mire cuánto gana: ${e.INGRESO:,.2f} al mes.',
-    'Su archivo no trae tabla de hipotecario. Pero en toda su base, a quienes se les dio hipotecario con un ingreso '
-    'registrado, ganan $3,000 o más (Tabla 4), salvo los casos como este.',
-    f'Mire cuánto le asignaron (columna PRECA HIPO): ${e["PRECA HIPO"]:,.0f}.'],
-    f'Gana menos de $3,000 y le dieron ${e["PRECA HIPO"]:,.0f} de hipotecario: es distinto a como se asignó al resto.',
-    '"Su ingreso está por debajo del que tienen los demás asociados con hipotecario. Hay que confirmar la regla con Créditos."',
-    f'{cnt(nb & (x.CONSIST_HIPO == "No coincide con tabla"))} asociados de los 528 están en este caso.')
 e = x[nb & (x.NIVEL_DEUDA == 'Alto') & (x.NIVEL_INGRESO != 'Alto') & (x.CONSIST_VEHICULO != 'No coincide con tabla')].iloc[0]
-r = ejemplo(r, 'EJEMPLO 3 – DEUDA: "Debe mucho en bancos y otras entidades"', [
+r = ejemplo(r, 'EJEMPLO 2 – DEUDA: "Debe mucho en bancos y otras entidades"', [
     f'Busque al asociado: {e.ASOCIADO} – {e.NOMBRE}.',
     f'Mire cuánto debe en la Central de Riesgo (columna SALDO_SSF): ${e.SALDO_SSF:,.2f} con {e.INSTITUCION}.',
     'Compare con la Tabla 5 (límites de riesgo): deber $10,000 o más se marca como riesgo Alto.'],
@@ -924,25 +938,27 @@ r = ejemplo(r, 'EJEMPLO 3 – DEUDA: "Debe mucho en bancos y otras entidades"', 
     '"Ya tiene una deuda alta; prestarle más aumenta el riesgo."',
     f'{cnt(nb & (x.NIVEL_DEUDA == "Alto"))} asociados de los 528 deben $10,000 o más.')
 e = x[nb & (x.AL_APORT_VENCIDAS == 1)].iloc[0]
-r = ejemplo(r, 'EJEMPLO 4 – APORTACIONES: "Está atrasado en sus aportaciones"', [
+r = ejemplo(r, 'EJEMPLO 3 – APORTACIONES: "Está atrasado en sus aportaciones"', [
     f'Busque al asociado: {e.ASOCIADO} – {e.NOMBRE}.',
     f'Mire la columna APORTACIONES_AL_DIA: dice "{e.APORTACIONES_AL_DIA}", y CUOTAS_VENC_APORT: {int(e.CUOTAS_VENC_APORT)} cuota(s) vencidas.',
     'El memorando dice que quien no está al día debe ponerse al día antes de darle el producto.'],
     'Está atrasado con la Cooperativa: no se recomienda hasta que se ponga al día.',
     '"Primero debe ponerse al día con sus aportaciones."',
     f'{cnt(nb & (x.AL_APORT_VENCIDAS == 1))} asociados de los 528 están atrasados.')
-e = x[n4 & x['PRECA VEHICULO'].notna()].iloc[0]
+e = x[(x.RECOMENDADO == 'SÍ') & x['PRECA VEHICULO'].notna()].iloc[0]
 prods_e = [f'{t}: ${e[col]:,.0f} (correcto según {tb})' for t, col, tb in
-           [('hipotecario', 'PRECA HIPO', 'la Tabla 4'), ('vehículo', 'PRECA VEHICULO', 'la Tabla 1'), ('tarjeta', 'PRECA TC', 'la Tabla 2')]
+           [('vehículo', 'PRECA VEHICULO', 'la Tabla 1'), ('tarjeta', 'PRECA TC', 'la Tabla 2')]
            if pd.notna(e[col])]
-r = ejemplo(r, 'EJEMPLO 5 – UN "SÍ": por qué sí se recomienda', [
+if pd.notna(e['PRECA HIPO']):
+    prods_e.append(f'hipotecario: ${e["PRECA HIPO"]:,.0f} (sin tabla oficial: no se revisa)')
+r = ejemplo(r, 'EJEMPLO 4 – UN "SÍ": por qué sí se recomienda', [
     f'Asociado: {e.ASOCIADO} – {e.NOMBRE}.',
     f'Gana ${e.INGRESO:,.2f} al mes; debe ${e.SALDO_SSF:,.2f}; tiene ${e.FONDO_COMPENSATORIO:,.2f} de fondo; está al día en aportaciones; '
     f'categoría A1.',
     'Lo que le dieron: ' + '; '.join(prods_e) + '. Ningún dato cae en la Tabla 5 ni en la Tabla 6.'],
     'Pasa todo: es RECOMENDADO.',
     '"Cumple el memorando, no tiene ninguna señal de riesgo y sus datos están correctos."',
-    f'{cnt(n4)} asociados están en este caso.', ok=True)
+    f'{cnt(x.RECOMENDADO == "SÍ")} asociados están en este caso (y {cnt(PARCIAL)} más con "SÍ, sin vehículo").', ok=True)
 for row in w9.iter_rows(min_row=4, max_row=r):
     for c in row:
         if c.column == 3:
@@ -1004,18 +1020,15 @@ def section(r, key, title, explica, table_num, mask, cols):
 
 r = section(r, 'T1', 'TABLA 1 – VEHÍCULO: le dieron vehículo pero no cuadra con su tabla',
             'Qué se revisó: se buscó lo que gana cada asociado en su tabla RANGOS VEHICULO y se comparó con el vehículo que le asignó '
-            'la base. Si gana menos de $3,000, la tabla dice NO APLICA.', 1, nb & (x.CONSIST_VEHICULO == 'No coincide con tabla'),
+            'la base. Si gana menos de $3,000, la tabla dice NO APLICA. Solo se bloquea el VEHÍCULO: si no tiene otro problema, '
+            'se le recomienda lo demás (columna ¿SE LE OFRECE OTRO PRODUCTO?).', 1, n1 & VBAD,
             [('GANA AL MES', lambda e: money2(e.INGRESO)), ('LE DIERON DE VEHÍCULO', lambda e: money0(e['PRECA VEHICULO'])),
-             ('SEGÚN LA TABLA 1 LE TOCA', lambda e: to_txt(e.ESPERADO_VEHICULO)), ('¿CUADRA?', lambda e: 'NO')])
+             ('SEGÚN LA TABLA 1 LE TOCA', lambda e: to_txt(e.ESPERADO_VEHICULO)), ('¿CUADRA?', lambda e: 'NO'),
+             ('¿SE LE OFRECE OTRO PRODUCTO?', lambda e: f'SÍ: {e.PRODUCTOS_REC}' if e.RECOMENDADO != 'NO' else 'NO')])
 r = section(r, 'T3', 'TABLA 3 – ANTIGÜEDAD: asociados nuevos (0 a 1 año)',
             'Qué se revisó: los años como asociado (columna ANTIGUEDAD_ANIOS). Según su hoja Variables, 0 a 1 año es riesgo Alto.', 3,
             nb & (x.NIVEL_ANTIGUEDAD == 'Alto'),
             [('AÑOS DE ASOCIADO', lambda e: int(e.ANTIGUEDAD_ANIOS)), ('NIVEL', lambda e: 'Alto')])
-r = section(r, 'T4', 'TABLA 4 – HIPOTECARIO: le dieron hipotecario con ingreso menor de $3,000',
-            'Qué se revisó: lo que gana cada asociado contra la regla que siguen los demás hipotecarios de su base '
-            '(nadie más recibió hipotecario ganando menos de $3,000).', 4, nb & (x.CONSIST_HIPO == 'No coincide con tabla'),
-            [('GANA AL MES', lambda e: money2(e.INGRESO)), ('LE DIERON DE HIPOTECARIO', lambda e: money0(e['PRECA HIPO'])),
-             ('SEGÚN LA TABLA 4 LE TOCA', lambda e: to_txt(e.ESPERADO_HIPO)), ('¿CUADRA?', lambda e: 'NO')])
 r = section(r, 'T5a', 'TABLA 5 – GANA POCO (menos de $1,500 al mes)', 'Qué se revisó: la columna INGRESO.', 5,
             nb & (x.NIVEL_INGRESO == 'Alto'), [('GANA AL MES', lambda e: money2(e.INGRESO))])
 r = section(r, 'T5b', 'TABLA 5 – DEBE MUCHO ($10,000 o más)',
@@ -1079,15 +1092,16 @@ def link_cell(ws_, cell, target, text):
 
 
 SEC_LINK = lambda key: f"#'10_Asociados_por_tabla'!B{SEC[key][0]}"
-for num, key in ((1, 'T1'), (3, 'T3'), (4, 'T4'), (6, 'T6')):
+for num, key in ((1, 'T1'), (3, 'T3'), (6, 'T6')):
     link_cell(w8, f'F{T_ROW[num]}', SEC_LINK(key), f'▶ Ver los {SEC[key][1]} asociados')
 link_cell(w8, f'F{T_ROW[5]}', SEC_LINK('T5a'), '▶ Ver los asociados (por fila)')
 for i, key in enumerate(['T5a', 'T5b', 'T5c', 'T5d', 'T5e', 'T5f']):
     link_cell(w8, f'F{T_ROW[5] + 3 + i}', SEC_LINK(key), f'▶ Ver los {SEC[key][1]}')
 w8.cell(T_ROW[2], 6, 'Nadie: 0 asociados').font = font(10, True, GRAY)
+w8.cell(T_ROW[4], 6, 'No decide nada').font = font(10, True, GRAY)
 
 # ---- enlaces desde la hoja 9 (ejemplos)
-for (paso1, cuantos, aso), key in zip(EX, ['T1', 'T4', 'T5b', 'T5e', None]):
+for (paso1, cuantos, aso), key in zip(EX, ['T1', 'T5b', 'T5e', None]):
     c = w9.cell(paso1, 3)
     c.hyperlink = f"#'7_Los_528'!A{ROW7[aso]}"
     c.font = Font(name=F, size=10, color='0563C1', underline='single')
