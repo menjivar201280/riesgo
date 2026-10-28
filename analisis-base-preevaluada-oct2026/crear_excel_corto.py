@@ -35,7 +35,7 @@ REVISIONES = [
     (lambda e: e.NIVEL_INGRESO == 'Alto', lambda e: f'Gana poco: {money(e.INGRESO)} al mes (se pide $1,500 o más)'),
     (lambda e: e.NIVEL_DEUDA == 'Alto', lambda e: f'Debe mucho en otros bancos: {money(e.SALDO_SSF)} (se pide menos de $10,000)'),
     (lambda e: e.NIVEL_DEUDA_INGRESO == 'Alto',
-     lambda e: f'Lo que debe son {e.MULT_DEUDA_INGRESO:,.0f} meses de su sueldo (se pide menos de 12)'),
+     lambda e: f'Debe más de lo que gana en todo un año: debe {money(e.SALDO_SSF)} y gana {money(e.INGRESO * 12)} al año'),
     (lambda e: e.AL_FONDO_BAJO_DEUDA_ELEVADA == 1,
      lambda e: f'Poco fondo compensatorio ({money(e.FONDO_COMPENSATORIO)}) para lo que debe'),
     (lambda e: e.AL_ING_BAJO_DEUDA_ELEVADA == 1, lambda e: 'Gana poco para lo que debe'),
@@ -56,7 +56,7 @@ REVISIONES = [
     (lambda e: str(e.ESTADO_DEUDA_SSF).startswith('Saldo negativo'), lambda e: 'Su deuda aparece en negativo'),
     (lambda e: e.DQ_PRECA_SIN_INGRESO == 1, lambda e: 'Tiene monto pre evaluado sin ingreso válido'),
 ]
-MOTIVO_CORTO = ['Gana menos de $1,500 al mes', 'Debe $10,000 o más en otros bancos', 'Lo que debe es 12 meses o más de su sueldo', 'Poco fondo compensatorio para lo que debe', 'Gana poco para lo que debe', 'Atrasado en aportaciones', 'Asociado nuevo (0 a 1 año)', 'No es categoría A1', 'El vehículo no le toca según su tabla', 'El límite de tarjeta no coincide con su tabla', 'La edad no coincide con su fecha de nacimiento', 'El DUI está mal escrito', 'Los años de asociado no cuadran con su edad', 'Su deuda aparece en negativo', 'Monto pre evaluado sin ingreso válido']
+MOTIVO_CORTO = ['Gana menos de $1,500 al mes', 'Debe $10,000 o más en otros bancos', 'Debe más de lo que gana en todo un año', 'Poco fondo compensatorio para lo que debe', 'Gana poco para lo que debe', 'Atrasado en aportaciones', 'Asociado nuevo (0 a 1 año)', 'No es categoría A1', 'El vehículo no le toca según su tabla', 'El límite de tarjeta no coincide con su tabla', 'La edad no coincide con su fecha de nacimiento', 'El DUI está mal escrito', 'Los años de asociado no cuadran con su edad', 'Su deuda aparece en negativo', 'Monto pre evaluado sin ingreso válido']
 assert len(MOTIVO_CORTO) == len(REVISIONES)
 x['POR_QUE_NO'] = ''
 for i in x.index[NO]:
@@ -167,7 +167,7 @@ r = 9
 merge_put(ws, f'B{r}:H{r}', '¿CÓMO SE DECIDE?  (una sola regla, sin excepciones)', size=13, bold=True, color='FFFFFF', bg=NAVY)
 pasos = [('1', 'Cumple el memorando', 'Tiene ingreso y fondo, edad de 30 a 55 años, categoría A1 o A2. '
           f'De {TOTAL:,} asociados, {cnt(n1):,} cumplen.'),
-         ('2', 'Pasa TODAS las revisiones', 'Gana $1,500 o más · debe menos de $10,000 · su deuda es menor a 12 meses de sueldo · '
+         ('2', 'Pasa TODAS las revisiones', 'Gana $1,500 o más · debe menos de $10,000 · no debe más de lo que gana en un año · '
           'tiene fondo para lo que debe · al día en aportaciones · más de 1 año de asociado · categoría A1 · '
           'el vehículo y la tarjeta le tocan según su tabla · sus datos están bien escritos.'),
          ('3', 'Resultado', f'Si pasa todo = RECOMENDADO ({cnt(SI)}).  Si falla aunque sea una = NO ({cnt(NO)}). '
