@@ -41,7 +41,7 @@ deuda_alta = lambda e: e.NIVEL_DEUDA_INGRESO == 'Alto' or e.AL_ING_BAJO_DEUDA_EL
 REVISIONES = [
     (lambda e: e.NIVEL_DEUDA_INGRESO == 'Alto',
      lambda e: f'Su deuda actual ({money(e.SALDO_SSF)}) es alta para su ingreso ({money(e.INGRESO)} al mes)'),
-    (lambda e: e.AL_ING_BAJO_DEUDA_ELEVADA == 1,
+    (lambda e: e.AL_ING_BAJO_DEUDA_ELEVADA == 1 and e.NIVEL_DEUDA_INGRESO != 'Alto',  # sin repetir la misma idea
      lambda e: f'Su ingreso ({money(e.INGRESO)} al mes) queda ajustado para su deuda actual ({money(e.SALDO_SSF)})'),
     (lambda e: e.DQ_PRECA_SIN_INGRESO == 1, lambda e: 'Tiene monto pre evaluado sin ingreso válido'),
     (lambda e: deuda_alta(e) and pd.notna(e['PRECA HIPO']) and e.SALDO_SSF > e['PRECA HIPO'],
