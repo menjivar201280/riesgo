@@ -82,6 +82,34 @@ def motivo(r):
 
 x['MOTIVO_NO_MAXIMA'] = x.apply(motivo, axis=1)
 
+T_VEH, T_TC, T_ANT = 'Tabla 1 (vehículo)', 'Tabla 2 (tarjeta)', 'Tabla 3 (antigüedad)'
+T_HIPO, T_LIM, T_DATOS = 'Tabla 4 (hipotecario)', 'Tabla 5 (límites de riesgo)', 'Tabla 6 (revisión de datos)'
+
+
+def tablas(r):
+    """Tablas de la hoja 8 con las que se comparó al asociado para decidir el NO."""
+    if r.NIVEL_SEGURIDAD >= 4:
+        return ''
+    t = []
+    if r.CONSIST_VEHICULO == 'No coincide con tabla':
+        t.append(T_VEH)
+    if r.CONSIST_TC == 'No coincide con tabla':
+        t.append(T_TC)
+    if r.NIVEL_ANTIGUEDAD == 'Alto':
+        t.append(T_ANT)
+    if r.CONSIST_HIPO == 'No coincide con tabla':
+        t.append(T_HIPO)
+    if (r.NIVEL_INGRESO == 'Alto' or r.NIVEL_DEUDA == 'Alto' or r.NIVEL_DEUDA_INGRESO == 'Alto'
+            or r.AL_FONDO_BAJO_DEUDA_ELEVADA == 1 or r.AL_APORT_VENCIDAS == 1 or r.AL_CATEGORIA_A2 == 1):
+        t.append(T_LIM)
+    if (r.CHK_EDAD != 'Coincide' or r.ALERTA_ING_ATIPICO == 1 or len(str(r.DUI)) != 9 or r.ALERTA_ANT_EDAD == 1
+            or str(r.ESTADO_DEUDA_SSF).startswith('Saldo negativo')):
+        t.append(T_DATOS)
+    return ', '.join(t)
+
+
+x['TABLA_USADA'] = x.apply(tablas, axis=1)
+
 
 def pendientes(r):
     p = []
@@ -305,7 +333,7 @@ for sh, desc in [('2_Niveles_y_Rangos', 'Rangos Bajo / Medio / Alto de cada vari
                  ('6_Tarjeta', 'Nivel 4 sin tarjeta actual y con límite de tarjeta.'),
                  ('7_Los_528', f'Los {cnt(n1)} que cumplen el memorando: columna ¿RECOMENDADO? (SÍ {cnt(n4)} / NO {cnt(n1) - cnt(n4)}) '
                                f'y el motivo de cada NO.'),
-                 ('8_De_donde_sale', 'De qué columna de su base y de qué tabla sale cada motivo de "no recomendado".')]:
+                 ('8_Tablas_usadas', 'Las tablas completas con las que se comparó a cada asociado (Tabla 1 a 6).')]:
     cellw(ws, r, 2, '')
     link(ws, f'B{r}', sh)
     ws.merge_cells(start_row=r, start_column=3, end_row=r, end_column=7)
@@ -419,7 +447,7 @@ def list_sheet(name, color, title, note, df, cols):
                 c.number_format = fmt
             if src.startswith('NIVEL_') and src != 'NIVEL_SEGURIDAD' or src == 'RECOMENDADO':
                 c.alignment = Alignment(horizontal='center', vertical='center')
-            elif src in ('MOTIVO_NO_MAXIMA', 'PENDIENTE_ANTES_DE_OTORGAR'):
+            elif src in ('MOTIVO_NO_MAXIMA', 'PENDIENTE_ANTES_DE_OTORGAR', 'TABLA_USADA'):
                 c.alignment = Alignment(wrap_text=True, vertical='center')
             if i % 2:
                 c.fill = PatternFill('solid', fgColor='F7F9FC')
@@ -469,93 +497,96 @@ ws7 = list_sheet('7_Los_528', ORANGE, 'LOS 528 QUE CUMPLEN EL MEMORANDO: ¿SE RE
                  'SÍ = se puede ofrecer con seguridad. NO = cumple el memorando, pero la columna "¿POR QUÉ NO?" dice qué le falta. ' + EXT,
                  x[n1], BASE_COLS[:4] + [('¿RECOMENDADO?', 'RECOMENDADO', None, 13),
                                          ('¿POR QUÉ NO?', 'MOTIVO_NO_MAXIMA', None, 70),
+                                         ('TABLA CON LA QUE SE COMPARÓ (ver hoja 8)', 'TABLA_USADA', None, 28),
                                          M_H, M_V, M_T])
 
-# ================================================================ HOJA 8: DE DÓNDE SALE CADA MOTIVO
-w8 = wb.create_sheet('8_De_donde_sale')
+# ================================================================ HOJA 8: TABLAS USADAS
+w8 = wb.create_sheet('8_Tablas_usadas')
 w8.sheet_properties.tabColor = GRAY
 w8.sheet_view.showGridLines = False
-for col, w in zip('ABCDEF', [2, 46, 30, 52, 24, 2]):
+for col, w in zip('ABCDEF', [2, 40, 30, 30, 34, 2]):
     w8.column_dimensions[col].width = w
-w8['B1'] = '¿DE DÓNDE SALE CADA "¿POR QUÉ NO?"'
+w8['B1'] = 'TABLAS CON LAS QUE SE COMPARÓ A CADA ASOCIADO'
 w8['B1'].font = font(15, True, NAVY)
 link(w8, 'B2', '1_RESUMEN', '◄ Volver al RESUMEN')
-w8['B3'] = 'Todo sale de SU archivo de Excel (la hoja BD FINAL y sus tablas). No se usó ninguna otra base.'
-w8['B3'].font = font(11, True)
+w8['B3'] = ('La hoja 7 dice, para cada asociado, con qué tabla se comparó. Aquí están las tablas completas. '
+            'Las tablas 1, 2 y 3 son de SU archivo; la 4 y la 5 son propuestas hechas con sus datos.')
+w8['B3'].font = font(10, True)
+w8['B3'].alignment = Alignment(wrap_text=True)
+w8.merge_cells('B3:E3')
+w8.row_dimensions[3].height = 30
 r = 5
-for j, h in enumerate(['Lo que dice la hoja 7', 'Qué dato de su base se miró', '¿De dónde sale el límite?', '¿Quién lo puso?'], 2):
-    cellw(w8, r, j, h, bold=True, fill=NAVY, color='FFFFFF', align='center')
-r += 1
-SRC_OWN, SRC_MEMO, SRC_PROP = 'Su archivo', 'El memorando', 'Propuesta (Riesgos debe aprobar)'
-FILL_SRC = {SRC_OWN: 'E2EFDA', SRC_MEMO: 'FBE5D6', SRC_PROP: 'FFF2CC'}
-ORIGEN = [
-    ('"Le dieron $... de vehículo, pero con su ingreso la tabla dice NO APLICA"', 'Columna INGRESO y PRECA VEHICULO',
-     'Su hoja "RANGOS VEHICULO": si gana menos de $3,000 al mes, el crédito de vehículo NO APLICA. (Tabla abajo.)', SRC_OWN),
-    ('"Le dieron $... de hipotecario, pero con su ingreso corresponde ..."', 'Columna INGRESO y PRECA HIPO',
-     'Su archivo no trae tabla de hipotecario. Se usó lo que muestran sus propios datos: desde $3,000 de ingreso → $110,000; '
-     'desde $5,000 → $150,000; desde $9,000 → $205,000.', SRC_PROP),
-    ('"Está atrasado en sus aportaciones"', 'Columna APORTACIONES_AL_DIA y CUOTAS_VENC_APORT',
-     'El memorando dice que los que no están al día deben ponerse al día.', SRC_MEMO),
-    ('"Su categoría es A2, no A1"', 'Columna MAX_CAT_RIESGO y CALIFICACION_SSF',
-     'El memorando acepta A1 y A2. Para máxima seguridad se pide A1.', SRC_PROP),
-    ('"Es asociado nuevo"', 'Columna ANTIGUEDAD_ANIOS', 'Su hoja "Variables": 0 a 1 año = riesgo Alto.', SRC_OWN),
-    ('"Gana poco (menos de $1,500)"', 'Columna INGRESO',
-     'Es el corte de $1,500 de su tabla "RANGOS TC". Separa al grupo que menos gana.', SRC_PROP),
-    ('"Debe mucho ($10,000 o más)"', 'Columna SALDO_SSF (deuda en la Central de Riesgo)',
-     'Separa al tercio de asociados que más debe.', SRC_PROP),
-    ('"Lo que debe equivale a ... meses de su sueldo (12 o más)"', 'SALDO_SSF dividido entre INGRESO',
-     'Debe lo que gana en un año o más.', SRC_PROP),
-    ('"Tiene poco fondo compensatorio para lo que debe"', 'Columna FONDO_COMPENSATORIO y SALDO_SSF',
-     'Fondo menor de $4,000 y deuda de $10,000 o más.', SRC_PROP),
-    ('"La edad anotada no coincide con su fecha de nacimiento", "El DUI está mal escrito", '
-     '"Su ingreso es muy alto: hay que confirmarlo"', 'Columnas EDAD, CLI_FECHA_NACIMIENTO, DUI e INGRESO',
-     'Revisión de errores en los datos de la base.', SRC_PROP),
-]
-for row in ORIGEN:
-    for j, v in enumerate(row, 2):
-        cellw(w8, r, j, v, bold=(j == 2), fill=FILL_SRC[row[-1]] if j == 5 else None, size=9)
-    w8.row_dimensions[r].height = 44
-    r += 1
-r += 1
-w8.merge_cells(start_row=r, start_column=2, end_row=r, end_column=5)
-c = w8.cell(r, 2, 'Verde = viene de su archivo. Naranja = viene del memorando. Amarillo = lo propuse con los datos; Riesgos puede '
-                  'aprobarlo o cambiarlo.')
-c.font = font(9, italic=True)
-r += 2
+noc = lambda col: cnt(n1 & ~n4 & (x[col] == 'No coincide con tabla'))
 
-w8.cell(r, 2, 'TABLA DE VEHÍCULO DE SU ARCHIVO (hoja "RANGOS VEHICULO")').font = font(11, True, NAVY)
-r += 1
-for j, h in enumerate(['Ingreso mensual', 'Monto de vehículo'], 2):
-    cellw(w8, r, j, h, bold=True, fill=BLUE, color='FFFFFF', align='center')
-r += 1
-for a, b in [('$15,000 o más', '$40,000'), ('$10,000 a $14,999.99', '$30,000'), ('$5,000 a $9,999.99', '$25,000'),
-             ('$3,000 a $4,999.99', '$20,000'), ('Menor de $3,000', 'NO APLICA')]:
-    cellw(w8, r, 2, a)
-    cellw(w8, r, 3, b, align='center', fill='F8CBAD' if b == 'NO APLICA' else None, bold=b == 'NO APLICA')
-    r += 1
-r += 1
 
-w8.cell(r, 2, 'EJEMPLOS REALES DE SU BASE').font = font(11, True, NAVY)
-r += 1
-for j, h in enumerate(['Asociado', 'Dato en su base', 'Qué dice la regla', 'Resultado'], 2):
-    cellw(w8, r, j, h, bold=True, fill=NAVY, color='FFFFFF', align='center')
-r += 1
-veh_ex = x[n1 & (x.CONSIST_VEHICULO == 'No coincide con tabla') & (x.TOTAL_ALERTAS_RIESGO == 0)].head(2)
-for _, e in veh_ex.iterrows():
-    cellw(w8, r, 2, f'{e.ASOCIADO} – {e.NOMBRE}', size=9)
-    cellw(w8, r, 3, f'Ingreso ${e.INGRESO:,.2f}; vehículo asignado ${e["PRECA VEHICULO"]:,.0f}', size=9)
-    cellw(w8, r, 4, 'Tabla de vehículo: con ingreso menor de $3,000 → NO APLICA', size=9)
-    cellw(w8, r, 5, 'NO recomendado: monto distinto al de la tabla', size=9, fill='F8CBAD')
-    w8.row_dimensions[r].height = 30
+def table_title(r, num, title, source, color, nota):
+    w8.merge_cells(start_row=r, start_column=2, end_row=r, end_column=5)
+    c = w8.cell(r, 2, f'TABLA {num}: {title}')
+    c.font = font(12, True, 'FFFFFF')
+    c.fill = PatternFill('solid', fgColor=color)
+    w8.merge_cells(start_row=r + 1, start_column=2, end_row=r + 1, end_column=5)
+    c = w8.cell(r + 1, 2, f'De dónde sale: {source}.  {nota}')
+    c.font = font(9, italic=True)
+    c.alignment = Alignment(wrap_text=True)
+    w8.row_dimensions[r + 1].height = 26
+    return r + 2
+
+
+def table_rows(r, head, rows, fills=None):
+    for j, h in enumerate(head, 2):
+        cellw(w8, r, j, h, bold=True, fill='D9E1F2', align='center')
     r += 1
-debt_ex = x[n1 & (x.NIVEL_DEUDA == 'Alto') & (x.TOTAL_ALERTAS_RIESGO == 0) & (x.NIVEL_INGRESO != 'Alto')].head(1)
-for _, e in debt_ex.iterrows():
-    cellw(w8, r, 2, f'{e.ASOCIADO} – {e.NOMBRE}', size=9)
-    cellw(w8, r, 3, f'Deuda SSF ${e.SALDO_SSF:,.2f} ({e.INSTITUCION})', size=9)
-    cellw(w8, r, 4, 'Deuda de $10,000 o más = nivel Alto', size=9)
-    cellw(w8, r, 5, 'NO recomendado: nivel Alto en deuda', size=9, fill='F8CBAD')
-    w8.row_dimensions[r].height = 30
-    r += 1
+    for i, row in enumerate(rows):
+        for j, v in enumerate(row, 2):
+            fill = fills[i] if fills and j == 1 + len(row) else None
+            cellw(w8, r, j, v, align='center' if j > 2 else None, fill=fill)
+        r += 1
+    return r + 1
+
+
+OWN, PROP = '2E75B6', 'BF8F00'
+NA = 'F8CBAD'
+r = table_title(r, 1, 'VEHÍCULO (monto según ingreso)', 'su hoja "RANGOS VEHICULO" (copiada tal cual)', OWN,
+                f'{noc("CONSIST_VEHICULO")} de los NO tienen un monto de vehículo distinto al de esta tabla.')
+r = table_rows(r, ['Ingreso mensual', 'Monto de vehículo'],
+               [('$15,000 o más', '$40,000'), ('$10,000 a $14,999.99', '$30,000'), ('$5,000 a $9,999.99', '$25,000'),
+                ('$3,000 a $4,999.99', '$20,000'), ('Menos de $3,000', 'NO APLICA')], [None] * 4 + [NA])
+r = table_title(r, 2, 'TARJETA DE CRÉDITO (límite según ingreso)', 'su hoja "RANGOS TC" (copiada tal cual)', OWN,
+                f'{noc("CONSIST_TC")} de los NO tienen un límite distinto al de esta tabla.')
+r = table_rows(r, ['Ingreso mensual', 'Límite', 'Segmento'],
+               [('$500 a $749.99', '$500', 'Clásica local'), ('$750 a $999.99', '$1,500', 'Clásica internacional'),
+                ('$1,000 a $1,499.99', '$2,000', 'Clásica internacional'), ('$1,500 a $1,699.99', '$2,500', 'Dorada'),
+                ('$1,700 a $1,999.99', '$3,000', 'Dorada'), ('$2,000 a $2,499.99', '$3,500', 'Platinum'),
+                ('$2,500 a $2,999.99', '$4,500', 'Platinum'), ('$3,000 a $3,499.99', '$5,000', 'Platinum'),
+                ('$3,500 a $7,499.99', '$7,000', 'Black'), ('$7,500 a $7,999.99', '$8,000', 'Black'),
+                ('$8,000 o más', '$10,000', 'Black')])
+r = table_title(r, 3, 'ANTIGÜEDAD COMO ASOCIADO', 'su hoja "Variables" (la que usted pidió)', OWN,
+                f'{cnt(n1 & ~n4 & (x.NIVEL_ANTIGUEDAD == "Alto"))} de los NO son asociados nuevos (0 a 1 año).')
+r = table_rows(r, ['Años como asociado', 'Nivel de riesgo'],
+               [('0 a 1', 'Alto'), ('2 a 4', 'Medio'), ('5 o más', 'Bajo')], [NA, 'FFE699', 'C6E0B4'])
+r = table_title(r, 4, 'HIPOTECARIO (monto según ingreso)',
+                'PROPUESTA. Su archivo NO trae tabla de hipotecario; esta se armó viendo cómo se asignaron los montos en su base',
+                PROP, f'{noc("CONSIST_HIPO")} de los NO tienen un monto hipotecario distinto. Créditos debe dar la tabla oficial.')
+r = table_rows(r, ['Ingreso mensual', 'Monto hipotecario'],
+               [('$9,000 o más', '$205,000'), ('$5,000 a $8,999.99', '$150,000'), ('$3,000 a $4,999.99', '$110,000'),
+                ('Menos de $3,000', 'NO APLICA')], [None] * 3 + [NA])
+r = table_title(r, 5, 'LÍMITES DE RIESGO', 'PROPUESTA hecha con los datos de su base (Riesgos debe aprobarla o cambiarla)', PROP,
+                'Si el asociado cae en cualquier fila de esta tabla, se marca NO recomendado.')
+r = table_rows(r, ['Se marca NO si…', 'Dato de su base', 'Por qué ese límite'],
+               [('Gana menos de $1,500 al mes', 'INGRESO', 'Es el corte de $1,500 de su tabla de tarjeta'),
+                ('Debe $10,000 o más', 'SALDO_SSF', 'Es el tercio de asociados que más debe'),
+                ('Debe 12 meses o más de su sueldo', 'SALDO_SSF ÷ INGRESO', 'Debe un año de sueldo o más'),
+                ('Tiene fondo menor de $4,000 y debe $10,000 o más', 'FONDO_COMPENSATORIO y SALDO_SSF', 'Poco respaldo para lo que debe'),
+                ('Está atrasado en aportaciones', 'APORTACIONES_AL_DIA', 'El memorando pide ponerse al día'),
+                ('Su categoría es A2 (no A1)', 'MAX_CAT_RIESGO y CALIFICACION_SSF', 'Para máxima seguridad se pide A1')])
+r = table_title(r, 6, 'REVISIÓN DE DATOS', 'errores encontrados en su propia base', GRAY,
+                'No es riesgo del asociado: es un dato mal anotado. Si Créditos lo corrige, el asociado puede pasar a SÍ.')
+r = table_rows(r, ['Se marca NO si…', 'Dato de su base'],
+               [('La edad no coincide con la fecha de nacimiento', 'EDAD y CLI_FECHA_NACIMIENTO'),
+                ('El DUI no tiene 9 dígitos', 'DUI'),
+                ('El ingreso es muy alto y hay que confirmarlo', 'INGRESO'),
+                ('Los años de asociado no cuadran con la edad', 'ANTIGUEDAD_ANIOS y EDAD'),
+                ('La deuda aparece en negativo', 'SALDO_SSF')])
 
 wb.active = 0
 wb.save(OUT)
