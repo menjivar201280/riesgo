@@ -23,7 +23,7 @@ RISK = ['NIVEL_ANTIGUEDAD', 'NIVEL_INGRESO', 'NIVEL_DEUDA', 'NIVEL_DEUDA_INGRESO
 # Ganar mucho no es un dato malo: el ingreso muy alto solo se confirma antes de otorgar.
 DATO_MAL = ((x.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar') | (x.ALERTA_ANT_EDAD == 1) | (x.CHK_EDAD != 'Coincide')
             | x.ESTADO_DEUDA_SSF.astype(str).str.startswith('Saldo negativo') | (x.DUI.astype(str).str.len() != 9))
-# Solo quedan para revisar quienes hoy tienen deuda alta para su ingreso (mayor que un año de ingreso) o ingreso ajustado.
+# Solo quedan para revisar quienes hoy tienen deuda alta para su ingreso o ingreso ajustado.
 # Lo que el memorando permite (A2, antigüedad baja, atraso en aportaciones con condición) y los datos por corregir
 # no dejan fuera: quedan como "antes de otorgar". El nivel de riesgo (pesos) dice a quién cuidar más.
 PAGA = n1 & (x.NIVEL_DEUDA_INGRESO != 'Alto') & (x.AL_ING_BAJO_DEUDA_ELEVADA != 1) & (x.DQ_PRECA_SIN_INGRESO == 0)
@@ -40,7 +40,7 @@ deuda_alta = lambda e: e.NIVEL_DEUDA_INGRESO == 'Alto' or e.AL_ING_BAJO_DEUDA_EL
 # Revisiones en palabras simples: (¿falló?, frase con el dato exacto)
 REVISIONES = [
     (lambda e: e.NIVEL_DEUDA_INGRESO == 'Alto',
-     lambda e: f'Su deuda actual ({money(e.SALDO_SSF)}) es alta comparada con su ingreso de un año ({money(e.INGRESO * 12)})'),
+     lambda e: f'Su deuda actual ({money(e.SALDO_SSF)}) es alta para su ingreso ({money(e.INGRESO)} al mes)'),
     (lambda e: e.AL_ING_BAJO_DEUDA_ELEVADA == 1,
      lambda e: f'Su ingreso ({money(e.INGRESO)} al mes) queda ajustado para su deuda actual ({money(e.SALDO_SSF)})'),
     (lambda e: e.DQ_PRECA_SIN_INGRESO == 1, lambda e: 'Tiene monto pre evaluado sin ingreso válido'),
@@ -48,7 +48,7 @@ REVISIONES = [
      lambda e: f'Su deuda es mayor que el hipotecario que se le ofrece ({money(e["PRECA HIPO"])}): no alcanza para pagarla'),
     (lambda e: deuda_alta(e) and pd.isna(e['PRECA HIPO']), lambda e: 'No tiene hipotecario en la base con el cual pagar su deuda'),
 ]
-MOTIVO_CORTO = ['Deuda alta comparada con su ingreso de un año', 'Ingreso ajustado para su deuda actual', 'Monto pre evaluado sin ingreso válido', 'Su deuda es mayor que el hipotecario ofrecido', 'No tiene hipotecario para pagar su deuda']
+MOTIVO_CORTO = ['Deuda alta para su ingreso', 'Ingreso ajustado para su deuda actual', 'Monto pre evaluado sin ingreso válido', 'Su deuda es mayor que el hipotecario ofrecido', 'No tiene hipotecario para pagar su deuda']
 assert len(MOTIVO_CORTO) == len(REVISIONES)
 x['POR_QUE_NO'] = ''
 for i in x.index[NO]:
@@ -321,8 +321,8 @@ RANGOS = [
      lambda e: f'{int(e.CUOTAS_VENC_APORT)} cuota(s)'),
     ('Categoría SSF (externa)', .25, 'NIVEL_CAT_EXTERNA', ['A1', 'A2', 'B, C, D o E'], lambda e: str(e.CALIFICACION_SSF)),
     ('Deuda comparada con lo que gana (no lleva peso)', None, 'NIVEL_DEUDA_INGRESO',
-     ['Deuda baja para su ingreso (o sin deuda)', 'Deuda moderada para su ingreso', 'Deuda alta: mayor que su ingreso de un año'],
-     lambda e: f'debe {money(e.SALDO_SSF)} / gana {money(e.INGRESO * 12)} al año'),
+     ['Deuda baja para su ingreso (o sin deuda)', 'Deuda moderada para su ingreso', 'Deuda alta para su ingreso'],
+     lambda e: f'debe {money(e.SALDO_SSF)} / gana {money(e.INGRESO)} al mes'),
 ]
 GRUPOS = []  # (clave, título del bloque, máscara, dato)
 for tit, w, col, rangos, dato in RANGOS:
