@@ -228,6 +228,9 @@ for t in ['• Revisar lista negra, créditos castigados y que no sea relacionad
 # ================================================================ listas
 
 
+FILA = {}
+
+
 def lista(name, color, title, nota, df, cols):
     w = wb.create_sheet(name)
     w.sheet_view.showGridLines = False
@@ -245,6 +248,7 @@ def lista(name, color, title, nota, df, cols):
     w.row_dimensions[5].height = 34
     for i, (_, e) in enumerate(df.iterrows()):
         rr = 6 + i
+        FILA[e.ASOCIADO] = (name, rr)  # destino del enlace desde ASOCIADOS POR RANGO
         for j, (h, src, fmt, wd) in enumerate(cols, 1):
             v = e[src]
             v = None if isinstance(v, float) and pd.isna(v) else v
@@ -355,6 +359,10 @@ for key, tit, m, dato in GRUPOS:
             c = wa.cell(rr, j, v)
             c.font = font(9, bold=(j == 5), color=(GREEN if v == 'RECOMENDADO' else ORANGE) if j == 5 else '000000')
             c.border = box
+            if j == 1:
+                sh, fr = FILA[e.ASOCIADO]
+                c.hyperlink = f"#'{sh}'!A{fr}"
+                c.font = font(9, True, '0563C1', u='single')
         rr += 1
     link(wa, f'A{rr}', 'ÍNDICE', '▲ volver al índice', 9)
     wa.cell(rr, 1).hyperlink = f"#'ASOCIADOS POR RANGO'!A{IDX}"
