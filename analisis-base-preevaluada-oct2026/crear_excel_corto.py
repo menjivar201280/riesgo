@@ -30,7 +30,12 @@ PAGA = n1 & (x.NIVEL_DEUDA_INGRESO != 'Alto') & (x.AL_ING_BAJO_DEUDA_ELEVADA != 
 # Si su deuda es menor que el hipotecario que se le ofrece, con el hipotecario paga esa deuda: se le recomienda SOLO el
 # hipotecario, con la condición de que pague primero lo que debe en otros bancos (vehículo y tarjeta no).
 TRAE = n1 & ~PAGA & (x.DQ_PRECA_SIN_INGRESO == 0) & x['PRECA HIPO'].notna() & (x.SALDO_SSF <= x['PRECA HIPO'])
-SI = PAGA | TRAE
+# Tarjeta: si su deuda es alta, igual se le puede dar la tarjeta que la base trae, porque su límite es el que su propia
+# tabla de tarjeta le asigna según lo que gana (monto pequeño). Hipotecario y vehículo quedan para revisar más adelante.
+tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
+SOLO_TC = (n1 & ~PAGA & ~TRAE & (x.DQ_PRECA_SIN_INGRESO == 0) & x['PRECA TC'].notna() & tc_ok
+           & (x.CONSIST_TC == 'Coincide con tabla'))
+SI = PAGA | TRAE | SOLO_TC
 # Los montos PRECA son lo que la Cooperativa quiere ofrecer: las tablas de vehículo y tarjeta solo se muestran, no deciden.
 NO = n1 & ~SI
 money = lambda v: f'${v:,.0f}'
@@ -58,13 +63,13 @@ assert (x.loc[NO, 'POR_QUE_NO'] != '').all()           # todo NO tiene su motivo
 assert not any(falla(x.loc[i]) for i in x.index[PAGA] for falla, _ in REVISIONES)  # y ningún SÍ por capacidad falla nada
 
 # Productos que se recomiendan a los SÍ (la tarjeta solo si no tiene tarjeta: memorando)
-tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
-x['HIPO'] = x['PRECA HIPO'].where(SI)
+x['HIPO'] = x['PRECA HIPO'].where(PAGA | TRAE)
 x['VEH'] = x['PRECA VEHICULO'].where(PAGA)
 x['TC'] = x['PRECA TC'].where(SI & tc_ok)  # a los que pagan su deuda con el hipotecario, después de pagarla
 x['COMO'] = ''
 x.loc[PAGA, 'COMO'] = 'Puede pagar'
 x.loc[TRAE, 'COMO'] = 'Con el hipotecario paga su deuda'
+x.loc[SOLO_TC, 'COMO'] = 'Solo tarjeta (límite de su tabla)'
 TRAE_TC = TRAE & x.TC.notna()
 SI_PROD = SI & x[['HIPO', 'VEH', 'TC']].notna().any(axis=1)
 assert (SI == SI_PROD).all()
@@ -79,6 +84,10 @@ x['CALIFICACION'] = x.PUNTAJE.map(lambda v: 'BAJO' if v >= 2.6 else 'MEDIO' if v
 
 def falta(e):
     p = ['Lista negra, castigados y relacionados/empleados']
+    if e.COMO == 'Solo tarjeta (límite de su tabla)':
+        otros = [n_ for n_, c_ in (('hipotecario', 'PRECA HIPO'), ('vehículo', 'PRECA VEHICULO')) if pd.notna(e[c_])]
+        p.append(f'Solo tarjeta: su límite ({money(e.TC)}) es el que su tabla de tarjeta da para lo que gana ({money(e.INGRESO)} al mes)'
+                 + (f'; {" y ".join(otros)} para revisar más adelante, por su deuda ({money(e.SALDO_SSF)})' if otros else ''))
     if e.COMO == 'Con el hipotecario paga su deuda':
         p.append(f'El hipotecario paga primero su deuda en otros bancos ({money(e.SALDO_SSF)}); '
                  f'le quedan {money(e["PRECA HIPO"] - e.SALDO_SSF)}. Vehículo no'
@@ -179,7 +188,8 @@ pasos = [('1', 'Cumple el memorando', 'Tiene ingreso y fondo, edad de 30 a 55 a�
           f'De {TOTAL:,} asociados, {cnt(n1):,} cumplen.'),
          ('2', 'Capacidad de pago', f'Gana bien para lo que debe = RECOMENDADO ({cnt(PAGA)}). Si debe mucho para su ingreso, pero su deuda '
           f'es menor que el hipotecario que se le ofrece, con el hipotecario paga esa deuda = RECOMENDADO ({cnt(TRAE)}): hipotecario, '
-          f'y tarjeta después de pagar la deuda ({cnt(TRAE_TC)} la tienen en la base); vehículo no.'),
+          f'y tarjeta después de pagar la deuda ({cnt(TRAE_TC)} la tienen en la base); vehículo no. '
+          f'Si su deuda es alta pero tiene tarjeta en la base, se le da SOLO la tarjeta, con el límite de su tabla ({cnt(SOLO_TC)}).'),
          ('3', 'Resultado', f'RECOMENDADO = {cnt(SI)}, con su nivel de riesgo BAJO / MEDIO / ALTO (pesos de la hoja de rangos). '
           f'Para revisar más adelante = {cnt(NO)}. Atrasos en aportaciones o datos por corregir no lo sacan: van en "QUÉ FALTA ANTES DE OTORGAR".')]
 r += 1
