@@ -26,10 +26,16 @@ DATO_MAL = ((x.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar') | (x.ALERTA_ANT_ED
 # Solo quedan para revisar quienes hoy tienen deuda alta para su ingreso (mayor que un año de ingreso) o ingreso ajustado.
 # Lo que el memorando permite (A2, antigüedad baja, atraso en aportaciones con condición) y los datos por corregir
 # no dejan fuera: quedan como "antes de otorgar". El nivel de riesgo (pesos) dice a quién cuidar más.
-SI = n1 & (x.NIVEL_DEUDA_INGRESO != 'Alto') & (x.AL_ING_BAJO_DEUDA_ELEVADA != 1) & (x.DQ_PRECA_SIN_INGRESO == 0)
+PAGA = n1 & (x.NIVEL_DEUDA_INGRESO != 'Alto') & (x.AL_ING_BAJO_DEUDA_ELEVADA != 1) & (x.DQ_PRECA_SIN_INGRESO == 0)
+# Si su deuda es menor que el hipotecario que se le ofrece, con el hipotecario paga esa deuda: se le recomienda SOLO el
+# hipotecario, con la condición de que pague primero lo que debe en otros bancos (vehículo y tarjeta no).
+TRAE = n1 & ~PAGA & (x.DQ_PRECA_SIN_INGRESO == 0) & x['PRECA HIPO'].notna() & (x.SALDO_SSF <= x['PRECA HIPO'])
+SI = PAGA | TRAE
 # Los montos PRECA son lo que la Cooperativa quiere ofrecer: las tablas de vehículo y tarjeta solo se muestran, no deciden.
 NO = n1 & ~SI
 money = lambda v: f'${v:,.0f}'
+
+deuda_alta = lambda e: e.NIVEL_DEUDA_INGRESO == 'Alto' or e.AL_ING_BAJO_DEUDA_ELEVADA == 1
 
 # Revisiones en palabras simples: (¿falló?, frase con el dato exacto)
 REVISIONES = [
@@ -38,21 +44,27 @@ REVISIONES = [
     (lambda e: e.AL_ING_BAJO_DEUDA_ELEVADA == 1,
      lambda e: f'Su ingreso ({money(e.INGRESO)} al mes) queda ajustado para su deuda actual ({money(e.SALDO_SSF)})'),
     (lambda e: e.DQ_PRECA_SIN_INGRESO == 1, lambda e: 'Tiene monto pre evaluado sin ingreso válido'),
+    (lambda e: deuda_alta(e) and pd.notna(e['PRECA HIPO']) and e.SALDO_SSF > e['PRECA HIPO'],
+     lambda e: f'Su deuda es mayor que el hipotecario que se le ofrece ({money(e["PRECA HIPO"])}): no alcanza para pagarla'),
+    (lambda e: deuda_alta(e) and pd.isna(e['PRECA HIPO']), lambda e: 'No tiene hipotecario en la base con el cual pagar su deuda'),
 ]
-MOTIVO_CORTO = ['Deuda alta comparada con su ingreso de un año', 'Ingreso ajustado para su deuda actual', 'Monto pre evaluado sin ingreso válido']
+MOTIVO_CORTO = ['Deuda alta comparada con su ingreso de un año', 'Ingreso ajustado para su deuda actual', 'Monto pre evaluado sin ingreso válido', 'Su deuda es mayor que el hipotecario ofrecido', 'No tiene hipotecario para pagar su deuda']
 assert len(MOTIVO_CORTO) == len(REVISIONES)
 x['POR_QUE_NO'] = ''
 for i in x.index[NO]:
     e = x.loc[i]
     x.at[i, 'POR_QUE_NO'] = '; '.join(f(e) for falla, f in REVISIONES if falla(e))
 assert (x.loc[NO, 'POR_QUE_NO'] != '').all()           # todo NO tiene su motivo
-assert not any(falla(x.loc[i]) for i in x.index[SI] for falla, _ in REVISIONES)  # y ningún SÍ falla nada
+assert not any(falla(x.loc[i]) for i in x.index[PAGA] for falla, _ in REVISIONES)  # y ningún SÍ por capacidad falla nada
 
 # Productos que se recomiendan a los SÍ (la tarjeta solo si no tiene tarjeta: memorando)
 tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
 x['HIPO'] = x['PRECA HIPO'].where(SI)
-x['VEH'] = x['PRECA VEHICULO'].where(SI)
-x['TC'] = x['PRECA TC'].where(SI & tc_ok)
+x['VEH'] = x['PRECA VEHICULO'].where(PAGA)
+x['TC'] = x['PRECA TC'].where(PAGA & tc_ok)
+x['COMO'] = ''
+x.loc[PAGA, 'COMO'] = 'Puede pagar'
+x.loc[TRAE, 'COMO'] = 'Con el hipotecario paga su deuda'
 SI_PROD = SI & x[['HIPO', 'VEH', 'TC']].notna().any(axis=1)
 assert (SI == SI_PROD).all()
 
@@ -66,6 +78,9 @@ x['CALIFICACION'] = x.PUNTAJE.map(lambda v: 'BAJO' if v >= 2.6 else 'MEDIO' if v
 
 def falta(e):
     p = ['Lista negra, castigados y relacionados/empleados']
+    if e.COMO == 'Con el hipotecario paga su deuda':
+        p.append(f'El hipotecario paga primero su deuda en otros bancos ({money(e.SALDO_SSF)}); '
+                 f'le quedan {money(e["PRECA HIPO"] - e.SALDO_SSF)}. Solo hipotecario')
     if pd.notna(e.HIPO):
         p.append('Hipotecario: solvencia en Hacienda')
     if pd.notna(e.VEH) and e.VEH > 25000:
@@ -160,8 +175,8 @@ r = 9
 merge_put(ws, f'B{r}:H{r}', '¿CÓMO SE DECIDE?', size=13, bold=True, color='FFFFFF', bg=NAVY)
 pasos = [('1', 'Cumple el memorando', 'Tiene ingreso y fondo, edad de 30 a 55 años, categoría A1 o A2. '
           f'De {TOTAL:,} asociados, {cnt(n1):,} cumplen.'),
-         ('2', 'Capacidad de pago', 'Quedan para revisar más adelante solo quienes hoy tienen una deuda alta comparada con su ingreso. '
-          'Quien gana bien y debe poco, SÍ se recomienda.'),
+         ('2', 'Capacidad de pago', f'Gana bien para lo que debe = RECOMENDADO ({cnt(PAGA)}). Si debe mucho para su ingreso, pero su deuda '
+          f'es menor que el hipotecario que se le ofrece, con el hipotecario paga esa deuda = RECOMENDADO solo hipotecario ({cnt(TRAE)}).'),
          ('3', 'Resultado', f'RECOMENDADO = {cnt(SI)}, con su nivel de riesgo BAJO / MEDIO / ALTO (pesos de la hoja de rangos). '
           f'Para revisar más adelante = {cnt(NO)}. Atrasos en aportaciones o datos por corregir no lo sacan: van en "QUÉ FALTA ANTES DE OTORGAR".')]
 r += 1
@@ -280,6 +295,7 @@ lista('RECOMENDADOS', GREEN, 'RECOMENDADOS', 'Pueden pagar. Montos PRECA = lo qu
       x[SI].sort_values(['PUNTAJE', 'NOMBRE'], ascending=[False, True]),
       base + [('PRECA HIPO', 'HIPO', USD, 13), ('PRECA VEHICULO', 'VEH', USD, 13), ('PRECA TC', 'TC', USD, 11),
               ('PUNTAJE (1 a 3)', 'PUNTAJE', '0.00', 10), ('NIVEL DE RIESGO', 'CALIFICACION', None, 12),
+              ('¿POR QUÉ SÍ?', 'COMO', None, 22),
               ('QUÉ FALTA ANTES DE OTORGAR', 'FALTA', None, 60)])
 lista('PARA REVISAR', ORANGE, 'PARA REVISAR MÁS ADELANTE', 'Cumplen el memorando; hoy su deuda es alta comparada con su ingreso. '
       'La última columna dice cuál, con el dato exacto. Montos PRECA = lo que la Cooperativa pensaba ofrecer.',
