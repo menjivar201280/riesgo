@@ -125,6 +125,21 @@ def pendientes(r):
 
 
 x['PENDIENTE_ANTES_DE_OTORGAR'] = x.apply(pendientes, axis=1)
+GEN = 'Solo las revisiones generales (lista negra, castigados, relacionados)'
+x['PEND_HIPO'] = 'Solvencia en Hacienda (todo hipotecario es mayor de $30,000)'
+x['PEND_VEH'] = GEN
+
+
+def pend_tc(r):
+    p = []
+    if pd.notna(r['PRECA TC']) and r['PRECA TC'] > 4000:
+        p.append('Solvencia en Hacienda; si no está solvente, darle $4,000')
+    if r['APORTACIONES_AL_DIA'] == 'NO':
+        p.append('Ponerse al día en aportaciones')
+    return '; '.join(p) if p else GEN
+
+
+x['PEND_TC'] = x.apply(pend_tc, axis=1)
 
 # ---------------------------------------------------------------- estilos
 F = 'Arial'
@@ -470,7 +485,10 @@ BASE_COLS = [('N° ASOCIADO', 'ASOCIADO', '@', 11), ('NOMBRE', 'NOMBRE', None, 3
              ('FONDO COMPENSATORIO', 'FONDO_COMPENSATORIO', USD, 14), ('DEUDA SSF', 'SALDO_SSF', USD, 14)]
 LVL_COLS = [('RIESGO POR ANTIGÜEDAD', 'NIVEL_ANTIGUEDAD', None, 11), ('RIESGO POR INGRESO', 'NIVEL_INGRESO', None, 11),
             ('RIESGO POR DEUDA', 'NIVEL_DEUDA', None, 11), ('RIESGO POR DEUDA vs SUELDO', 'NIVEL_DEUDA_INGRESO', None, 12)]
-PEND = [('PENDIENTE ANTES DE OTORGAR', 'PENDIENTE_ANTES_DE_OTORGAR', None, 44)]
+PEND = [('PENDIENTE ANTES DE OTORGAR (por producto)', 'PENDIENTE_ANTES_DE_OTORGAR', None, 44)]
+PEND_H = [('PENDIENTE ANTES DE OTORGAR EL HIPOTECARIO', 'PEND_HIPO', None, 44)]
+PEND_V = [('PENDIENTE ANTES DE OTORGAR EL VEHÍCULO', 'PEND_VEH', None, 44)]
+PEND_T = [('PENDIENTE ANTES DE OTORGAR LA TARJETA', 'PEND_TC', None, 44)]
 
 
 def list_sheet(name, color, title, note, df, cols):
@@ -504,7 +522,7 @@ def list_sheet(name, color, title, note, df, cols):
                 c.number_format = fmt
             if src.startswith('NIVEL_') and src != 'NIVEL_SEGURIDAD' or src == 'RECOMENDADO':
                 c.alignment = Alignment(horizontal='center', vertical='center')
-            elif src in ('MOTIVO_NO_MAXIMA', 'PENDIENTE_ANTES_DE_OTORGAR', 'TABLA_USADA'):
+            elif src in ('MOTIVO_NO_MAXIMA', 'PENDIENTE_ANTES_DE_OTORGAR', 'TABLA_USADA', 'PEND_HIPO', 'PEND_VEH', 'PEND_TC'):
                 c.alignment = Alignment(wrap_text=True, vertical='center')
             if i % 2:
                 c.fill = PatternFill('solid', fgColor='F7F9FC')
@@ -542,20 +560,106 @@ list_sheet('3_Recomendados', GREEN, 'RECOMENDADOS (se pueden ofrecer)',
            'Cumplen el memorando y no tienen ningún problema: no deben mucho, no ganan poco, están al día, el monto les corresponde según la tabla y son categoría A1. ' + EXT,
            x[n4], BASE_COLS + [M_H, M_V, M_T] + LVL_COLS + PEND)
 list_sheet('4_Hipotecario', GREEN, 'HIPOTECARIO – RECOMENDADOS', 'Todos requieren solvencia en Hacienda. ' + EXT,
-           x[n4 & x['PRECA HIPO'].notna()], BASE_COLS + [M_H] + LVL_COLS + PEND)
-list_sheet('5_Vehiculo', GREEN, 'VEHÍCULO – RECOMENDADOS', EXT, x[n4 & x['PRECA VEHICULO'].notna()], BASE_COLS + [M_V] + LVL_COLS + PEND)
+           x[n4 & x['PRECA HIPO'].notna()], BASE_COLS + [M_H] + LVL_COLS + PEND_H)
+list_sheet('5_Vehiculo', GREEN, 'VEHÍCULO – RECOMENDADOS',
+           'Para vehículo el memorando no pide condiciones extra. Falta: lista negra, créditos castigados y relacionados/empleados. '
+           'No es aprobación de crédito.', x[n4 & x['PRECA VEHICULO'].notna()], BASE_COLS + [M_V] + LVL_COLS + PEND_V)
 list_sheet('6_Tarjeta', GREEN, 'TARJETA DE CRÉDITO – RECOMENDADOS',
            'No tienen tarjeta actualmente. Límite > $4,000 sin solvencia en Hacienda: se otorga con $4,000. ' + EXT,
            x[n4 & tc_ok & x['PRECA TC'].notna()],
-           BASE_COLS + [M_T, ('SEGMENTO', 'SEGMENTO', None, 20)] + LVL_COLS + PEND)
+           BASE_COLS + [M_T, ('SEGMENTO', 'SEGMENTO', None, 20)] + LVL_COLS + PEND_T)
 x['NIVEL_SEGURIDAD_TXT'] = x.NIVEL_SEGURIDAD.map({k: f'{k}. {nm}' for k, nm, *_ in LEVELS})
 x['RECOMENDADO'] = x.NIVEL_SEGURIDAD.ge(4).map({True: 'SÍ', False: 'NO'})
-ws7 = list_sheet('7_Los_528', ORANGE, 'LOS 528 QUE CUMPLEN EL MEMORANDO: ¿SE RECOMIENDAN?',
-                 'SÍ = se puede ofrecer con seguridad. NO = cumple el memorando, pero la columna "¿POR QUÉ NO?" dice qué le falta. ' + EXT,
-                 x[n1], BASE_COLS[:4] + [('¿RECOMENDADO?', 'RECOMENDADO', None, 13),
-                                         ('¿POR QUÉ NO?', 'MOTIVO_NO_MAXIMA', None, 70),
-                                         ('TABLA CON LA QUE SE COMPARÓ (ver hoja 8)', 'TABLA_USADA', None, 28),
-                                         M_H, M_V, M_T])
+# ================================================================ HOJA 7: LOS 528, CON LISTA DE REVISIÓN ✔ / ✗
+CHECKS = [  # (encabezado, ¿está bien?)
+    ('GANA $1,500 O MÁS AL MES', lambda e: e.NIVEL_INGRESO != 'Alto'),
+    ('DEBE MENOS DE $10,000', lambda e: e.NIVEL_DEUDA != 'Alto'),
+    ('SU DEUDA ES MENOR A 12 MESES DE SUELDO', lambda e: e.NIVEL_DEUDA_INGRESO != 'Alto'),
+    ('TIENE FONDO SUFICIENTE PARA LO QUE DEBE', lambda e: e.AL_FONDO_BAJO_DEUDA_ELEVADA != 1),
+    ('AL DÍA EN APORTACIONES', lambda e: e.AL_APORT_VENCIDAS != 1),
+    ('MÁS DE 1 AÑO DE ASOCIADO', lambda e: e.NIVEL_ANTIGUEDAD != 'Alto'),
+    ('CATEGORÍA A1', lambda e: e.AL_CATEGORIA_A2 != 1),
+    ('EL MONTO LE CORRESPONDE SEGÚN SU TABLA', lambda e: e.DQ_PRECA_FUERA_TABLA != 1),
+    ('SUS DATOS ESTÁN BIEN ANOTADOS', lambda e: e.DQ_DATO_INCONSISTENTE != 1),
+]
+d7 = x[n1].sort_values('ASOCIADO', key=lambda s_: s_.astype(int))
+for idx, e in d7.iterrows():  # todo ✔ debe ser exactamente lo mismo que RECOMENDADO
+    assert all(f(e) for _h, f in CHECKS) == bool(n4[idx]), e.ASOCIADO
+H7 = 9          # fila de encabezados de la hoja 7
+FIRST7 = H7 + 1  # primera fila de datos
+w7 = wb.create_sheet('7_Los_528')
+w7.sheet_properties.tabColor = ORANGE
+w7.sheet_view.showGridLines = False
+w7['A1'] = f'LOS {len(d7)} QUE CUMPLEN EL MEMORANDO: ¿SE RECOMIENDAN O NO?'
+w7['A1'].font = font(15, True, NAVY)
+link(w7, 'A2', '1_RESUMEN', '◄ Volver al RESUMEN')
+guia = [
+    ('CÓMO LEER ESTA HOJA', None),
+    ('1. Cada fila es un asociado. La columna ¿RECOMENDADO? dice SÍ (verde) o NO (rojo).', None),
+    ('2. Las columnas del medio son una lista de revisión: ✔ verde = está bien;  ✗ rojo = ahí está el problema.', None),
+    ('3. Si tiene aunque sea un ✗, es NO. La columna ¿POR QUÉ NO? lo explica en palabras, con el dato exacto.', None),
+    ('4. Para ver solo los NO (o solo los SÍ), use la flechita del encabezado ¿RECOMENDADO?.', None),
+]
+for i, (t, _) in enumerate(guia):
+    rr = 3 + i
+    w7.merge_cells(start_row=rr, start_column=1, end_row=rr, end_column=12)
+    c = w7.cell(rr, 1, t)
+    c.font = font(11 if i == 0 else 10, i == 0, 'FFFFFF' if i == 0 else '000000')
+    c.fill = PatternFill('solid', fgColor=NAVY if i == 0 else 'EAF1FB')
+    c.alignment = Alignment(vertical='center', indent=1)
+    w7.row_dimensions[rr].height = 18
+# fila de grupos
+groups = [(1, 3, 'ASOCIADO', NAVY), (4, 4, 'RESULTADO', ORANGE), (5, 4 + len(CHECKS), 'LISTA DE REVISIÓN:  ✔ = bien   ✗ = problema', BLUE),
+          (5 + len(CHECKS), 6 + len(CHECKS), 'EXPLICACIÓN', GRAY), (7 + len(CHECKS), 9 + len(CHECKS), 'MONTOS PRE EVALUADOS', GREEN)]
+for c1, c2, t, col in groups:
+    w7.merge_cells(start_row=H7 - 1, start_column=c1, end_row=H7 - 1, end_column=c2)
+    c = w7.cell(H7 - 1, c1, t)
+    c.font = font(10, True, 'FFFFFF')
+    c.alignment = Alignment(horizontal='center')
+    for k in range(c1, c2 + 1):
+        w7.cell(H7 - 1, k).fill = PatternFill('solid', fgColor=col)
+        w7.cell(H7, k).fill = PatternFill('solid', fgColor=col)
+heads = (['N° ASOCIADO', 'NOMBRE', 'AGENCIA', '¿RECOMENDADO?'] + [h for h, _ in CHECKS]
+         + ['¿POR QUÉ NO? (en palabras)', 'TABLA USADA (clic)', 'HIPOTECARIO', 'VEHÍCULO', 'TARJETA'])
+widths = [11, 34, 15, 14] + [12] * len(CHECKS) + [62, 18, 12, 11, 10]
+for j, (h, w) in enumerate(zip(heads, widths), 1):
+    c = w7.cell(H7, j, h)
+    c.font = font(8 if 5 <= j <= 4 + len(CHECKS) else 9, True, 'FFFFFF')
+    c.alignment = Alignment(wrap_text=True, horizontal='center', vertical='center')
+    c.border = box
+    w7.column_dimensions[L(j)].width = w
+w7.row_dimensions[H7].height = 52
+ROW7 = {}
+for i, (idx, e) in enumerate(d7.iterrows()):
+    rr = FIRST7 + i
+    a = str(e.ASOCIADO)
+    ROW7[a] = rr
+    vals = ([a, e.NOMBRE, e.AGENCIA, 'SÍ' if n4[idx] else 'NO'] + ['✔' if f(e) else '✗' for _h, f in CHECKS]
+            + [e.MOTIVO_NO_MAXIMA or '', e.TABLA_USADA or '']
+            + [None if pd.isna(e[k]) else float(e[k]) for k in ('PRECA HIPO', 'PRECA VEHICULO', 'PRECA TC')])
+    for j, v in enumerate(vals, 1):
+        c = w7.cell(rr, j, v)
+        c.border = box
+        c.font = font(9, bold=j in (1, 4))
+        if j == 4 or 5 <= j <= 4 + len(CHECKS):
+            c.alignment = Alignment(horizontal='center', vertical='center')
+        elif j == 5 + len(CHECKS):
+            c.alignment = Alignment(wrap_text=True, vertical='center')
+        else:
+            c.alignment = Alignment(vertical='center')
+        if j >= 7 + len(CHECKS):
+            c.number_format = INT
+LAST7 = FIRST7 + len(d7) - 1
+rngR = f'D{FIRST7}:D{LAST7}'
+rngC = f'E{FIRST7}:{L(4 + len(CHECKS))}{LAST7}'
+for rng_, txt, fc, fcol in ((rngR, 'SÍ', 'C6E0B4', '006100'), (rngR, 'NO', 'F8CBAD', '9C0006'),
+                            (rngC, '✔', 'E2EFDA', '548235'), (rngC, '✗', 'F8CBAD', 'C00000')):
+    w7.conditional_formatting.add(rng_, CellIsRule(operator='equal', formula=[f'"{txt}"'],
+                                                   fill=PatternFill('solid', fgColor=fc, bgColor=fc),
+                                                   font=Font(name=F, bold=True, color=fcol)))
+w7.freeze_panes = w7.cell(FIRST7, 5)
+w7.auto_filter.ref = f'A{H7}:{L(len(heads))}{LAST7}'
+TCOL7 = 6 + len(CHECKS)
 
 # ================================================================ HOJA 8: TABLAS USADAS
 w8 = wb.create_sheet('8_Tablas_usadas')
@@ -775,7 +879,6 @@ link(w10, 'B2', '1_RESUMEN', '◄ Volver al RESUMEN')
 w10['B3'] = ('Cada bloque explica qué se revisó y muestra el dato de cada asociado. Haga clic en el N° de asociado para ver su fila '
              'completa en la hoja 7. Un asociado puede aparecer en más de un bloque.')
 w10['B3'].font = font(10, italic=True)
-ROW7 = {a: 6 + i for i, a in enumerate(sorted(x.loc[n1, 'ASOCIADO'].astype(str), key=int))}
 SEC = {}
 r = 5
 nb = n1 & ~n4
@@ -876,11 +979,8 @@ r = section(r, 'T6', 'TABLA 6 – DATOS MAL ANOTADOS EN LA BASE',
             nb & (x.TOTAL_ALERTAS_DATOS > 0) & (x.MOTIVO_NO_MAXIMA.str.contains('edad anotada|DUI|ingreso es muy alto|no cuadran|negativo', case=False)),
             [('QUÉ DATO ESTÁ MAL', dato_malo)])
 # la hoja 7 se ordena por N° de asociado: sus filas sirven de destino para los enlaces
-w7 = wb['7_Los_528']
-hdr7 = {w7.cell(5, j).value: j for j in range(1, w7.max_column + 1)}
-tcol = hdr7['TABLA CON LA QUE SE COMPARÓ (ver hoja 8)']
-for rr in range(6, w7.max_row + 1):
-    c = w7.cell(rr, tcol)
+for rr in range(FIRST7, LAST7 + 1):
+    c = w7.cell(rr, TCOL7)
     mm = re.search(r'Tabla (\d)', str(c.value or ''))
     if mm:
         c.hyperlink = f"#'8_Tablas_usadas'!B{T_ROW[int(mm.group(1))]}"
