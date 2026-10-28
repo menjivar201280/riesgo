@@ -98,7 +98,7 @@ x['FALTA'] = x.apply(falta, axis=1)
 
 # ================================================================ estilos
 F = 'Arial'
-NAVY, GREEN, RED, GRAY = '1F3864', '548235', 'C00000', '595959'
+NAVY, GREEN, RED, GRAY, ORANGE = '1F3864', '548235', 'C00000', '595959', 'C55A11'
 thin = Side(style='thin', color='BFBFBF')
 box = Border(left=thin, right=thin, top=thin, bottom=thin)
 fill = lambda c: PatternFill('solid', fgColor=c)
@@ -146,7 +146,7 @@ merge_put(ws, 'B3:H3', 'Recomendación de Riesgo para ayudar a decidir. No es la
 cards = [('B', 'C', TOTAL, 'asociados en la base', NAVY, 'BD FINAL'),
          ('D', 'D', cnt(n1), 'cumplen el memorando', '2E75B6', None),
          ('F', 'F', cnt(SI), 'RECOMENDADOS', GREEN, 'RECOMENDADOS'),
-         ('G', 'H', cnt(NO), 'NO recomendados', RED, 'NO RECOMENDADOS')]
+         ('G', 'H', cnt(NO), 'no aplican por ahora', ORANGE, 'NO APLICAN POR AHORA')]
 for a, b, n, lab, col, sh in cards:
     for rr in (5, 6):
         for cc in range(ws[f'{a}{rr}'].column, ws[f'{b}{rr}'].column + 1):
@@ -170,8 +170,8 @@ pasos = [('1', 'Cumple el memorando', 'Tiene ingreso y fondo, edad de 30 a 55 a�
          ('2', 'Pasa TODAS las revisiones', 'Gana $1,500 o más · debe menos de $10,000 · no debe más de lo que gana en un año · '
           'tiene fondo para lo que debe · al día en aportaciones · más de 1 año de asociado · categoría A1 · '
           'el vehículo y la tarjeta le tocan según su tabla · sus datos están bien escritos.'),
-         ('3', 'Resultado', f'Si pasa todo = RECOMENDADO ({cnt(SI)}).  Si falla aunque sea una = NO ({cnt(NO)}). '
-          'La hoja NO RECOMENDADOS dice cuál falló, con el dato exacto.')]
+         ('3', 'Resultado', f'Si pasa todo = RECOMENDADO ({cnt(SI)}).  Si falla aunque sea una = no aplica por ahora ({cnt(NO)}). '
+          'La hoja NO APLICAN POR AHORA dice cuál falló, con el dato exacto. La hoja TABLAS Y RANGOS muestra los límites usados.')]
 r += 1
 for n, t, d in pasos:
     put(ws, f'B{r}', f'{n}.  {t}', 11, True, NAVY, 'EAF1FB')
@@ -200,8 +200,8 @@ ws.row_dimensions[r].height = 26
 
 # por qué no
 r += 2
-merge_put(ws, f'B{r}:H{r}', f'¿POR QUÉ {cnt(NO)} NO SE RECOMIENDAN?  (uno puede tener varios motivos)', size=13, bold=True,
-          color='FFFFFF', bg=RED)
+merge_put(ws, f'B{r}:H{r}', f'¿POR QUÉ {cnt(NO)} NO APLICAN POR AHORA?  (uno puede tener varios motivos)', size=13, bold=True,
+          color='FFFFFF', bg=ORANGE)
 r += 1
 put(ws, f'B{r}', 'Motivo', 11, True, bg='FBE5D6')
 ws.merge_cells(f'B{r}:F{r}')
@@ -285,11 +285,170 @@ lista('RECOMENDADOS', GREEN, 'RECOMENDADOS', 'Pasaron todas las revisiones. Orde
       base + [('HIPOTECARIO', 'HIPO', USD, 13), ('VEHÍCULO', 'VEH', USD, 12), ('TARJETA', 'TC', USD, 11),
               ('PUNTAJE (1 a 3)', 'PUNTAJE', '0.00', 10), ('CALIFICACIÓN', 'CALIFICACION', None, 12),
               ('QUÉ FALTA ANTES DE OTORGAR', 'FALTA', None, 60)])
-lista('NO RECOMENDADOS', RED, 'NO RECOMENDADOS', 'Cumplen el memorando, pero fallan al menos una revisión. '
+lista('NO APLICAN POR AHORA', ORANGE, 'NO APLICAN POR AHORA', 'Cumplen el memorando, pero hoy no pasan al menos una revisión. '
       'La última columna dice cuál, con el dato exacto. Los montos son los que trae la base.',
       x[NO].sort_values('ASOCIADO', key=lambda s: s.astype(int)),
       base + [('HIPOTECARIO (base)', 'PRECA HIPO', USD, 13), ('VEHÍCULO (base)', 'PRECA VEHICULO', USD, 12),
-              ('TARJETA (base)', 'PRECA TC', USD, 11), ('POR QUÉ NO', 'POR_QUE_NO', None, 70)])
+              ('TARJETA (base)', 'PRECA TC', USD, 11), ('POR QUÉ NO APLICA POR AHORA', 'POR_QUE_NO', None, 70)])
+
+# ================================================================ TABLAS Y RANGOS + ASOCIADOS POR RANGO
+P = {r_[0].value: r_[2].value for r_ in openpyxl.load_workbook(SRC, data_only=True)['Parametros'].iter_rows(min_row=5, max_row=60)
+     if r_[0].value}
+x['RESULTADO'] = SI.map({True: 'RECOMENDADO', False: 'No aplica por ahora'})
+d528 = x[n1]
+years = lambda e: f'{int(e.ANTIGUEDAD_ANIOS)} año(s)'
+# (título, peso, [(nivel, rango, máscara, dato)])
+RANGOS = [
+    ('Antigüedad como asociado', .13, 'NIVEL_ANTIGUEDAD', [f'{P["ANT_MEDIO_MAX"] + 1} años o más', f'{P["ANT_ALTO_MAX"] + 1} a {P["ANT_MEDIO_MAX"]} años',
+                                                            f'0 a {P["ANT_ALTO_MAX"]} año'], years),
+    ('Ingreso al mes', .30, 'NIVEL_INGRESO', [f'{money(P["ING_L2"])} o más', f'{money(P["ING_L1"])} a {money(P["ING_L2"] - 1)}',
+                                              f'Menos de {money(P["ING_L1"])}'], lambda e: money(e.INGRESO)),
+    ('Deuda en otros bancos (SSF)', .20, 'NIVEL_DEUDA', [f'Menos de {money(P["DEU_L1"])} (o sin deuda)', f'{money(P["DEU_L1"])} a {money(P["DEU_L2"] - 1)}',
+                                                         f'{money(P["DEU_L2"])} o más'], lambda e: money(e.SALDO_SSF)),
+    ('Cuotas de aportación vencidas', .12, 'NIVEL_MORA_APORTACIONES', ['0 (al día)', f'{P["MORA_L1"]} a {P["MORA_L2"] - 1}', f'{P["MORA_L2"]} o más'],
+     lambda e: f'{int(e.CUOTAS_VENC_APORT)} cuota(s)'),
+    ('Categoría SSF (externa)', .25, 'NIVEL_CAT_EXTERNA', ['A1', 'A2', 'B, C, D o E'], lambda e: str(e.CALIFICACION_SSF)),
+    ('Deuda comparada con lo que gana (no lleva peso)', None, 'NIVEL_DEUDA_INGRESO',
+     ['Debe menos de lo que gana en 3 meses (o sin deuda)', 'Debe entre 3 meses y un año de sueldo', 'Debe más de lo que gana en un año'],
+     lambda e: f'debe {money(e.SALDO_SSF)} / gana {money(e.INGRESO * 12)} al año'),
+]
+GRUPOS = []  # (clave, título del bloque, máscara, dato)
+for tit, w, col, rangos, dato in RANGOS:
+    for lv, rg in zip(('Bajo', 'Medio', 'Alto'), rangos):
+        m = n1 & (x[col].isin([lv, 'Sin deuda']) if lv == 'Bajo' else x[col] == lv)
+        GRUPOS.append((f'{col}|{lv}', f'{tit} – {lv.upper()}: {rg}', m, dato))
+VT = [('$15,000 o más', 40000), ('$10,000 a $14,999.99', 30000), ('$5,000 a $9,999.99', 25000), ('$3,000 a $4,999.99', 20000),
+      ('Menos de $3,000', 'NO APLICA')]
+for ing, mto in VT:
+    m = n1 & x['PRECA VEHICULO'].notna() & (x.ESPERADO_VEHICULO.astype(str) == str(mto))
+    GRUPOS.append((f'VEH|{mto}', f'Tabla de VEHÍCULO – gana {ing} → le toca {money(mto) if mto != "NO APLICA" else "NO APLICA"}', m,
+                   lambda e: f'gana {money(e.INGRESO)}, le dieron {money(e["PRECA VEHICULO"])}'))
+TT = [('$500 a $749.99', 500, 'Clásica local'), ('$750 a $999.99', 1500, 'Clásica internacional'), ('$1,000 a $1,499.99', 2000, 'Clásica internacional'),
+      ('$1,500 a $1,699.99', 2500, 'Dorada'), ('$1,700 a $1,999.99', 3000, 'Dorada'), ('$2,000 a $2,499.99', 3500, 'Platinum'),
+      ('$2,500 a $2,999.99', 4500, 'Platinum'), ('$3,000 a $3,499.99', 5000, 'Platinum'), ('$3,500 a $7,499.99', 7000, 'Black'),
+      ('$7,500 a $7,999.99', 8000, 'Black'), ('$8,000 o más', 10000, 'Black')]
+for ing, mto, seg in TT:
+    m = n1 & x['PRECA TC'].notna() & (x.ESPERADO_TC.astype(str) == str(mto))
+    GRUPOS.append((f'TC|{mto}', f'Tabla de TARJETA – gana {ing} → límite {money(mto)} ({seg})', m,
+                   lambda e: f'gana {money(e.INGRESO)}, límite {money(e["PRECA TC"])}'))
+for mto in (110000, 150000, 205000):
+    m = n1 & (x['PRECA HIPO'] == mto)
+    GRUPOS.append((f'HIPO|{mto}', f'HIPOTECARIO de {money(mto)} (como viene en la base, sin tabla)', m, lambda e: f'gana {money(e.INGRESO)}'))
+
+# hoja con los asociados de cada grupo (destino de los enlaces)
+wa = wb.create_sheet('ASOCIADOS POR RANGO')
+wa.sheet_view.showGridLines = False
+wa.sheet_properties.tabColor = '2E75B6'
+for col, wd in zip('ABCDEF', [12, 38, 17, 40, 22, 2]):
+    wa.column_dimensions[col].width = wd
+put(wa, 'A1', 'ASOCIADOS EN CADA RANGO Y EN CADA TABLA (solo los 528 que cumplen el memorando)', 14, True, NAVY, wrap=False)
+link(wa, 'A2', 'TABLAS Y RANGOS', '◄ Volver a TABLAS Y RANGOS', 10)
+ANCLA = {}
+rr = 4
+for key, tit, m, dato in GRUPOS:
+    d = x[m].sort_values('ASOCIADO', key=lambda s_: s_.astype(int))
+    ANCLA[key] = (rr, len(d))
+    wa.merge_cells(f'A{rr}:E{rr}')
+    put(wa, f'A{rr}', f'{tit}  —  {len(d)} asociados', 11, True, 'FFFFFF', NAVY)
+    rr += 1
+    for j, h in enumerate(['N° ASOCIADO', 'NOMBRE', 'AGENCIA', 'SU DATO', 'RESULTADO'], 1):
+        c = wa.cell(rr, j, h)
+        c.font = font(9, True)
+        c.fill = fill('D9E1F2')
+        c.border = box
+    rr += 1
+    for _, e in d.iterrows():
+        for j, v in enumerate([e.ASOCIADO, e.NOMBRE, e.AGENCIA, dato(e), e.RESULTADO], 1):
+            c = wa.cell(rr, j, v)
+            c.font = font(9, bold=(j == 5), color=(GREEN if v == 'RECOMENDADO' else ORANGE) if j == 5 else '000000')
+            c.border = box
+        rr += 1
+    link(wa, f'A{rr}', 'TABLAS Y RANGOS', '▲ volver', 9)
+    rr += 2
+
+# hoja de tablas
+wt = wb.create_sheet('TABLAS Y RANGOS', 1)
+wt.sheet_view.showGridLines = False
+wt.sheet_properties.tabColor = '2E75B6'
+for col, wd in zip('ABCDEFG', [3, 34, 24, 24, 24, 10, 3]):
+    wt.column_dimensions[col].width = wd
+merge_put(wt, 'B1:F1', 'TABLAS Y RANGOS QUE SE USARON', size=16, bold=True, color=NAVY)
+link(wt, 'B2', 'RESUMEN', '◄ Volver al RESUMEN', 10)
+merge_put(wt, 'B3:F3', 'Cada número dice cuántos de los 528 caen ahí. Haga clic en el número para ver quiénes son.', size=10, italic=True, color=GRAY)
+LV = {'Bajo': 'C6E0B4', 'Medio': 'FFE699', 'Alto': 'F8CBAD'}
+
+
+def nlink(cell, key, extra=''):
+    n_ = ANCLA[key][1]
+    c = put(wt, cell, f'{n_:,} asociados{extra}', 10, True, '0563C1', h='center')
+    c.font = font(10, True, '0563C1', u='single')
+    c.hyperlink = f"#'ASOCIADOS POR RANGO'!A{ANCLA[key][0]}"
+
+
+r = 5
+merge_put(wt, f'B{r}:F{r}', '1. RANGOS BAJO / MEDIO / ALTO (rojo = no aplica por ahora)', size=12, bold=True, color='FFFFFF', bg=NAVY)
+r += 1
+for j, h in zip('BCDEF', ['Dato', 'BAJO (verde)', 'MEDIO (amarillo)', 'ALTO (rojo)', 'Peso']):
+    put(wt, f'{j}{r}', h, 10, True, bg='D9E1F2', h='center')
+r += 1
+for tit, w, col, rangos, _d in RANGOS:
+    put(wt, f'B{r}', tit, 10, True)
+    for j, lv, rg in zip('CDE', ('Bajo', 'Medio', 'Alto'), rangos):
+        put(wt, f'{j}{r}', rg, 10, bg=LV[lv], h='center')
+        nlink(f'{j}{r + 1}', f'{col}|{lv}')
+        wt[f'{j}{r + 1}'].fill = fill(LV[lv])
+    put(wt, f'F{r}', w, 11, True, NAVY, h='center', fmt='0%')
+    wt.merge_cells(f'B{r}:B{r + 1}')
+    wt.merge_cells(f'F{r}:F{r + 1}')
+    wt.row_dimensions[r].height = 30
+    r += 2
+put(wt, f'E{r}', 'Total pesos', 10, True, h='right')
+put(wt, f'F{r}', 1, 11, True, NAVY, h='center', fmt='0%')
+r += 1
+merge_put(wt, f'B{r}:F{r}', 'Antigüedad: rango de su hoja "Variables". Los demás rangos son propuesta de Riesgo hecha con los datos de esta base. '
+          'Además se pide: fondo suficiente para lo que debe, categoría A1 interna y datos bien escritos.', size=9, italic=True, color=GRAY)
+wt.row_dimensions[r].height = 26
+
+r += 2
+merge_put(wt, f'B{r}:F{r}', '2. TABLA DE VEHÍCULO (su hoja "RANGOS VEHICULO", copiada tal cual)', size=12, bold=True, color='FFFFFF', bg=NAVY)
+r += 1
+for j, h in zip('BCD', ['Si gana al mes…', 'Le toca de vehículo', 'Asociados con vehículo']):
+    put(wt, f'{j}{r}', h, 10, True, bg='D9E1F2', h='center')
+r += 1
+for ing, mto in VT:
+    put(wt, f'B{r}', ing)
+    put(wt, f'C{r}', money(mto) if mto != 'NO APLICA' else 'NO APLICA', h='center', bg='F8CBAD' if mto == 'NO APLICA' else None)
+    nlink(f'D{r}', f'VEH|{mto}')
+    r += 1
+merge_put(wt, f'B{r}:F{r}', 'Los que ganan menos de $3,000 y aun así traen vehículo en la base: el vehículo no les toca.', size=9, italic=True, color=GRAY)
+
+r += 2
+merge_put(wt, f'B{r}:F{r}', '3. TABLA DE TARJETA (su hoja "RANGOS TC", copiada tal cual)', size=12, bold=True, color='FFFFFF', bg=NAVY)
+r += 1
+for j, h in zip('BCDE', ['Si gana al mes…', 'Límite', 'Segmento', 'Asociados con tarjeta']):
+    put(wt, f'{j}{r}', h, 10, True, bg='D9E1F2', h='center')
+r += 1
+for ing, mto, seg in TT:
+    put(wt, f'B{r}', ing)
+    put(wt, f'C{r}', money(mto), h='center')
+    put(wt, f'D{r}', seg, h='center')
+    nlink(f'E{r}', f'TC|{mto}')
+    r += 1
+
+r += 1
+merge_put(wt, f'B{r}:F{r}', '4. HIPOTECARIO (no tiene tabla: se toma como viene en la base; N/A = no aplica)', size=12, bold=True,
+          color='FFFFFF', bg=NAVY)
+r += 1
+for j, h in zip('BC', ['Monto en la base', 'Asociados']):
+    put(wt, f'{j}{r}', h, 10, True, bg='D9E1F2', h='center')
+r += 1
+for mto in (110000, 150000, 205000):
+    put(wt, f'B{r}', money(mto), h='center')
+    nlink(f'C{r}', f'HIPO|{mto}')
+    r += 1
+put(wt, f'B{r}', 'N/A (no aplica)', h='center')
+put(wt, f'C{r}', f'{cnt(n1 & x["PRECA HIPO"].isna()):,} asociados', h='center')
+link(ws, 'B8', 'TABLAS Y RANGOS', '▶ Ver las TABLAS Y RANGOS que se usaron', 10)
 
 # ================================================================ BD FINAL (copia sin cambios)
 src = openpyxl.load_workbook(BASE)['BD FINAL']
