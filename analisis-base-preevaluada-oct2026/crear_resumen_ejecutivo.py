@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """Genera el libro corto para decisión: Resumen_Ejecutivo_Base_PreEvaluada.xlsx.
 
-Uso: python3 -I crear_resumen_ejecutivo.py <libro_tecnico_recalculado.xlsx> <salida.xlsx>
+Uso: python3 -I crear_resumen_ejecutivo.py <libro_tecnico_recalculado.xlsx> <salida.xlsx> [<base_original.xlsx>]
+El libro resultante no lleva fórmulas (solo valores y enlaces), así que no necesita recalcularse.
 Toma los resultados ya calculados (y verificados) de BD_CLASIFICADA del libro técnico y asigna a cada
 asociado un nivel de seguridad acumulativo (1 a 5). El libro técnico se conserva como respaldo.
 """
+import re
 import sys
 import pandas as pd
 import openpyxl
@@ -252,7 +254,9 @@ r = band(ws, r, '4. NIVELES DE SEGURIDAD (cada nivel es más estricto que el ant
 for j, h in enumerate(['Nivel', 'Asociados', 'Hipotecario', 'Vehículo', 'Tarjeta', 'Condición que se agrega'], 2):
     cellw(ws, r, j, h, bold=True, fill='E2EFDA', align='center')
 r += 1
+LEVEL_ROW = {}
 for k, name, cond, m in LEVELS:
+    LEVEL_ROW[k] = r
     rec = k == 4
     fill = 'C6E0B4' if rec else None
     cellw(ws, r, 2, f'{k}. {name}', bold=True, fill=fill)
@@ -334,7 +338,9 @@ for sh, desc in [('2_Niveles_y_Rangos', 'Rangos Bajo / Medio / Alto de cada vari
                  ('7_Los_528', f'Los {cnt(n1)} que cumplen el memorando: columna ¿RECOMENDADO? (SÍ {cnt(n4)} / NO {cnt(n1) - cnt(n4)}) '
                                f'y el motivo de cada NO.'),
                  ('8_Tablas_usadas', 'Las tablas completas con las que se comparó a cada asociado (Tabla 1 a 6).'),
-                 ('9_Como_explicarlo', 'Ejemplos reales paso a paso para explicar cada "NO" (y un "SÍ").')]:
+                 ('9_Como_explicarlo', 'Ejemplos reales paso a paso para explicar cada "NO" (y un "SÍ").'),
+                 ('10_Asociados_por_tabla', 'Los asociados "NO" agrupados por tabla, con el dato que lo explica (aquí llevan los enlaces).'),
+                 ('BD FINAL', 'Su base original, tal como la envió (sin cambios).')]:
     cellw(ws, r, 2, '')
     link(ws, f'B{r}', sh)
     ws.merge_cells(start_row=r, start_column=3, end_row=r, end_column=7)
@@ -472,7 +478,7 @@ def list_sheet(name, color, title, note, df, cols):
     if monto:
         ws.cell(rr, monto[0] - 1, 'Total:').font = font(10, True)
     for j in monto:
-        c = ws.cell(rr, j, f'=SUM({L(j)}6:{L(j)}{end})')
+        c = ws.cell(rr, j, float(df[cols[j - 1][1]].sum()))
         c.number_format = INT
         c.font = font(10, True)
     return ws
@@ -520,7 +526,11 @@ r = 5
 noc = lambda col: cnt(n1 & ~n4 & (x[col] == 'No coincide con tabla'))
 
 
+T_ROW = {}  # fila del título de cada tabla en la hoja 8 (para los enlaces)
+
+
 def table_title(r, num, title, source, color, nota):
+    T_ROW[num] = r
     w8.merge_cells(start_row=r, start_column=2, end_row=r, end_column=5)
     c = w8.cell(r, 2, f'TABLA {num}: {title}')
     c.font = font(12, True, 'FFFFFF')
@@ -573,6 +583,25 @@ r = table_title(r, 4, 'HIPOTECARIO (monto según ingreso)',
 r = table_rows(r, ['Ingreso mensual', 'Monto hipotecario'],
                [('$9,000 o más', '$205,000'), ('$5,000 a $8,999.99', '$150,000'), ('$3,000 a $4,999.99', '$110,000'),
                 ('Menos de $3,000', 'NO APLICA')], [None] * 3 + [NA])
+# evidencia: como se asignaron los montos hipotecarios en la base
+hh = x[x['PRECA HIPO'].notna() & (num('INGRESO') > 0)]
+tramos = [('Menos de $3,000', 0, 3000), ('$3,000 a $4,999.99', 3000, 5000), ('$5,000 a $8,999.99', 5000, 9000), ('$9,000 o más', 9000, 1e12)]
+w8.merge_cells(start_row=r - 1, start_column=2, end_row=r - 1, end_column=5)
+c = w8.cell(r - 1, 2, f'¿Cómo se armó? Se contó en SU base a los {len(hh)} asociados con hipotecario e ingreso registrado:')
+c.font = font(10, True, NAVY)
+ev = []
+for lab, lo, hi in tramos:
+    m = (hh.INGRESO >= lo) & (hh.INGRESO < hi)
+    ev.append((lab,) + tuple(f'{int(((hh["PRECA HIPO"] == amt) & m).sum()):,}' for amt in (110000, 150000, 205000)))
+r = table_rows(r, ['Ingreso mensual', 'Les dieron $110,000', 'Les dieron $150,000', 'Les dieron $205,000'], ev)
+sin_ing = cnt(x['PRECA HIPO'].notna() & ~(num('INGRESO') > 0))
+w8.merge_cells(start_row=r - 1, start_column=2, end_row=r - 1, end_column=5)
+c = w8.cell(r - 1, 2, f'Se ve una regla clara: cada tramo de ingreso recibió un solo monto. En toda la base, solo {ev[0][1]} + {ev[0][2]} + {ev[0][3]} asociados '
+                      f'con menos de $3,000 se salen de la regla ({noc("CONSIST_HIPO")} de ellos están entre los 528). Otros {sin_ing} con hipotecario no tienen ingreso registrado (vacío o $0).')
+c.font = font(9, italic=True)
+c.alignment = Alignment(wrap_text=True)
+w8.row_dimensions[r - 1].height = 30
+r += 1
 r = table_title(r, 5, 'LÍMITES DE RIESGO', 'PROPUESTA hecha con los datos de su base (Riesgos debe aprobarla o cambiarla)', PROP,
                 'Si el asociado cae en cualquier fila de esta tabla, se marca NO recomendado.')
 r = table_rows(r, ['Se marca NO si…', 'Dato de su base', 'Por qué ese límite'],
@@ -604,7 +633,11 @@ link(w9, 'B2', '1_RESUMEN', '◄ Volver al RESUMEN')
 r = 4
 
 
+EX = []  # (fila del paso 1, fila de "Cuántos", asociado) de cada ejemplo
+
+
 def ejemplo(r, titulo, pasos, resultado, frase, total, ok=False):
+    EX.append([r + 1, r + len(pasos) + 3, re.search(r'(\d+) –', pasos[0]).group(1)])
     w9.merge_cells(start_row=r, start_column=2, end_row=r, end_column=3)
     c = w9.cell(r, 2, titulo)
     c.font = font(12, True, 'FFFFFF')
@@ -679,6 +712,188 @@ for row in w9.iter_rows(min_row=4, max_row=r):
     for c in row:
         if c.column == 3:
             c.alignment = Alignment(wrap_text=True, vertical='center')
+
+# ================================================================ HOJA 10: ASOCIADOS POR TABLA (destino de los enlaces)
+w10 = wb.create_sheet('10_Asociados_por_tabla')
+w10.sheet_properties.tabColor = GRAY
+w10.sheet_view.showGridLines = False
+for col, w in zip('ABCDEFGHI', [2, 12, 38, 16, 18, 18, 18, 18, 30]):
+    w10.column_dimensions[col].width = w
+w10['B1'] = 'ASOCIADOS "NO RECOMENDADOS", AGRUPADOS POR LA TABLA QUE LOS DEJÓ FUERA'
+w10['B1'].font = font(15, True, NAVY)
+link(w10, 'B2', '1_RESUMEN', '◄ Volver al RESUMEN')
+w10['B3'] = ('Cada bloque explica qué se revisó y muestra el dato de cada asociado. Haga clic en el N° de asociado para ver su fila '
+             'completa en la hoja 7. Un asociado puede aparecer en más de un bloque.')
+w10['B3'].font = font(10, italic=True)
+ROW7 = {a: 6 + i for i, a in enumerate(sorted(x.loc[n1, 'ASOCIADO'].astype(str), key=int))}
+SEC = {}
+r = 5
+nb = n1 & ~n4
+money0 = lambda v: '' if pd.isna(v) else f'${v:,.0f}'
+money2 = lambda v: '' if pd.isna(v) else f'${v:,.2f}'
+to_txt = lambda v: v if isinstance(v, str) else money0(v)
+
+
+def section(r, key, title, explica, table_num, mask, cols):
+    """cols: [(encabezado, funcion(fila)->valor)]"""
+    d = x[mask].sort_values('ASOCIADO', key=lambda s_: s_.astype(int))
+    SEC[key] = (r, len(d))
+    w10.merge_cells(start_row=r, start_column=2, end_row=r, end_column=9)
+    c = w10.cell(r, 2, f'{title} — {len(d)} asociados')
+    c.font = font(12, True, 'FFFFFF')
+    c.fill = PatternFill('solid', fgColor=NAVY)
+    w10.merge_cells(start_row=r + 1, start_column=2, end_row=r + 1, end_column=8)
+    c = w10.cell(r + 1, 2, explica)
+    c.font = font(9)
+    c.alignment = Alignment(wrap_text=True, vertical='top')
+    w10.row_dimensions[r + 1].height = 30
+    c = w10.cell(r + 1, 9, f'◄ Ver la Tabla {table_num}')
+    c.hyperlink = f"#'8_Tablas_usadas'!B{T_ROW[table_num]}"
+    c.font = Font(name=F, size=10, bold=True, color='0563C1', underline='single')
+    r += 2
+    heads = ['N° ASOCIADO', 'NOMBRE', 'AGENCIA'] + [h for h, _ in cols]
+    for j, h in enumerate(heads, 2):
+        cellw(w10, r, j, h, bold=True, fill='D9E1F2', align='center', size=9)
+    r += 1
+    for _, e in d.iterrows():
+        a = str(e.ASOCIADO)
+        c = cellw(w10, r, 2, a, size=9, bold=True)
+        c.hyperlink = f"#'7_Los_528'!A{ROW7[a]}"
+        c.font = Font(name=F, size=9, bold=True, color='0563C1', underline='single')
+        cellw(w10, r, 3, e.NOMBRE, size=9)
+        cellw(w10, r, 4, e.AGENCIA, size=9)
+        for j, (h, fn) in enumerate(cols, 5):
+            cellw(w10, r, j, fn(e), size=9, align='center')
+        r += 1
+    return r + 2
+
+
+r = section(r, 'T1', 'TABLA 1 – VEHÍCULO: le dieron vehículo pero no cuadra con su tabla',
+            'Qué se revisó: se buscó lo que gana cada asociado en su tabla RANGOS VEHICULO y se comparó con el vehículo que le asignó '
+            'la base. Si gana menos de $3,000, la tabla dice NO APLICA.', 1, nb & (x.CONSIST_VEHICULO == 'No coincide con tabla'),
+            [('GANA AL MES', lambda e: money2(e.INGRESO)), ('LE DIERON DE VEHÍCULO', lambda e: money0(e['PRECA VEHICULO'])),
+             ('SEGÚN LA TABLA 1 LE TOCA', lambda e: to_txt(e.ESPERADO_VEHICULO)), ('¿CUADRA?', lambda e: 'NO')])
+r = section(r, 'T3', 'TABLA 3 – ANTIGÜEDAD: asociados nuevos (0 a 1 año)',
+            'Qué se revisó: los años como asociado (columna ANTIGUEDAD_ANIOS). Según su hoja Variables, 0 a 1 año es riesgo Alto.', 3,
+            nb & (x.NIVEL_ANTIGUEDAD == 'Alto'),
+            [('AÑOS DE ASOCIADO', lambda e: int(e.ANTIGUEDAD_ANIOS)), ('NIVEL', lambda e: 'Alto')])
+r = section(r, 'T4', 'TABLA 4 – HIPOTECARIO: le dieron hipotecario con ingreso menor de $3,000',
+            'Qué se revisó: lo que gana cada asociado contra la regla que siguen los demás hipotecarios de su base '
+            '(nadie más recibió hipotecario ganando menos de $3,000).', 4, nb & (x.CONSIST_HIPO == 'No coincide con tabla'),
+            [('GANA AL MES', lambda e: money2(e.INGRESO)), ('LE DIERON DE HIPOTECARIO', lambda e: money0(e['PRECA HIPO'])),
+             ('SEGÚN LA TABLA 4 LE TOCA', lambda e: to_txt(e.ESPERADO_HIPO)), ('¿CUADRA?', lambda e: 'NO')])
+r = section(r, 'T5a', 'TABLA 5 – GANA POCO (menos de $1,500 al mes)', 'Qué se revisó: la columna INGRESO.', 5,
+            nb & (x.NIVEL_INGRESO == 'Alto'), [('GANA AL MES', lambda e: money2(e.INGRESO))])
+r = section(r, 'T5b', 'TABLA 5 – DEBE MUCHO ($10,000 o más)',
+            'Qué se revisó: lo que debe en bancos y otras entidades según la Central de Riesgo (columna SALDO_SSF).', 5,
+            nb & (x.NIVEL_DEUDA == 'Alto'), [('DEBE', lambda e: money2(e.SALDO_SSF)), ('INSTITUCIÓN', lambda e: e.INSTITUCION)])
+r = section(r, 'T5c', 'TABLA 5 – DEBE 12 MESES O MÁS DE SU SUELDO',
+            'Qué se revisó: se dividió lo que debe entre lo que gana al mes. 12 o más quiere decir que debe un año de sueldo o más.', 5,
+            nb & (x.NIVEL_DEUDA_INGRESO == 'Alto'),
+            [('DEBE', lambda e: money0(e.SALDO_SSF)), ('GANA AL MES', lambda e: money0(e.INGRESO)),
+             ('MESES DE SUELDO', lambda e: f'{e.MULT_DEUDA_INGRESO:,.0f}')])
+r = section(r, 'T5d', 'TABLA 5 – POCO FONDO PARA LO QUE DEBE (fondo menor de $4,000 y deuda de $10,000 o más)',
+            'Qué se revisó: el fondo compensatorio contra lo que debe.', 5, nb & (x.AL_FONDO_BAJO_DEUDA_ELEVADA == 1),
+            [('FONDO COMPENSATORIO', lambda e: money2(e.FONDO_COMPENSATORIO)), ('DEBE', lambda e: money0(e.SALDO_SSF))])
+r = section(r, 'T5e', 'TABLA 5 – ATRASADO EN APORTACIONES',
+            'Qué se revisó: las columnas APORTACIONES_AL_DIA y CUOTAS_VENC_APORT. El memorando pide que se ponga al día.', 5,
+            nb & (x.AL_APORT_VENCIDAS == 1),
+            [('¿AL DÍA?', lambda e: e.APORTACIONES_AL_DIA), ('CUOTAS VENCIDAS', lambda e: int(e.CUOTAS_VENC_APORT))])
+r = section(r, 'T5f', 'TABLA 5 – CATEGORÍA A2 (no A1)', 'Qué se revisó: la categoría interna y la de la Central de Riesgo.', 5,
+            nb & (x.AL_CATEGORIA_A2 == 1),
+            [('CATEGORÍA INTERNA', lambda e: '' if pd.isna(e.MAX_CAT_RIESGO) else e.MAX_CAT_RIESGO),
+             ('CATEGORÍA SSF', lambda e: '' if pd.isna(e.CALIFICACION_SSF) else e.CALIFICACION_SSF)])
+
+
+def dato_malo(e):
+    out = []
+    if e.CHK_EDAD != 'Coincide':
+        out.append(f'Edad anotada {int(e.EDAD)}, por su fecha de nacimiento ({e.CLI_FECHA_NACIMIENTO}) tiene {int(e.EDAD_RECALCULADA)}')
+    if len(str(e.DUI)) != 9:
+        out.append(f'DUI "{e.DUI}" no tiene 9 dígitos')
+    if e.ALERTA_ING_ATIPICO == 1:
+        out.append(f'Ingreso muy alto: ${e.INGRESO:,.0f}')
+    if e.ALERTA_ANT_EDAD == 1:
+        out.append(f'{int(e.ANTIGUEDAD_ANIOS)} años de asociado con {int(e.EDAD)} años de edad')
+    if str(e.ESTADO_DEUDA_SSF).startswith('Saldo negativo'):
+        out.append('Deuda en negativo')
+    return '; '.join(out)
+
+
+w10.column_dimensions['E'].width = 24
+r = section(r, 'T6', 'TABLA 6 – DATOS MAL ANOTADOS EN LA BASE',
+            'No es riesgo del asociado: es un dato que hay que corregir o confirmar con Créditos. Si se corrige, puede pasar a SÍ.', 6,
+            nb & (x.TOTAL_ALERTAS_DATOS > 0) & (x.MOTIVO_NO_MAXIMA.str.contains('edad anotada|DUI|ingreso es muy alto|no cuadran|negativo', case=False)),
+            [('QUÉ DATO ESTÁ MAL', dato_malo)])
+# la hoja 7 se ordena por N° de asociado: sus filas sirven de destino para los enlaces
+w7 = wb['7_Los_528']
+hdr7 = {w7.cell(5, j).value: j for j in range(1, w7.max_column + 1)}
+tcol = hdr7['TABLA CON LA QUE SE COMPARÓ (ver hoja 8)']
+for rr in range(6, w7.max_row + 1):
+    c = w7.cell(rr, tcol)
+    mm = re.search(r'Tabla (\d)', str(c.value or ''))
+    if mm:
+        c.hyperlink = f"#'8_Tablas_usadas'!B{T_ROW[int(mm.group(1))]}"
+        c.font = Font(name=F, size=9, color='0563C1', underline='single')
+
+# ---- enlaces desde la hoja 8 hacia las listas
+w8.column_dimensions['F'].width = 30
+
+
+def link_cell(ws_, cell, target, text):
+    c = ws_[cell]
+    c.value = text
+    c.hyperlink = target
+    c.font = Font(name=F, size=10, bold=True, color='0563C1', underline='single')
+
+
+SEC_LINK = lambda key: f"#'10_Asociados_por_tabla'!B{SEC[key][0]}"
+for num, key in ((1, 'T1'), (3, 'T3'), (4, 'T4'), (6, 'T6')):
+    link_cell(w8, f'F{T_ROW[num]}', SEC_LINK(key), f'▶ Ver los {SEC[key][1]} asociados')
+link_cell(w8, f'F{T_ROW[5]}', SEC_LINK('T5a'), '▶ Ver los asociados (por fila)')
+for i, key in enumerate(['T5a', 'T5b', 'T5c', 'T5d', 'T5e', 'T5f']):
+    link_cell(w8, f'F{T_ROW[5] + 3 + i}', SEC_LINK(key), f'▶ Ver los {SEC[key][1]}')
+w8.cell(T_ROW[2], 6, 'Nadie: 0 asociados').font = font(10, True, GRAY)
+
+# ---- enlaces desde la hoja 9 (ejemplos)
+for (paso1, cuantos, aso), key in zip(EX, ['T1', 'T4', 'T5b', 'T5e', None]):
+    c = w9.cell(paso1, 3)
+    c.hyperlink = f"#'7_Los_528'!A{ROW7[aso]}"
+    c.font = Font(name=F, size=10, color='0563C1', underline='single')
+    c = w9.cell(cuantos, 3)
+    if key:
+        c.value = f'{c.value}  ▶ Clic aquí para ver la lista.'
+        c.hyperlink = SEC_LINK(key)
+    else:
+        c.value = f'{c.value}  ▶ Clic aquí para ver la lista.'
+        c.hyperlink = "#'3_Maxima_Seguridad'!A1"
+    c.font = Font(name=F, size=10, bold=True, color='0563C1', underline='single')
+
+# ---- enlaces desde el RESUMEN (niveles)
+for k, target in ((1, "#'7_Los_528'!A1"), (4, "#'3_Maxima_Seguridad'!A1"), (5, "#'3_Maxima_Seguridad'!A1")):
+    c = ws.cell(LEVEL_ROW[k], 3)
+    c.hyperlink = target
+    c.font = Font(name=F, size=10, bold=True, color='0563C1', underline='single')
+
+# ================================================================ BD FINAL original (copia sin cambios)
+BD_SRC = sys.argv[3] if len(sys.argv) > 3 else None
+if BD_SRC:
+    src_ws = openpyxl.load_workbook(BD_SRC)['BD FINAL']
+    wbd = wb.create_sheet('BD FINAL')
+    wbd.sheet_properties.tabColor = '404040'
+    for row in src_ws.iter_rows():
+        for c in row:
+            if c.value is None:
+                continue
+            d = wbd.cell(c.row, c.column, c.value)
+            d.number_format = c.number_format
+            d.font = font(9, bold=(c.row == 1), color='FFFFFF' if c.row == 1 else '000000')
+            if c.row == 1:
+                d.fill = PatternFill('solid', fgColor='404040')
+    for j in range(1, src_ws.max_column + 1):
+        wbd.column_dimensions[L(j)].width = 14
+    wbd.freeze_panes = 'C2'
+    wbd.auto_filter.ref = f'A1:{L(src_ws.max_column)}{src_ws.max_row}'
 
 wb.active = 0
 wb.save(OUT)
