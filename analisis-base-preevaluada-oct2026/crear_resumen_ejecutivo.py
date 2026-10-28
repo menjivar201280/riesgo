@@ -30,45 +30,54 @@ n3 = n2 & ~(x[RISK] == 'Alto').any(axis=1)
 n4 = n3 & (x.TOTAL_ALERTAS_DATOS == 0) & (x.NIVEL_CAT_INTERNA == 'Bajo') & (x.NIVEL_CAT_EXTERNA == 'Bajo')
 n5 = n4 & x[ALL_LOW].isin(['Bajo', 'Sin deuda']).all(axis=1)
 LEVELS = [
-    (1, 'Cumple el memorando', 'Cumple los criterios 1 a 7 del memorando que se pueden verificar con la base.', n1),
-    (2, 'Sin alertas de riesgo', 'Además: sin deuda alta frente al ingreso, sin fondo bajo con deuda alta, sin ingreso bajo con '
-                                 'deuda alta, sin aportaciones vencidas y sin categoría A2.', n2),
-    (3, 'Ningún nivel Alto', 'Además: ninguna variable de riesgo en nivel Alto (antigüedad, ingreso, deuda, deuda/ingreso, '
-                             'aportaciones vencidas, categorías).', n3),
-    (4, 'Máxima seguridad (RECOMENDADO)', 'Además: datos sin errores, monto igual al de la tabla oficial y categoría A1 '
-                                          'interna y externa.', n4),
-    (5, 'Máxima seguridad, todo en Bajo', 'Grupo dentro del nivel 4: además, todas las variables de riesgo en Bajo. '
-                                           'Muy estricto: deja casi sin tarjetas.', n5),
+    (1, 'Cumple el memorando', 'Pasa los requisitos del memorando que se pueden revisar con la base.', n1),
+    (2, 'Sin señales de riesgo', 'Además: no debe demasiado para lo que gana, no está atrasado en aportaciones y no es categoría A2.', n2),
+    (3, 'Nada en rojo', 'Además: ningún dato en rojo (ingreso, deuda, antigüedad, aportaciones).', n3),
+    (4, 'Máxima seguridad (RECOMENDADO)', 'Además: sus datos están bien, el monto coincide con la tabla y es categoría A1.', n4),
+    (5, 'Máxima seguridad, todo en verde', 'Parte del nivel 4 con todos sus datos en verde. Muy estricto: casi no deja tarjetas.', n5),
 ]
 x['NIVEL_SEGURIDAD'] = 0
 for k, *_rest, m in LEVELS:
     x.loc[m, 'NIVEL_SEGURIDAD'] = k
 
-AL_TXT = {'AL_ING_BAJO_DEUDA_ELEVADA': 'ingreso bajo con deuda alta', 'AL_DEUDA_ALTA_VS_INGRESO': 'deuda alta frente al ingreso',
-          'AL_ANTIG_BAJA_SIN_HISTORIAL': 'poca antigüedad sin historial', 'AL_FONDO_BAJO_DEUDA_ELEVADA': 'fondo bajo con deuda alta',
-          'AL_CATEGORIA_A2': 'categoría A2', 'AL_APORT_VENCIDAS': 'aportaciones vencidas'}
-DQ_TXT = {'DQ_PRECA_FUERA_TABLA': 'monto distinto al de la tabla oficial', 'DQ_DATO_INCONSISTENTE': 'dato inconsistente en la base',
-          'DQ_PRECA_SIN_INGRESO': 'monto asignado sin ingreso'}
-RISK_TXT = {'NIVEL_ANTIGUEDAD': 'antigüedad', 'NIVEL_INGRESO': 'ingreso', 'NIVEL_DEUDA': 'deuda',
-            'NIVEL_DEUDA_INGRESO': 'deuda/ingreso', 'NIVEL_MORA_APORTACIONES': 'aportaciones vencidas'}
-
-
 def motivo(r):
+    """Motivo de "no recomendado" en palabras simples, con el dato que lo comprueba."""
     if r.NIVEL_SEGURIDAD >= 4:
         return ''
     out = []
-    al = [t for k, t in AL_TXT.items() if r[k] == 1]
-    if al:
-        out.append('Alertas: ' + ', '.join(al))
-    alto = [t for k, t in RISK_TXT.items() if r[k] == 'Alto']
-    if alto:
-        out.append('Nivel Alto en: ' + ', '.join(alto))
-    dq = [t for k, t in DQ_TXT.items() if r[k] == 1]
-    if dq:
-        out.append('Revisar: ' + ', '.join(dq))
-    if r.NIVEL_CAT_INTERNA != 'Bajo' or r.NIVEL_CAT_EXTERNA != 'Bajo':
-        out.append('Categoría distinta de A1')
-    return '. '.join(out)
+    if r.NIVEL_INGRESO == 'Alto':
+        out.append(f'Gana poco: ${r.INGRESO:,.0f} al mes (menos de $1,500)')
+    if r.NIVEL_DEUDA == 'Alto':
+        out.append(f'Debe mucho en bancos y otras entidades: ${r.SALDO_SSF:,.0f} ($10,000 o más)')
+    if r.NIVEL_DEUDA_INGRESO == 'Alto':
+        out.append(f'Lo que debe equivale a {r.MULT_DEUDA_INGRESO:,.0f} meses de su sueldo (12 o más)')
+    if r.AL_FONDO_BAJO_DEUDA_ELEVADA == 1:
+        out.append(f'Tiene poco fondo compensatorio (${r.FONDO_COMPENSATORIO:,.0f}) para lo que debe')
+    if r.AL_APORT_VENCIDAS == 1:
+        out.append(f'Está atrasado en sus aportaciones ({int(r.CUOTAS_VENC_APORT)} cuotas)')
+    if r.NIVEL_ANTIGUEDAD == 'Alto':
+        out.append(f'Es asociado nuevo ({int(r.ANTIGUEDAD_ANIOS)} año(s))')
+    if r.AL_CATEGORIA_A2 == 1:
+        out.append('Su categoría es A2, no A1')
+    if r.CONSIST_VEHICULO == 'No coincide con tabla':
+        esp = r.ESPERADO_VEHICULO if isinstance(r.ESPERADO_VEHICULO, str) else f'${r.ESPERADO_VEHICULO:,.0f}'
+        out.append(f'Le dieron ${r["PRECA VEHICULO"]:,.0f} de vehículo, pero con su ingreso la tabla dice {esp}')
+    if r.CONSIST_HIPO == 'No coincide con tabla':
+        esp = r.ESPERADO_HIPO if isinstance(r.ESPERADO_HIPO, str) else f'${r.ESPERADO_HIPO:,.0f}'
+        out.append(f'Le dieron ${r["PRECA HIPO"]:,.0f} de hipotecario, pero con su ingreso corresponde: {esp}')
+    if r.CONSIST_TC == 'No coincide con tabla':
+        out.append('El límite de tarjeta no coincide con la tabla')
+    if r.CHK_EDAD != 'Coincide':
+        out.append('La edad anotada no coincide con su fecha de nacimiento')
+    if r.ALERTA_ING_ATIPICO == 1:
+        out.append(f'Su ingreso es muy alto (${r.INGRESO:,.0f}): hay que confirmarlo')
+    if len(str(r.DUI)) != 9:
+        out.append('El DUI está mal escrito en la base')
+    if r.ALERTA_ANT_EDAD == 1:
+        out.append('Los años de asociado no cuadran con su edad')
+    if str(r.ESTADO_DEUDA_SSF).startswith('Saldo negativo'):
+        out.append('Su deuda aparece en negativo')
+    return '; '.join(out) + '.' if out else 'Revisar caso'
 
 
 x['MOTIVO_NO_MAXIMA'] = x.apply(motivo, axis=1)
@@ -295,7 +304,8 @@ for sh, desc in [('2_Niveles_y_Rangos', 'Rangos Bajo / Medio / Alto de cada vari
                  ('5_Vehiculo', 'Nivel 4 con monto de vehículo.'),
                  ('6_Tarjeta', 'Nivel 4 sin tarjeta actual y con límite de tarjeta.'),
                  ('7_Los_528', f'Los {cnt(n1)} que cumplen el memorando: columna ¿RECOMENDADO? (SÍ {cnt(n4)} / NO {cnt(n1) - cnt(n4)}) '
-                               f'y el motivo de cada NO.')]:
+                               f'y el motivo de cada NO.'),
+                 ('8_De_donde_sale', 'De qué columna de su base y de qué tabla sale cada motivo de "no recomendado".')]:
     cellw(ws, r, 2, '')
     link(ws, f'B{r}', sh)
     ws.merge_cells(start_row=r, start_column=3, end_row=r, end_column=7)
@@ -373,8 +383,8 @@ wr.row_dimensions[r].height = 28
 BASE_COLS = [('N° ASOCIADO', 'ASOCIADO', '@', 11), ('NOMBRE', 'NOMBRE', None, 36), ('DUI', 'DUI', '@', 11),
              ('AGENCIA', 'AGENCIA', None, 16), ('INGRESO MENSUAL', 'INGRESO', USD, 13),
              ('FONDO COMPENSATORIO', 'FONDO_COMPENSATORIO', USD, 14), ('DEUDA SSF', 'SALDO_SSF', USD, 14)]
-LVL_COLS = [('NIVEL ANTIGÜEDAD', 'NIVEL_ANTIGUEDAD', None, 11), ('NIVEL INGRESO', 'NIVEL_INGRESO', None, 11),
-            ('NIVEL DEUDA', 'NIVEL_DEUDA', None, 11), ('NIVEL DEUDA / INGRESO', 'NIVEL_DEUDA_INGRESO', None, 11)]
+LVL_COLS = [('RIESGO POR ANTIGÜEDAD', 'NIVEL_ANTIGUEDAD', None, 11), ('RIESGO POR INGRESO', 'NIVEL_INGRESO', None, 11),
+            ('RIESGO POR DEUDA', 'NIVEL_DEUDA', None, 11), ('RIESGO POR DEUDA vs SUELDO', 'NIVEL_DEUDA_INGRESO', None, 12)]
 PEND = [('PENDIENTE ANTES DE OTORGAR', 'PENDIENTE_ANTES_DE_OTORGAR', None, 44)]
 
 
@@ -455,11 +465,97 @@ list_sheet('6_Tarjeta', GREEN, 'TARJETA DE CRÉDITO – NIVEL 4',
            BASE_COLS + [M_T, ('SEGMENTO', 'SEGMENTO', None, 20)] + LVL_COLS + PEND)
 x['NIVEL_SEGURIDAD_TXT'] = x.NIVEL_SEGURIDAD.map({k: f'{k}. {nm}' for k, nm, *_ in LEVELS})
 x['RECOMENDADO'] = x.NIVEL_SEGURIDAD.ge(4).map({True: 'SÍ', False: 'NO'})
-ws7 = list_sheet('7_Los_528', ORANGE, 'LOS QUE CUMPLEN EL MEMORANDO, CON SU NIVEL DE SEGURIDAD',
-                 '¿RECOMENDADO? SÍ = nivel 4 o 5 (máxima seguridad). NO = cumple el memorando pero tiene alguna señal de riesgo; '
-                 'la última columna dice cuál. ' + EXT,
-                 x[n1], BASE_COLS[:4] + [('¿RECOMENDADO?', 'RECOMENDADO', None, 13), ('NIVEL DE SEGURIDAD', 'NIVEL_SEGURIDAD_TXT', None, 30)] + [M_H, M_V, M_T]
-                 + LVL_COLS + [('POR QUÉ NO ES RECOMENDADO', 'MOTIVO_NO_MAXIMA', None, 70)])
+ws7 = list_sheet('7_Los_528', ORANGE, 'LOS 528 QUE CUMPLEN EL MEMORANDO: ¿SE RECOMIENDAN?',
+                 'SÍ = se puede ofrecer con seguridad. NO = cumple el memorando, pero la columna "¿POR QUÉ NO?" dice qué le falta. ' + EXT,
+                 x[n1], BASE_COLS[:4] + [('¿RECOMENDADO?', 'RECOMENDADO', None, 13),
+                                         ('¿POR QUÉ NO?', 'MOTIVO_NO_MAXIMA', None, 70),
+                                         M_H, M_V, M_T])
+
+# ================================================================ HOJA 8: DE DÓNDE SALE CADA MOTIVO
+w8 = wb.create_sheet('8_De_donde_sale')
+w8.sheet_properties.tabColor = GRAY
+w8.sheet_view.showGridLines = False
+for col, w in zip('ABCDEF', [2, 46, 30, 52, 24, 2]):
+    w8.column_dimensions[col].width = w
+w8['B1'] = '¿DE DÓNDE SALE CADA "¿POR QUÉ NO?"'
+w8['B1'].font = font(15, True, NAVY)
+link(w8, 'B2', '1_RESUMEN', '◄ Volver al RESUMEN')
+w8['B3'] = 'Todo sale de SU archivo de Excel (la hoja BD FINAL y sus tablas). No se usó ninguna otra base.'
+w8['B3'].font = font(11, True)
+r = 5
+for j, h in enumerate(['Lo que dice la hoja 7', 'Qué dato de su base se miró', '¿De dónde sale el límite?', '¿Quién lo puso?'], 2):
+    cellw(w8, r, j, h, bold=True, fill=NAVY, color='FFFFFF', align='center')
+r += 1
+SRC_OWN, SRC_MEMO, SRC_PROP = 'Su archivo', 'El memorando', 'Propuesta (Riesgos debe aprobar)'
+FILL_SRC = {SRC_OWN: 'E2EFDA', SRC_MEMO: 'FBE5D6', SRC_PROP: 'FFF2CC'}
+ORIGEN = [
+    ('"Le dieron $... de vehículo, pero con su ingreso la tabla dice NO APLICA"', 'Columna INGRESO y PRECA VEHICULO',
+     'Su hoja "RANGOS VEHICULO": si gana menos de $3,000 al mes, el crédito de vehículo NO APLICA. (Tabla abajo.)', SRC_OWN),
+    ('"Le dieron $... de hipotecario, pero con su ingreso corresponde ..."', 'Columna INGRESO y PRECA HIPO',
+     'Su archivo no trae tabla de hipotecario. Se usó lo que muestran sus propios datos: desde $3,000 de ingreso → $110,000; '
+     'desde $5,000 → $150,000; desde $9,000 → $205,000.', SRC_PROP),
+    ('"Está atrasado en sus aportaciones"', 'Columna APORTACIONES_AL_DIA y CUOTAS_VENC_APORT',
+     'El memorando dice que los que no están al día deben ponerse al día.', SRC_MEMO),
+    ('"Su categoría es A2, no A1"', 'Columna MAX_CAT_RIESGO y CALIFICACION_SSF',
+     'El memorando acepta A1 y A2. Para máxima seguridad se pide A1.', SRC_PROP),
+    ('"Es asociado nuevo"', 'Columna ANTIGUEDAD_ANIOS', 'Su hoja "Variables": 0 a 1 año = riesgo Alto.', SRC_OWN),
+    ('"Gana poco (menos de $1,500)"', 'Columna INGRESO',
+     'Es el corte de $1,500 de su tabla "RANGOS TC". Separa al grupo que menos gana.', SRC_PROP),
+    ('"Debe mucho ($10,000 o más)"', 'Columna SALDO_SSF (deuda en la Central de Riesgo)',
+     'Separa al tercio de asociados que más debe.', SRC_PROP),
+    ('"Lo que debe equivale a ... meses de su sueldo (12 o más)"', 'SALDO_SSF dividido entre INGRESO',
+     'Debe lo que gana en un año o más.', SRC_PROP),
+    ('"Tiene poco fondo compensatorio para lo que debe"', 'Columna FONDO_COMPENSATORIO y SALDO_SSF',
+     'Fondo menor de $4,000 y deuda de $10,000 o más.', SRC_PROP),
+    ('"La edad anotada no coincide con su fecha de nacimiento", "El DUI está mal escrito", '
+     '"Su ingreso es muy alto: hay que confirmarlo"', 'Columnas EDAD, CLI_FECHA_NACIMIENTO, DUI e INGRESO',
+     'Revisión de errores en los datos de la base.', SRC_PROP),
+]
+for row in ORIGEN:
+    for j, v in enumerate(row, 2):
+        cellw(w8, r, j, v, bold=(j == 2), fill=FILL_SRC[row[-1]] if j == 5 else None, size=9)
+    w8.row_dimensions[r].height = 44
+    r += 1
+r += 1
+w8.merge_cells(start_row=r, start_column=2, end_row=r, end_column=5)
+c = w8.cell(r, 2, 'Verde = viene de su archivo. Naranja = viene del memorando. Amarillo = lo propuse con los datos; Riesgos puede '
+                  'aprobarlo o cambiarlo.')
+c.font = font(9, italic=True)
+r += 2
+
+w8.cell(r, 2, 'TABLA DE VEHÍCULO DE SU ARCHIVO (hoja "RANGOS VEHICULO")').font = font(11, True, NAVY)
+r += 1
+for j, h in enumerate(['Ingreso mensual', 'Monto de vehículo'], 2):
+    cellw(w8, r, j, h, bold=True, fill=BLUE, color='FFFFFF', align='center')
+r += 1
+for a, b in [('$15,000 o más', '$40,000'), ('$10,000 a $14,999.99', '$30,000'), ('$5,000 a $9,999.99', '$25,000'),
+             ('$3,000 a $4,999.99', '$20,000'), ('Menor de $3,000', 'NO APLICA')]:
+    cellw(w8, r, 2, a)
+    cellw(w8, r, 3, b, align='center', fill='F8CBAD' if b == 'NO APLICA' else None, bold=b == 'NO APLICA')
+    r += 1
+r += 1
+
+w8.cell(r, 2, 'EJEMPLOS REALES DE SU BASE').font = font(11, True, NAVY)
+r += 1
+for j, h in enumerate(['Asociado', 'Dato en su base', 'Qué dice la regla', 'Resultado'], 2):
+    cellw(w8, r, j, h, bold=True, fill=NAVY, color='FFFFFF', align='center')
+r += 1
+veh_ex = x[n1 & (x.CONSIST_VEHICULO == 'No coincide con tabla') & (x.TOTAL_ALERTAS_RIESGO == 0)].head(2)
+for _, e in veh_ex.iterrows():
+    cellw(w8, r, 2, f'{e.ASOCIADO} – {e.NOMBRE}', size=9)
+    cellw(w8, r, 3, f'Ingreso ${e.INGRESO:,.2f}; vehículo asignado ${e["PRECA VEHICULO"]:,.0f}', size=9)
+    cellw(w8, r, 4, 'Tabla de vehículo: con ingreso menor de $3,000 → NO APLICA', size=9)
+    cellw(w8, r, 5, 'NO recomendado: monto distinto al de la tabla', size=9, fill='F8CBAD')
+    w8.row_dimensions[r].height = 30
+    r += 1
+debt_ex = x[n1 & (x.NIVEL_DEUDA == 'Alto') & (x.TOTAL_ALERTAS_RIESGO == 0) & (x.NIVEL_INGRESO != 'Alto')].head(1)
+for _, e in debt_ex.iterrows():
+    cellw(w8, r, 2, f'{e.ASOCIADO} – {e.NOMBRE}', size=9)
+    cellw(w8, r, 3, f'Deuda SSF ${e.SALDO_SSF:,.2f} ({e.INSTITUCION})', size=9)
+    cellw(w8, r, 4, 'Deuda de $10,000 o más = nivel Alto', size=9)
+    cellw(w8, r, 5, 'NO recomendado: nivel Alto en deuda', size=9, fill='F8CBAD')
+    w8.row_dimensions[r].height = 30
+    r += 1
 
 wb.active = 0
 wb.save(OUT)
