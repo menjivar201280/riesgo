@@ -61,10 +61,11 @@ assert not any(falla(x.loc[i]) for i in x.index[PAGA] for falla, _ in REVISIONES
 tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
 x['HIPO'] = x['PRECA HIPO'].where(SI)
 x['VEH'] = x['PRECA VEHICULO'].where(PAGA)
-x['TC'] = x['PRECA TC'].where(PAGA & tc_ok)
+x['TC'] = x['PRECA TC'].where(SI & tc_ok)  # a los que pagan su deuda con el hipotecario, después de pagarla
 x['COMO'] = ''
 x.loc[PAGA, 'COMO'] = 'Puede pagar'
 x.loc[TRAE, 'COMO'] = 'Con el hipotecario paga su deuda'
+TRAE_TC = TRAE & x.TC.notna()
 SI_PROD = SI & x[['HIPO', 'VEH', 'TC']].notna().any(axis=1)
 assert (SI == SI_PROD).all()
 
@@ -80,7 +81,8 @@ def falta(e):
     p = ['Lista negra, castigados y relacionados/empleados']
     if e.COMO == 'Con el hipotecario paga su deuda':
         p.append(f'El hipotecario paga primero su deuda en otros bancos ({money(e.SALDO_SSF)}); '
-                 f'le quedan {money(e["PRECA HIPO"] - e.SALDO_SSF)}. Solo hipotecario')
+                 f'le quedan {money(e["PRECA HIPO"] - e.SALDO_SSF)}. Vehículo no'
+                 + ('; la tarjeta se entrega después de pagar esa deuda' if pd.notna(e.TC) else ''))
     if pd.notna(e.HIPO):
         p.append('Hipotecario: solvencia en Hacienda')
     if pd.notna(e.VEH) and e.VEH > 25000:
@@ -176,7 +178,8 @@ merge_put(ws, f'B{r}:H{r}', '¿CÓMO SE DECIDE?', size=13, bold=True, color='FFF
 pasos = [('1', 'Cumple el memorando', 'Tiene ingreso y fondo, edad de 30 a 55 años, categoría A1 o A2. '
           f'De {TOTAL:,} asociados, {cnt(n1):,} cumplen.'),
          ('2', 'Capacidad de pago', f'Gana bien para lo que debe = RECOMENDADO ({cnt(PAGA)}). Si debe mucho para su ingreso, pero su deuda '
-          f'es menor que el hipotecario que se le ofrece, con el hipotecario paga esa deuda = RECOMENDADO solo hipotecario ({cnt(TRAE)}).'),
+          f'es menor que el hipotecario que se le ofrece, con el hipotecario paga esa deuda = RECOMENDADO ({cnt(TRAE)}): hipotecario, '
+          f'y tarjeta después de pagar la deuda ({cnt(TRAE_TC)} la tienen en la base); vehículo no.'),
          ('3', 'Resultado', f'RECOMENDADO = {cnt(SI)}, con su nivel de riesgo BAJO / MEDIO / ALTO (pesos de la hoja de rangos). '
           f'Para revisar más adelante = {cnt(NO)}. Atrasos en aportaciones o datos por corregir no lo sacan: van en "QUÉ FALTA ANTES DE OTORGAR".')]
 r += 1
