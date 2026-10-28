@@ -12,7 +12,7 @@ import pandas as pd
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.formatting.rule import CellIsRule
-from openpyxl.utils import get_column_letter as L
+from openpyxl.utils import get_column_letter as L, column_index_from_string as CI
 
 SRC, OUT = sys.argv[1], sys.argv[2]
 CUMPLE = 'Cumple criterios verificables'
@@ -178,177 +178,212 @@ tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
 ws = wb.create_sheet('1_RESUMEN')
 ws.sheet_properties.tabColor = NAVY
 ws.sheet_view.showGridLines = False
-for col, w in zip('ABCDEFG', [2, 46, 16, 16, 16, 16, 40]):
+ws.sheet_view.zoomScale = 100
+for col, w in zip('ABCDEFGHIJ', [2, 17, 17, 4, 17, 17, 4, 17, 17, 2]):
     ws.column_dimensions[col].width = w
-ws['B1'] = 'RESUMEN: ¿QUÉ ASOCIADOS DE LA BASE PRE EVALUADA SE PUEDEN OFRECER CON SEGURIDAD?'
-ws['B1'].font = font(15, True, NAVY)
-ws['B2'] = ('Memorando del 27/10/2026 (Créditos, TC y Mercadeo → Riesgos). Base con corte al 30/09/2026. '
-            'Este archivo es un apoyo para decidir: no es una aprobación de crédito.')
-ws['B2'].font = font(9, italic=True, color=RED)
-r = 4
+ws.column_dimensions['K'].width = 4
+for col in 'LM':
+    ws.column_dimensions[col].width = 17
+RES_LINKS = []  # (celda, clave de la hoja 10): se enlazan cuando exista la hoja 10
+nb = n1 & ~n4
+LAST = 'M'
 
-r = band(ws, r, '1. RESPUESTA CORTA', NAVY)
-short = [
-    f'• La base NO cumple completa con el memorando: de {TOTAL:,} asociados, solo {cnt(n1):,} ({pct(n1):.0%}) cumplen todos los '
-    f'criterios que se pueden verificar.',
-    f'• De esos {cnt(n1):,}, los más seguros son {cnt(n4):,} asociados (nivel 4 – máxima seguridad): sin alertas, sin niveles '
-    f'altos de riesgo, sin errores de datos y con categoría A1.',
-    f'• Recomendación: ofrecer primero a los {cnt(n4):,} del nivel 4 (hoja 3), después de hacer las consultas externas pendientes '
-    f'(punto 6).',
+
+def title_bar(r, text, color):
+    ws.merge_cells(f'B{r}:{LAST}{r}')
+    c = ws[f'B{r}']
+    c.value = text
+    c.font = font(12, True, 'FFFFFF')
+    c.fill = PatternFill('solid', fgColor=color)
+    c.alignment = Alignment(vertical='center', indent=1)
+    ws.row_dimensions[r].height = 24
+    return r + 2
+
+
+def card(r, c1, c2, number, label, note, color, target=None):
+    """Cuadro grande: número, etiqueta y nota, ocupando columnas c1:c2 y filas r a r+2."""
+    for rr in range(r, r + 3):
+        for cc in range(CI(c1), CI(c2) + 1):
+            ws.cell(rr, cc).fill = PatternFill('solid', fgColor=color)
+    ws.merge_cells(f'{c1}{r}:{c2}{r}')
+    ws.merge_cells(f'{c1}{r + 1}:{c2}{r + 1}')
+    ws.merge_cells(f'{c1}{r + 2}:{c2}{r + 2}')
+    c = ws[f'{c1}{r}']
+    c.value = number
+    c.number_format = '#,##0'
+    c.font = Font(name=F, size=26, bold=True, color='FFFFFF', underline='single' if target else None)
+    c.alignment = Alignment(horizontal='center', vertical='center')
+    if target:
+        c.hyperlink = target
+    c = ws[f'{c1}{r + 1}']
+    c.value = label
+    c.font = font(11, True, 'FFFFFF')
+    c.alignment = Alignment(horizontal='center', vertical='center')
+    c = ws[f'{c1}{r + 2}']
+    c.value = note
+    c.font = font(9, color='FFFFFF')
+    c.alignment = Alignment(horizontal='center', vertical='top', wrap_text=True)
+
+
+ws['B1'] = 'RESULTADO DE LA REVISIÓN DE LA BASE PRE EVALUADA'
+ws['B1'].font = font(18, True, NAVY)
+ws['B2'] = ('Memorando del 27/10/2026 · Base al 30/09/2026 · Hipotecario, vehículo y tarjeta de crédito. '
+            'Es un apoyo para decidir: no es una aprobación de crédito.')
+ws['B2'].font = font(9, italic=True, color=GRAY)
+
+# ---- cuadros con las cifras principales
+r = 4
+ws.row_dimensions[r].height = 42
+ws.row_dimensions[r + 1].height = 20
+ws.row_dimensions[r + 2].height = 30
+card(r, 'B', 'C', TOTAL, 'ASOCIADOS EN LA BASE', 'Todos los que vienen en su archivo', NAVY, "#'BD FINAL'!A1")
+card(r, 'E', 'F', cnt(n1), 'CUMPLEN EL MEMORANDO', 'Pasan los requisitos que se pueden revisar', BLUE, "#'7_Los_528'!A1")
+card(r, 'H', 'I', cnt(n4), 'RECOMENDADOS', 'Se pueden ofrecer: sin ningún problema', GREEN, "#'3_Recomendados'!A1")
+card(r, 'L', 'M', cnt(nb), 'NO RECOMENDADOS', 'Cumplen el memorando pero tienen algún problema', ORANGE,
+     "#'10_Asociados_por_tabla'!A1")
+ws.merge_cells(f'B{r + 3}:{LAST}{r + 3}')  # nota bajo los cuadros
+c = ws[f'B{r + 3}']
+c.value = 'Haga clic en cualquier número para ver la lista de esos asociados.'
+c.font = font(9, italic=True, color=GRAY)
+c.alignment = Alignment(horizontal='center')
+
+# ---- cómo se llegó a los recomendados
+r = title_bar(r + 5, f'¿CÓMO SE LLEGÓ A LOS {cnt(n4)} RECOMENDADOS?', NAVY)
+pasos = [
+    ('PASO 1', 'Base recibida', TOTAL, 'Todos los asociados de su archivo.', 'D9E1F2'),
+    ('PASO 2', 'Cumplen el memorando', cnt(n1),
+     f'Se quitaron {TOTAL - cnt(n1):,}: a la mayoría les falta el ingreso; otros tienen ingreso $0, fondo $0 o ya cumplieron 56 años.', 'DDEBF7'),
+    ('PASO 3', 'RECOMENDADOS', cnt(n4),
+     f'Se quitaron {cnt(nb):,} que tienen algún problema: deben mucho, ganan poco, están atrasados, o les dieron un monto '
+     f'que no corresponde a su tabla.', 'C6E0B4'),
 ]
-for t in short:
-    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=7)
-    c = ws.cell(r, 2, t)
-    c.font = font(11, True)
-    c.alignment = Alignment(wrap_text=True, vertical='center')
+for paso, lab, val, expl, fill in pasos:
+    cellw(ws, r, 2, paso, bold=True, fill=fill, align='center')
+    ws.merge_cells(f'C{r}:D{r}')
+    cellw(ws, r, 3, lab, bold=True, fill=fill)
+    cellw(ws, r, 5, val, '#,##0', bold=True, fill=fill, align='center', size=12)
+    ws.merge_cells(f'F{r}:{LAST}{r}')
+    cellw(ws, r, 6, expl, size=9)
     ws.row_dimensions[r].height = 32
     r += 1
-r += 1
 
-r = band(ws, r, '2. QUÉ SE REVISÓ', BLUE)
-for t in [f'• Base recibida: {TOTAL:,} asociados pre evaluados para hipotecario, vehículo y tarjeta (el memorando dice 2,263; '
-          f'el archivo tiene 2,262 personas).',
-          '• Se revisaron los 7 criterios del memorando que se pueden comprobar: ingreso, fondo compensatorio, sin tarjeta (solo TC), '
-          'antigüedad, categoría interna A1/A2, categoría SSF A1/A2 y edad de 30 a 55 años.',
-          '• Se clasificó a cada asociado en niveles Bajo / Medio / Alto de riesgo (ingreso, deuda, deuda frente al ingreso, '
-          'antigüedad, aportaciones vencidas).',
-          '• No se pueden comprobar con la base: lista negra, créditos castigados, personas relacionadas o empleados y solvencia '
-          'en Hacienda.']:
-    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=7)
-    c = ws.cell(r, 2, t)
-    c.font = font(10)
-    c.alignment = Alignment(wrap_text=True, vertical='center')
-    ws.row_dimensions[r].height = 28
-    r += 1
+# ---- recomendados por producto
+r = title_bar(r + 1, 'RECOMENDADOS POR PRODUCTO', GREEN)
+heads = [('B', 'D', 'Producto'), ('E', 'E', 'Asociados'), ('F', 'G', 'Monto total'), ('H', 'I', 'Ver la lista')]
+for a, b, h in heads:
+    if a != b:
+        ws.merge_cells(f'{a}{r}:{b}{r}')
+    cellw(ws, r, CI(a), h, bold=True, fill='E2EFDA', align='center')
 r += 1
-
-r = band(ws, r, '3. RESULTADO CONTRA EL MEMORANDO', ORANGE)
-for j, h in enumerate(['Resultado', 'Asociados', '% de la base', '', '', 'Qué significa'], 2):
-    if h:
-        cellw(ws, r, j, h, bold=True, fill='FBE5D6')
-r += 1
-inc = x.ELEGIBILIDAD_GENERAL == 'Información incompleta'
-noc = x.ELEGIBILIDAD_GENERAL == 'No cumple criterio verificable'
-for lab, m, fill, mean in [('Cumplen todos los criterios', n1, 'E2EFDA', 'Pasan a la evaluación de seguridad (punto 4).'),
-                           ('Información incompleta', inc, 'FFF2CC', 'Les falta un dato (sobre todo el ingreso): no se pueden evaluar.'),
-                           ('No cumplen algún criterio', noc, 'FCE4D6', 'Ingreso $0, fondo $0 o 56 años al corte.')]:
-    cellw(ws, r, 2, lab, bold=True, fill=fill)
-    cellw(ws, r, 3, cnt(m), '#,##0', align='right')
-    cellw(ws, r, 4, pct(m), '0.0%', align='right')
-    ws.merge_cells(start_row=r, start_column=5, end_row=r, end_column=7)
-    cellw(ws, r, 5, mean)
-    r += 1
-cellw(ws, r, 2, 'Total', bold=True, fill='F2F2F2')
-cellw(ws, r, 3, TOTAL, '#,##0', bold=True, align='right', fill='F2F2F2')
-cellw(ws, r, 4, 1, '0.0%', bold=True, align='right', fill='F2F2F2')
-r += 1
-ing_vacio = int(x.INGRESO.isna().sum())
-ing_cero = int((num('INGRESO') == 0).sum())
-ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=7)
-c = ws.cell(r, 2, f'Causa principal: {ing_vacio:,} asociados no tienen ingreso registrado y {ing_cero:,} tienen ingreso $0, '
-                  f'aunque todos recibieron un monto pre evaluado.')
-c.font = font(9, italic=True)
-r += 2
-
-r = band(ws, r, '4. NIVELES DE SEGURIDAD (cada nivel es más estricto que el anterior)', GREEN)
-for j, h in enumerate(['Nivel', 'Asociados', 'Hipotecario', 'Vehículo', 'Tarjeta', 'Condición que se agrega'], 2):
-    cellw(ws, r, j, h, bold=True, fill='E2EFDA', align='center')
-r += 1
-LEVEL_ROW = {}
-for k, name, cond, m in LEVELS:
-    LEVEL_ROW[k] = r
-    rec = k == 4
-    fill = 'C6E0B4' if rec else None
-    cellw(ws, r, 2, f'{k}. {name}', bold=True, fill=fill)
-    cellw(ws, r, 3, cnt(m), '#,##0', bold=rec, align='right', fill=fill)
-    for j, (pl, col) in enumerate(prod.items(), 4):
-        mm = m & x[col].notna() & (tc_ok if col == 'PRECA TC' else True)
-        cellw(ws, r, j, cnt(mm), '#,##0', bold=rec, align='right', fill=fill)
-    cellw(ws, r, 7, cond, fill=fill, size=9)
-    ws.row_dimensions[r].height = 40
-    r += 1
-ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=7)
-c = ws.cell(r, 2, 'Un asociado puede tener más de un producto, por eso los productos suman más que el total.')
-c.font = font(9, italic=True)
-r += 2
-
-r = band(ws, r, f'5. RECOMENDADO: NIVEL 4 – MÁXIMA SEGURIDAD ({cnt(n4)} asociados)', GREEN)
-for j, h in enumerate(['Producto', 'Asociados', 'Monto total', 'Monto promedio', '', 'Dónde ver la lista'], 2):
-    if h:
-        cellw(ws, r, j, h, bold=True, fill='E2EFDA', align='center')
-r += 1
-sheet_of = {'Hipotecario': '4_Hipotecario', 'Vehículo': '5_Vehiculo', 'Tarjeta de crédito': '6_Tarjeta'}
-for pl, col in prod.items():
+for pl, col, sh in [('Hipotecario', 'PRECA HIPO', '4_Hipotecario'), ('Vehículo', 'PRECA VEHICULO', '5_Vehiculo'),
+                    ('Tarjeta de crédito', 'PRECA TC', '6_Tarjeta')]:
     mm = n4 & x[col].notna() & (tc_ok if col == 'PRECA TC' else True)
+    ws.merge_cells(f'B{r}:D{r}')
     cellw(ws, r, 2, pl, bold=True)
-    cellw(ws, r, 3, cnt(mm), '#,##0', align='right')
-    cellw(ws, r, 4, float(x.loc[mm, col].sum()), INT, align='right')
-    cellw(ws, r, 5, float(x.loc[mm, col].mean()) if mm.any() else 0, INT, align='right')
-    ws.merge_cells(start_row=r, start_column=6, end_row=r, end_column=7)
-    cellw(ws, r, 6, '')
-    link(ws, f'F{r}', sheet_of[pl], f'Hoja {sheet_of[pl]}')
+    cellw(ws, r, 5, cnt(mm), '#,##0', align='center')
+    ws.merge_cells(f'F{r}:G{r}')
+    cellw(ws, r, 6, float(x.loc[mm, col].sum()), INT, align='right')
+    ws.merge_cells(f'H{r}:I{r}')
+    cellw(ws, r, 8, '')
+    link(ws, f'H{r}', sh, f'▶ {sh}')
     r += 1
-cellw(ws, r, 2, 'Todos (sin repetir)', bold=True, fill='F2F2F2')
-cellw(ws, r, 3, cnt(n4), '#,##0', bold=True, align='right', fill='F2F2F2')
-ws.merge_cells(start_row=r, start_column=6, end_row=r, end_column=7)
-cellw(ws, r, 6, '')
-link(ws, f'F{r}', '3_Maxima_Seguridad', 'Hoja 3_Maxima_Seguridad')
-r += 2
+ws.merge_cells(f'B{r}:{LAST}{r}')
+c = ws[f'B{r}']
+c.value = (f'Un asociado puede tener más de un producto. En total son {cnt(n4)} personas distintas '
+           f'(lista completa en la hoja 3_Recomendados).')
+c.font = font(9, italic=True, color=GRAY)
 
-r = band(ws, r, '6. ANTES DE OTORGAR (obligatorio, no está en la base)', RED)
+# ---- por qué no se recomiendan
+r = title_bar(r + 2, f'¿POR QUÉ {cnt(nb)} NO SE RECOMIENDAN?  (un asociado puede tener varios motivos)', ORANGE)
+for a, b, h in [('B', 'G', 'Motivo'), ('H', 'H', 'Asociados'), ('I', 'I', 'Ver quiénes')]:
+    if a != b:
+        ws.merge_cells(f'{a}{r}:{b}{r}')
+    cellw(ws, r, CI(a), h, bold=True, fill='FBE5D6', align='center')
+r += 1
+motivos = [
+    ('Deben $10,000 o más en bancos y otras entidades', nb & (x.NIVEL_DEUDA == 'Alto'), 'T5b'),
+    ('Les dieron vehículo, pero su tabla dice que NO APLICA (ganan menos de $3,000)',
+     nb & (x.CONSIST_VEHICULO == 'No coincide con tabla'), 'T1'),
+    ('Ganan menos de $1,500 al mes', nb & (x.NIVEL_INGRESO == 'Alto'), 'T5a'),
+    ('Tienen poco fondo compensatorio para lo que deben', nb & (x.AL_FONDO_BAJO_DEUDA_ELEVADA == 1), 'T5d'),
+    ('Deben 12 meses o más de su sueldo', nb & (x.NIVEL_DEUDA_INGRESO == 'Alto'), 'T5c'),
+    ('Están atrasados en sus aportaciones', nb & (x.AL_APORT_VENCIDAS == 1), 'T5e'),
+    ('Tienen un dato mal anotado en la base (edad, DUI, ingreso)', None, 'T6'),
+    ('Son asociados nuevos (0 a 1 año)', nb & (x.NIVEL_ANTIGUEDAD == 'Alto'), 'T3'),
+    ('Les dieron hipotecario ganando menos de $3,000', nb & (x.CONSIST_HIPO == 'No coincide con tabla'), 'T4'),
+    ('Su categoría es A2 (no A1)', nb & (x.AL_CATEGORIA_A2 == 1), 'T5f'),
+]
+for lab, m, key in motivos:
+    ws.merge_cells(f'B{r}:G{r}')
+    cellw(ws, r, 2, lab)
+    cellw(ws, r, 8, cnt(m) if m is not None else '', '#,##0', align='center')
+    cellw(ws, r, 9, '▶ Ver', align='center')
+    RES_LINKS.append((f'I{r}', key, f'H{r}'))
+    r += 1
+
+# ---- antes de otorgar
+r = title_bar(r + 1, 'ANTES DE OTORGAR A LOS RECOMENDADOS (no viene en la base)', RED)
 hip4 = cnt(n4 & x['PRECA HIPO'].notna())
 tc4_big = cnt(n4 & tc_ok & (x['PRECA TC'] > 4000))
-for t in ['• Consultar lista negra y créditos castigados con la Cooperativa.',
-          '• Verificar que no sea persona relacionada ni empleado (memorando, criterio 8).',
-          f'• Solvencia en Hacienda: obligatoria para los {hip4} hipotecarios del nivel 4 (monto > $30,000).',
-          f'• Tarjeta con límite mayor de $4,000 ({tc4_big} en el nivel 4): si no está solvente en Hacienda, se otorga con $4,000.',
-          '• La base vence 3 meses después de la aprobación del Comité: actualizar edad, aportaciones y Central de Riesgo.']:
-    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=7)
-    c = ws.cell(r, 2, t)
+for t in ['✔ Revisar lista negra y créditos castigados con la Cooperativa.',
+          '✔ Revisar que no sea persona relacionada ni empleado.',
+          f'✔ Solvencia en Hacienda: obligatoria para los {hip4} hipotecarios recomendados.',
+          f'✔ Tarjeta mayor de $4,000 ({tc4_big} recomendados): si no está solvente en Hacienda, se da con $4,000.',
+          '✔ La base vence 3 meses después de que la apruebe el Comité.']:
+    ws.merge_cells(f'B{r}:{LAST}{r}')
+    c = ws[f'B{r}']
+    c.value = t
     c.font = font(10)
-    c.alignment = Alignment(wrap_text=True, vertical='center')
-    ws.row_dimensions[r].height = 20
+    c.alignment = Alignment(vertical='center', indent=1)
+    ws.row_dimensions[r].height = 18
     r += 1
-r += 1
 
-r = band(ws, r, '7. PROBLEMAS ENCONTRADOS EN LA BASE (para corregir con Créditos)', GRAY)
+# ---- problemas de la base
+r = title_bar(r + 1, 'PROBLEMAS DE LA BASE (para que Créditos los corrija)', GRAY)
+ing_vacio = int(x.INGRESO.isna().sum())
+ing_cero = int((num('INGRESO') == 0).sum())
 veh = num('PRECA VEHICULO')
-age56 = cnt(x.EDAD_RECALCULADA > 55)
-for t in [f'• {ing_vacio + ing_cero:,} asociados tienen monto pre evaluado sin ingreso válido: no se sabe con qué ingreso se calculó.',
-          f'• {age56} asociados ya tienen 56 años al 30/09/2026 (el límite es 55).',
-          f'• {cnt(num("FONDO_COMPENSATORIO") == 0)} asociados tienen fondo compensatorio $0 (el memorando exige fondo).',
-          f'• {cnt(x.TIENE_TARJETA == "SI")} asociados ya tienen tarjeta: el memorando dice que nadie la tiene (solo aplica a TC).',
-          f'• Vehículo: {cnt(veh == 150000)} asociado con $150,000, monto que no existe en la tabla (máximo $40,000).',
-          '• El memorando dice 61 sin deuda en la SSF y 54 no al día en aportaciones; la base muestra 342 sin registro SSF y 186 no al día.',
-          '• Crédito de consumo: no viene en la base ni en el memorando; se necesita su tabla de montos para evaluarlo.']:
-    ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=7)
-    c = ws.cell(r, 2, t)
+for t in [f'• {ing_vacio + ing_cero:,} asociados tienen monto asignado pero no tienen ingreso (vacío o $0).',
+          f'• {cnt(x.EDAD_RECALCULADA > 55)} asociados ya tienen 56 años (el memorando pide hasta 55).',
+          f'• {cnt(num("FONDO_COMPENSATORIO") == 0)} asociados tienen fondo compensatorio $0.',
+          f'• {cnt(veh == 150000)} asociado tiene $150,000 de vehículo; ese monto no existe en la tabla.',
+          '• El memorando dice 2,263 registros, 61 sin deuda y 54 atrasados; la base tiene 2,262, 342 sin deuda registrada y 186 atrasados.',
+          '• Crédito de consumo: no viene en la base ni en el memorando.']:
+    ws.merge_cells(f'B{r}:{LAST}{r}')
+    c = ws[f'B{r}']
+    c.value = t
     c.font = font(10)
-    c.alignment = Alignment(wrap_text=True, vertical='center')
-    ws.row_dimensions[r].height = 20
+    c.alignment = Alignment(vertical='center', indent=1)
+    ws.row_dimensions[r].height = 18
     r += 1
-r += 1
 
-r = band(ws, r, '8. QUÉ HAY EN ESTE ARCHIVO', NAVY)
-for sh, desc in [('2_Niveles_y_Rangos', 'Rangos Bajo / Medio / Alto de cada variable y cuántos asociados hay en cada nivel.'),
-                 ('3_Maxima_Seguridad', f'Los {cnt(n4)} asociados recomendados (nivel 4), todos los productos.'),
-                 ('4_Hipotecario', 'Nivel 4 con monto hipotecario.'),
-                 ('5_Vehiculo', 'Nivel 4 con monto de vehículo.'),
-                 ('6_Tarjeta', 'Nivel 4 sin tarjeta actual y con límite de tarjeta.'),
-                 ('7_Los_528', f'Los {cnt(n1)} que cumplen el memorando: columna ¿RECOMENDADO? (SÍ {cnt(n4)} / NO {cnt(n1) - cnt(n4)}) '
-                               f'y el motivo de cada NO.'),
-                 ('8_Tablas_usadas', 'Las tablas completas con las que se comparó a cada asociado (Tabla 1 a 6).'),
-                 ('9_Como_explicarlo', 'Ejemplos reales paso a paso para explicar cada "NO" (y un "SÍ").'),
-                 ('10_Asociados_por_tabla', 'Los asociados "NO" agrupados por tabla, con el dato que lo explica (aquí llevan los enlaces).'),
-                 ('BD FINAL', 'Su base original, tal como la envió (sin cambios).')]:
+# ---- índice de hojas
+r = title_bar(r + 1, 'HOJAS DE ESTE ARCHIVO (clic para abrir)', NAVY)
+for sh, desc in [('2_Niveles_y_Rangos', 'Los rangos Bajo / Medio / Alto de cada dato.'),
+                 ('3_Recomendados', f'Los {cnt(n4)} recomendados, con todos sus datos.'),
+                 ('4_Hipotecario', 'Recomendados con hipotecario.'),
+                 ('5_Vehiculo', 'Recomendados con vehículo.'),
+                 ('6_Tarjeta', 'Recomendados con tarjeta.'),
+                 ('7_Los_528', 'Los que cumplen el memorando: SÍ o NO recomendado y por qué.'),
+                 ('8_Tablas_usadas', 'Las tablas con las que se comparó a cada asociado.'),
+                 ('9_Como_explicarlo', 'Ejemplos paso a paso para explicar un NO.'),
+                 ('10_Asociados_por_tabla', 'Los NO recomendados agrupados por motivo.'),
+                 ('BD FINAL', 'Su base original, sin cambios.')]:
+    ws.merge_cells(f'B{r}:D{r}')
     cellw(ws, r, 2, '')
     link(ws, f'B{r}', sh)
-    ws.merge_cells(start_row=r, start_column=3, end_row=r, end_column=7)
-    cellw(ws, r, 3, desc)
+    ws.merge_cells(f'E{r}:{LAST}{r}')
+    cellw(ws, r, 5, desc)
     r += 1
-ws.merge_cells(start_row=r, start_column=2, end_row=r, end_column=7)
-c = ws.cell(r, 2, 'Respaldo técnico (fórmulas, metodología, conciliación): archivo Segmentacion_Riesgos_Base_PreEvaluada.xlsx.')
-c.font = font(9, italic=True)
+ws.merge_cells(f'B{r + 1}:{LAST}{r + 1}')
+c = ws[f'B{r + 1}']
+c.value = ('Los límites marcados como propuesta (deuda, ingreso, fondo, tabla de hipotecario) deben ser aprobados por Riesgos. '
+           'Respaldo técnico: archivo Segmentacion_Riesgos_Base_PreEvaluada.xlsx.')
+c.font = font(9, italic=True, color=GRAY)
+c.alignment = Alignment(wrap_text=True)
+ws.row_dimensions[r + 1].height = 26
+ws.print_area = f'A1:{LAST}{r + 1}'
+
 
 # ================================================================ HOJA 2: NIVELES Y RANGOS
 wr = wb.create_sheet('2_Niveles_y_Rangos')
@@ -488,13 +523,13 @@ M_H = ('HIPOTECARIO', 'PRECA HIPO', INT, 13)
 M_V = ('VEHÍCULO', 'PRECA VEHICULO', INT, 12)
 M_T = ('TARJETA', 'PRECA TC', INT, 11)
 EXT = 'Falta: lista negra, créditos castigados, relacionados/empleados y solvencia en Hacienda. No es aprobación de crédito.'
-list_sheet('3_Maxima_Seguridad', GREEN, 'NIVEL 4 – MÁXIMA SEGURIDAD (RECOMENDADO)',
-           'Cumplen el memorando, sin alertas, sin niveles Alto, sin errores de datos y con A1 interna y externa. ' + EXT,
+list_sheet('3_Recomendados', GREEN, 'RECOMENDADOS (se pueden ofrecer)',
+           'Cumplen el memorando y no tienen ningún problema: no deben mucho, no ganan poco, están al día, el monto les corresponde según la tabla y son categoría A1. ' + EXT,
            x[n4], BASE_COLS + [M_H, M_V, M_T] + LVL_COLS + PEND)
-list_sheet('4_Hipotecario', GREEN, 'HIPOTECARIO – NIVEL 4', 'Todos requieren solvencia en Hacienda. ' + EXT,
+list_sheet('4_Hipotecario', GREEN, 'HIPOTECARIO – RECOMENDADOS', 'Todos requieren solvencia en Hacienda. ' + EXT,
            x[n4 & x['PRECA HIPO'].notna()], BASE_COLS + [M_H] + LVL_COLS + PEND)
-list_sheet('5_Vehiculo', GREEN, 'VEHÍCULO – NIVEL 4', EXT, x[n4 & x['PRECA VEHICULO'].notna()], BASE_COLS + [M_V] + LVL_COLS + PEND)
-list_sheet('6_Tarjeta', GREEN, 'TARJETA DE CRÉDITO – NIVEL 4',
+list_sheet('5_Vehiculo', GREEN, 'VEHÍCULO – RECOMENDADOS', EXT, x[n4 & x['PRECA VEHICULO'].notna()], BASE_COLS + [M_V] + LVL_COLS + PEND)
+list_sheet('6_Tarjeta', GREEN, 'TARJETA DE CRÉDITO – RECOMENDADOS',
            'No tienen tarjeta actualmente. Límite > $4,000 sin solvencia en Hacienda: se otorga con $4,000. ' + EXT,
            x[n4 & tc_ok & x['PRECA TC'].notna()],
            BASE_COLS + [M_T, ('SEGMENTO', 'SEGMENTO', None, 20)] + LVL_COLS + PEND)
@@ -610,7 +645,7 @@ r = table_rows(r, ['Se marca NO si…', 'Dato de su base', 'Por qué ese límite
                 ('Debe 12 meses o más de su sueldo', 'SALDO_SSF ÷ INGRESO', 'Debe un año de sueldo o más'),
                 ('Tiene fondo menor de $4,000 y debe $10,000 o más', 'FONDO_COMPENSATORIO y SALDO_SSF', 'Poco respaldo para lo que debe'),
                 ('Está atrasado en aportaciones', 'APORTACIONES_AL_DIA', 'El memorando pide ponerse al día'),
-                ('Su categoría es A2 (no A1)', 'MAX_CAT_RIESGO y CALIFICACION_SSF', 'Para máxima seguridad se pide A1')])
+                ('Su categoría es A2 (no A1)', 'MAX_CAT_RIESGO y CALIFICACION_SSF', 'Para recomendar se pide A1')])
 r = table_title(r, 6, 'REVISIÓN DE DATOS', 'errores encontrados en su propia base', GRAY,
                 'No es riesgo del asociado: es un dato mal anotado. Si Créditos lo corrige, el asociado puede pasar a SÍ.')
 r = table_rows(r, ['Se marca NO si…', 'Dato de su base'],
@@ -685,7 +720,7 @@ r = ejemplo(r, 'EJEMPLO 3 – DEUDA: "Debe mucho en bancos y otras entidades"', 
     f'Busque al asociado: {e.ASOCIADO} – {e.NOMBRE}.',
     f'Mire cuánto debe en la Central de Riesgo (columna SALDO_SSF): ${e.SALDO_SSF:,.2f} con {e.INSTITUCION}.',
     'Compare con la Tabla 5 (límites de riesgo): deber $10,000 o más se marca como riesgo Alto.'],
-    'Debe $10,000 o más: no se recomienda para máxima seguridad.',
+    'Debe $10,000 o más: no se recomienda.',
     '"Ya tiene una deuda alta; prestarle más aumenta el riesgo."',
     f'{cnt(nb & (x.NIVEL_DEUDA == "Alto"))} asociados de los 528 deben $10,000 o más.')
 e = x[nb & (x.AL_APORT_VENCIDAS == 1)].iloc[0]
@@ -705,7 +740,7 @@ r = ejemplo(r, 'EJEMPLO 5 – UN "SÍ": por qué sí se recomienda', [
     f'Gana ${e.INGRESO:,.2f} al mes; debe ${e.SALDO_SSF:,.2f}; tiene ${e.FONDO_COMPENSATORIO:,.2f} de fondo; está al día en aportaciones; '
     f'categoría A1.',
     'Lo que le dieron: ' + '; '.join(prods_e) + '. Ningún dato cae en la Tabla 5 ni en la Tabla 6.'],
-    'Pasa todo: es recomendado (nivel 4, máxima seguridad).',
+    'Pasa todo: es RECOMENDADO.',
     '"Cumple el memorando, no tiene ninguna señal de riesgo y sus datos están correctos."',
     f'{cnt(n4)} asociados están en este caso.', ok=True)
 for row in w9.iter_rows(min_row=4, max_row=r):
@@ -866,14 +901,16 @@ for (paso1, cuantos, aso), key in zip(EX, ['T1', 'T4', 'T5b', 'T5e', None]):
         c.hyperlink = SEC_LINK(key)
     else:
         c.value = f'{c.value}  ▶ Clic aquí para ver la lista.'
-        c.hyperlink = "#'3_Maxima_Seguridad'!A1"
+        c.hyperlink = "#'3_Recomendados'!A1"
     c.font = Font(name=F, size=10, bold=True, color='0563C1', underline='single')
 
-# ---- enlaces desde el RESUMEN (niveles)
-for k, target in ((1, "#'7_Los_528'!A1"), (4, "#'3_Maxima_Seguridad'!A1"), (5, "#'3_Maxima_Seguridad'!A1")):
-    c = ws.cell(LEVEL_ROW[k], 3)
-    c.hyperlink = target
-    c.font = Font(name=F, size=10, bold=True, color='0563C1', underline='single')
+# ---- enlaces desde el RESUMEN (motivos -> hoja 10)
+for cell, key, cnt_cell in RES_LINKS:
+    ws[cell].hyperlink = SEC_LINK(key)
+    ws[cell].font = Font(name=F, size=10, bold=True, color='0563C1', underline='single')
+    if key == 'T6':
+        ws[cnt_cell].value = SEC[key][1]
+        ws[cnt_cell].number_format = '#,##0'
 
 # ================================================================ BD FINAL original (copia sin cambios)
 BD_SRC = sys.argv[3] if len(sys.argv) > 3 else None
