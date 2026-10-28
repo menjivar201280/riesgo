@@ -37,7 +37,18 @@ x['DQ_FUERA_TABLA_OFICIAL'] = (VBAD | TBAD).astype(int)
 tc_ok = x.ELEGIBILIDAD_TC == CUMPLE
 BASE_OK = (n3 & (x.DQ_DATO_INCONSISTENTE == 0) & (x.DQ_PRECA_SIN_INGRESO == 0)
            & (x.NIVEL_CAT_INTERNA == 'Bajo') & (x.NIVEL_CAT_EXTERNA == 'Bajo'))
-REC_H = BASE_OK & x['PRECA HIPO'].notna()
+# Hipotecario "trayendo la deuda": la base les dio hipotecario porque tienen capacidad o se les puede traer la deuda.
+# Si su ÚNICO problema es la deuda (debe mucho / deuda vs. sueldo / poco fondo para lo que debe) y esa deuda cabe dentro
+# del monto del hipotecario, se les recomienda el hipotecario (decisión del usuario). Vehículo y tarjeta siguen en NO.
+for c in ('SALDO_SSF', 'INGRESO', 'FONDO_COMPENSATORIO'):
+    x[c] = num(c)
+RISK_NO_DEUDA = [c for c in RISK if c not in ('NIVEL_DEUDA', 'NIVEL_DEUDA_INGRESO')]
+AL_NO_DEUDA = ['AL_ING_BAJO_DEUDA_ELEVADA', 'AL_ANTIG_BAJA_SIN_HISTORIAL', 'AL_CATEGORIA_A2', 'AL_APORT_VENCIDAS']
+SOLO_DEUDA = (n1 & (x[AL_NO_DEUDA].sum(axis=1) == 0) & ~(x[RISK_NO_DEUDA] == 'Alto').any(axis=1)
+              & (x.DQ_DATO_INCONSISTENTE == 0) & (x.DQ_PRECA_SIN_INGRESO == 0)
+              & (x.NIVEL_CAT_INTERNA == 'Bajo') & (x.NIVEL_CAT_EXTERNA == 'Bajo'))
+HIPO_DEUDA = SOLO_DEUDA & ~BASE_OK & x['PRECA HIPO'].notna() & (x.SALDO_SSF <= x['PRECA HIPO'])
+REC_H = (BASE_OK & x['PRECA HIPO'].notna()) | HIPO_DEUDA
 REC_V = BASE_OK & x['PRECA VEHICULO'].notna() & ~VBAD
 REC_T = BASE_OK & tc_ok & x['PRECA TC'].notna() & ~TBAD
 n4 = REC_H | REC_V | REC_T
@@ -45,6 +56,10 @@ PARCIAL = n4 & ((x['PRECA VEHICULO'].notna() & VBAD) | (x['PRECA TC'].notna() & 
 x['RECOMENDADO'] = 'NO'
 x.loc[n4, 'RECOMENDADO'] = 'SÍ'
 x.loc[PARCIAL, 'RECOMENDADO'] = 'SÍ, sin vehículo'
+L_HD = 'SÍ, hipotecario trayendo la deuda'
+x.loc[HIPO_DEUDA, 'RECOMENDADO'] = L_HD
+x['DEUDA_A_TRAER'] = x.SALDO_SSF.where(HIPO_DEUDA)
+x['LE_SOBRA'] = (x['PRECA HIPO'] - x.SALDO_SSF).where(HIPO_DEUDA)
 x['PRODUCTOS_REC'] = [', '.join(p for p, f in (('Hipotecario', h), ('Vehículo', v), ('Tarjeta', t)) if f)
                       for h, v, t in zip(REC_H, REC_V, REC_T)]
 x['HIPO_REC'] = x['PRECA HIPO'].where(REC_H)
@@ -90,6 +105,10 @@ def motivo(r):
     """Motivo de "no recomendado" en palabras simples, con el dato que lo comprueba."""
     if r.RECOMENDADO == 'SÍ':
         return ''
+    if r.RECOMENDADO == L_HD:
+        return (f'Se le recomienda SOLO el hipotecario, para traer su deuda: debe ${r.SALDO_SSF:,.0f} en bancos y otras '
+                f'entidades y el hipotecario es de ${r["PRECA HIPO"]:,.0f} (le sobran ${r.LE_SOBRA:,.0f}). '
+                f'Vehículo y tarjeta NO, por su deuda.')
     if r.RECOMENDADO == 'SÍ, sin vehículo':
         esp = r.ESPERADO_VEHICULO if isinstance(r.ESPERADO_VEHICULO, str) else f'${r.ESPERADO_VEHICULO:,.0f}'
         return (f'Se le recomienda: {r.PRODUCTOS_REC}. El vehículo NO: le dieron ${r["PRECA VEHICULO"]:,.0f}, '
@@ -139,6 +158,8 @@ def tablas(r):
         return ''
     if r.RECOMENDADO == 'SÍ, sin vehículo':
         return T_VEH
+    if r.RECOMENDADO == L_HD:
+        return T_LIM
     t = []
     if r.CONSIST_VEHICULO == 'No coincide con tabla':
         t.append(T_VEH)
@@ -165,6 +186,8 @@ def pendientes(r):
     p = []
     if pd.notna(r.HIPO_REC):
         p.append('Hipotecario: solvencia en Hacienda')
+    if r.RECOMENDADO == L_HD:
+        p.append('Hipotecario: confirmar garantía y que el crédito pague primero su deuda en la SSF')
     if pd.notna(r.VEH_REC) and r.VEH_REC > VEH_SOLV_MIN:
         p.append('Vehículo: solvencia en Hacienda')
     if pd.notna(r.TC_REC) and r.TC_REC > 4000:
@@ -177,6 +200,8 @@ def pendientes(r):
 x['PENDIENTE_ANTES_DE_OTORGAR'] = x.apply(pendientes, axis=1)
 GEN = 'Solo las revisiones generales (lista negra, castigados, relacionados)'
 x['PEND_HIPO'] = 'Solvencia en Hacienda (todo hipotecario es mayor de $30,000)'
+x.loc[HIPO_DEUDA, 'PEND_HIPO'] = ('Solvencia en Hacienda. Además: confirmar garantía y que el hipotecario pague primero '
+                                  'su deuda en bancos y otras entidades (por eso se le recomienda)')
 x['PEND_VEH'] = x['PRECA VEHICULO'].map(
     lambda v: 'Solvencia en Hacienda (vehículo mayor de $25,000: regla propuesta, no está en el memorando)'
     if pd.notna(v) and v > VEH_SOLV_MIN else GEN)
@@ -321,7 +346,7 @@ pasos = [
      f'Se quitaron {TOTAL - cnt(n1):,}: a la mayoría les falta el ingreso; otros tienen ingreso $0, fondo $0 o ya cumplieron 56 años.', 'DDEBF7'),
     ('PASO 3', 'RECOMENDADOS', cnt(n4),
      f'Se quitaron {cnt(nb):,} que tienen algún problema: deben mucho, ganan poco, están atrasados, o les dieron un monto '
-     f'que no corresponde a su tabla.', 'C6E0B4'),
+     f'que no corresponde a su tabla. Incluye {cnt(HIPO_DEUDA)} a los que solo se les da el hipotecario para traer su deuda.', 'C6E0B4'),
 ]
 for paso, lab, val, expl, fill in pasos:
     cellw(ws, r, 2, paso, bold=True, fill=fill, align='center')
@@ -356,7 +381,8 @@ for pl, col, sh in [('Hipotecario', 'PRECA HIPO', '4_Hipotecario'), ('Vehículo'
 ws.merge_cells(f'B{r}:{LAST}{r}')
 c = ws[f'B{r}']
 c.value = (f'Un asociado puede tener más de un producto. En total son {cnt(n4)} personas distintas '
-           f'(lista completa en la hoja 3_Recomendados).')
+           f'(lista completa en la hoja 3_Recomendados). Del hipotecario, {cnt(HIPO_DEUDA)} son "trayendo la deuda": su único '
+           f'problema es que deben mucho, pero esa deuda cabe en el hipotecario que les dio la base.')
 c.font = font(9, italic=True, color=GRAY)
 
 # ---- por qué no se recomiendan
@@ -614,7 +640,7 @@ def list_sheet(name, color, title, note, df, cols, by_score=False):
             if fmt:
                 c.number_format = fmt
             if src.startswith('NIVEL_') and src != 'NIVEL_SEGURIDAD' or src == 'RECOMENDADO':
-                c.alignment = Alignment(horizontal='center', vertical='center')
+                c.alignment = Alignment(horizontal='center', vertical='center', wrap_text=src == 'RECOMENDADO')
             elif src in ('MOTIVO_NO_MAXIMA', 'PENDIENTE_ANTES_DE_OTORGAR', 'TABLA_USADA', 'PEND_HIPO', 'PEND_VEH', 'PEND_TC'):
                 c.alignment = Alignment(wrap_text=True, vertical='center')
             if i % 2:
@@ -627,7 +653,7 @@ def list_sheet(name, color, title, note, df, cols, by_score=False):
                     operator='equal', formula=[f'"{lv}"'], fill=PatternFill('solid', fgColor=fc, bgColor=fc)))
     for j, (h, src, fmt, w) in enumerate(cols, 1):
         if src == 'RECOMENDADO':
-            for txt, fc in (('SÍ', 'C6E0B4'), ('NO', 'F8CBAD')):
+            for txt, fc in (('SÍ', 'C6E0B4'), ('NO', 'F8CBAD'), ('SÍ, sin vehículo', 'FFF2CC'), (L_HD, 'DDEBF7')):
                 ws.conditional_formatting.add(f'{L(j)}6:{L(j)}{end}', CellIsRule(
                     operator='equal', formula=[f'"{txt}"'], fill=PatternFill('solid', fgColor=fc, bgColor=fc),
                     font=Font(name=F, bold=True)))
@@ -655,8 +681,11 @@ list_sheet('3_Recomendados', GREEN, 'RECOMENDADOS (se pueden ofrecer)',
            'el hipotecario se toma como viene en el Excel (si dice N/A, no aplica); vehículo y tarjeta deben coincidir con su tabla (si el vehículo no '
            'coincide, se le ofrece solo lo demás). Los montos vacíos = ese producto no se recomienda. ' + EXT,
            x[n4], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_P, M_H, M_V, M_T] + LVL_COLS + PEND, by_score=True)
-list_sheet('4_Hipotecario', GREEN, 'HIPOTECARIO – RECOMENDADOS', 'Solo los que traen monto de hipotecario en la base (si dice N/A, no aplica y no se le ofrece). Todos requieren solvencia en Hacienda. ' + EXT,
-           x[REC_H], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_H] + LVL_COLS + PEND_H, by_score=True)
+list_sheet('4_Hipotecario', GREEN, 'HIPOTECARIO – RECOMENDADOS',
+           'Solo los que traen monto de hipotecario en la base (si dice N/A, no aplica). '
+           f'{cnt(HIPO_DEUDA)} son "trayendo la deuda" (columna ¿CÓMO?): deben mucho, pero esa deuda cabe en el hipotecario. ' + EXT,
+           x[REC_H], BASE_COLS[:2] + SCORE_COLS + [('¿CÓMO?', 'RECOMENDADO', None, 18)] + BASE_COLS[2:] + [M_H,
+           ('DEUDA QUE SE TRAE', 'DEUDA_A_TRAER', INT, 13), ('LE SOBRA', 'LE_SOBRA', INT, 12)] + LVL_COLS + PEND_H, by_score=True)
 list_sheet('5_Vehiculo', GREEN, 'VEHÍCULO – RECOMENDADOS',
            'Vehículo mayor de $25,000 ($30,000 y $40,000): pedir solvencia en Hacienda (regla propuesta, el memorando no la pide). '
            'Falta además: lista negra, créditos castigados y relacionados/empleados. No es aprobación de crédito.', x[REC_V], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_V] + LVL_COLS + PEND_V, by_score=True)
@@ -690,9 +719,9 @@ w7['A1'].font = font(15, True, NAVY)
 link(w7, 'A2', '1_RESUMEN', '◄ Volver al RESUMEN')
 guia = [
     ('CÓMO LEER ESTA HOJA', None),
-    ('1. Cada fila es un asociado. La columna ¿RECOMENDADO? dice SÍ (verde), NO (rojo) o SÍ, sin vehículo (amarillo).', None),
+    ('1. Cada fila es un asociado. La columna ¿RECOMENDADO? dice SÍ (verde), NO (rojo), SÍ, sin vehículo (amarillo) o SÍ, hipotecario trayendo la deuda (celeste).', None),
     ('2. Las columnas del medio son una lista de revisión: ✔ verde = está bien;  ✗ rojo = ahí está el problema.', None),
-    ('3. Si tiene aunque sea un ✗, es NO. Única excepción: si el ✗ es solo el vehículo, dice "SÍ, sin vehículo" (se le ofrece lo demás).', None),
+    ('3. Si tiene aunque sea un ✗, es NO. Excepciones: si el ✗ es solo el vehículo = "SÍ, sin vehículo"; si el ✗ es solo la deuda y cabe en su hipotecario = "SÍ, hipotecario trayendo la deuda".', None),
     ('4. Para ver solo los NO (o solo los SÍ), use la flechita del encabezado ¿RECOMENDADO?.', None),
 ]
 for i, (t, _) in enumerate(guia):
@@ -717,7 +746,7 @@ for c1, c2, t, col in groups:
         w7.cell(H7, k).fill = PatternFill('solid', fgColor=col)
 heads = (['N° ASOCIADO', 'NOMBRE', 'AGENCIA', '¿RECOMENDADO?'] + [h for h, _ in CHECKS]
          + ['¿POR QUÉ NO? (en palabras)', 'TABLA USADA (clic)', 'HIPOTECARIO', 'VEHÍCULO', 'TARJETA', 'PUNTAJE (1 a 3)', 'CALIFICACIÓN'])
-widths = [11, 34, 15, 14] + [12] * len(CHECKS) + [62, 18, 12, 11, 10, 10, 12]
+widths = [11, 34, 15, 17] + [12] * len(CHECKS) + [62, 18, 12, 11, 10, 10, 12]
 for j, (h, w) in enumerate(zip(heads, widths), 1):
     c = w7.cell(H7, j, h)
     c.font = font(8 if 5 <= j <= 4 + len(CHECKS) else 9, True, 'FFFFFF')
@@ -739,7 +768,7 @@ for i, (idx, e) in enumerate(d7.iterrows()):
         c.border = box
         c.font = font(9, bold=j in (1, 4))
         if j == 4 or 5 <= j <= 4 + len(CHECKS):
-            c.alignment = Alignment(horizontal='center', vertical='center')
+            c.alignment = Alignment(horizontal='center', vertical='center', wrap_text=j == 4)
         elif j == 5 + len(CHECKS):
             c.alignment = Alignment(wrap_text=True, vertical='center')
         else:
@@ -755,7 +784,7 @@ LAST7 = FIRST7 + len(d7) - 1
 rngR = f'D{FIRST7}:D{LAST7}'
 rngC = f'E{FIRST7}:{L(4 + len(CHECKS))}{LAST7}'
 for rng_, txt, fc, fcol in ((rngR, 'SÍ', 'C6E0B4', '006100'), (rngR, 'NO', 'F8CBAD', '9C0006'),
-                            (rngR, 'SÍ, sin vehículo', 'FFF2CC', '7F6000'),
+                            (rngR, 'SÍ, sin vehículo', 'FFF2CC', '7F6000'), (rngR, L_HD, 'DDEBF7', '1F3864'),
                             (rngC, '✔', 'E2EFDA', '548235'), (rngC, '✗', 'F8CBAD', 'C00000')):
     w7.conditional_formatting.add(rng_, CellIsRule(operator='equal', formula=[f'"{txt}"'],
                                                    fill=PatternFill('solid', fgColor=fc, bgColor=fc),
