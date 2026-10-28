@@ -340,9 +340,16 @@ c.value = (f'Un asociado puede tener más de un producto. En total son {cnt(n4)}
 c.font = font(9, italic=True, color=GRAY)
 
 # ---- por qué no se recomiendan
-r = title_bar(r + 2, 'PUNTAJE CON SUS PESOS (para ofrecer primero a los mejores)', NAVY)
-for a_, b_, h in [('B', 'D', 'Calificación'), ('E', 'E', 'Puntaje'), ('F', 'G', 'Cumplen memorando'), ('H', 'H', 'Recomendados'),
-                  ('I', 'I', 'Ver')]:
+r = title_bar(r + 2, f'ORDEN DE LOS {cnt(n4)} RECOMENDADOS SEGÚN SU PUNTAJE (los NO no llevan puntaje)', NAVY)
+ws.merge_cells(f'B{r}:{LAST}{r}')
+c = ws[f'B{r}']
+c.value = ('Primero se decide SÍ o NO con la lista de revisión. Después, SOLO a los SÍ se les da un puntaje con sus pesos, '
+           'para ofrecer primero a los mejores.')
+c.font = font(10, True)
+c.alignment = Alignment(wrap_text=True, vertical='center')
+ws.row_dimensions[r].height = 30
+r += 1
+for a_, b_, h in [('B', 'D', 'Calificación'), ('E', 'F', 'Puntaje'), ('G', 'H', 'Recomendados'), ('I', 'I', 'Ver')]:
     if a_ != b_:
         ws.merge_cells(f'{a_}{r}:{b_}{r}')
     cellw(ws, r, CI(a_), h, bold=True, fill='D9E1F2', align='center')
@@ -351,17 +358,17 @@ for lo, hi, lab, col in BANDAS:
     m = (x.PUNTAJE >= lo) & (x.PUNTAJE < hi)
     ws.merge_cells(f'B{r}:D{r}')
     cellw(ws, r, 2, lab, bold=True, color=col)
+    ws.merge_cells(f'E{r}:F{r}')
     cellw(ws, r, 5, f'{lo:.1f} a {hi - 0.01:.2f}' if hi < 3 else f'{lo:.1f} a 3.0', align='center')
-    ws.merge_cells(f'F{r}:G{r}')
-    cellw(ws, r, 6, cnt(m & n1), '#,##0', align='center')
-    cellw(ws, r, 8, cnt(m & n4), '#,##0', align='center')
+    ws.merge_cells(f'G{r}:H{r}')
+    cellw(ws, r, 7, cnt(m & n4), '#,##0', align='center')
     cellw(ws, r, 9, '')
     link(ws, f'I{r}', '12_Puntaje', '▶ Ver')
     r += 1
 ws.merge_cells(f'B{r}:{LAST}{r}')
 c = ws[f'B{r}']
-c.value = ('Pesos: antigüedad 13%, ingreso 30%, deuda 20%, cuotas de aportación vencidas 12%, categoría SSF 25% (hoja 2). '
-           'Verde = 3 puntos, amarillo = 2, rojo = 1. Las listas de recomendados van ordenadas de mayor a menor puntaje.')
+c.value = ('Pesos (hoja 2): antigüedad 13%, ingreso 30%, deuda 20%, cuotas de aportación vencidas 12%, categoría SSF 25%. '
+           'Verde = 3 puntos, amarillo = 2, rojo = 1. Las listas de recomendados ya van ordenadas de mayor a menor puntaje.')
 c.font = font(9, italic=True, color=GRAY)
 c.alignment = Alignment(wrap_text=True)
 ws.row_dimensions[r].height = 26
@@ -459,7 +466,7 @@ for sh, desc in [('2_Niveles_y_Rangos', 'Los rangos Bajo / Medio / Alto de cada 
                  ('9_Como_explicarlo', 'Ejemplos paso a paso para explicar un NO.'),
                  ('10_Asociados_por_tabla', 'Los NO recomendados agrupados por motivo.'),
                  ('11_Problemas_de_la_base', 'Los asociados con problemas en la base (sin ingreso, 56 años, fondo $0...).'),
-                 ('12_Puntaje', 'Cómo se calcula el puntaje con sus pesos y los 528 ordenados del mejor al peor.'),
+                 ('12_Puntaje', 'Cómo se calcula el puntaje y los recomendados ordenados del mejor al peor.'),
                  ('BD FINAL', 'Su base original, sin cambios.')]:
     ws.merge_cells(f'B{r}:D{r}')
     cellw(ws, r, 2, '')
@@ -705,7 +712,7 @@ for i, (idx, e) in enumerate(d7.iterrows()):
     vals = ([a, e.NOMBRE, e.AGENCIA, 'SÍ' if n4[idx] else 'NO'] + ['✔' if f(e) else '✗' for _h, f in CHECKS]
             + [e.MOTIVO_NO_MAXIMA or '', e.TABLA_USADA or '']
             + [None if pd.isna(e[k]) else float(e[k]) for k in ('PRECA HIPO', 'PRECA VEHICULO', 'PRECA TC')]
-            + [float(e.PUNTAJE), e.CALIFICACION])
+            + ([float(e.PUNTAJE), e.CALIFICACION] if n4[idx] else [None, 'No se califica (es NO)']))
     for j, v in enumerate(vals, 1):
         c = w7.cell(rr, j, v)
         c.border = box
@@ -1209,11 +1216,11 @@ w12.sheet_properties.tabColor = NAVY
 w12.sheet_view.showGridLines = False
 for col, w in zip('ABCDEFGHIJKL', [2, 12, 34, 13, 14, 14, 14, 14, 14, 12, 13, 2]):
     w12.column_dimensions[col].width = w
-w12['B1'] = 'PUNTAJE DE CADA ASOCIADO CON SUS PESOS'
+w12['B1'] = 'PUNTAJE DE LOS RECOMENDADOS (para ofrecer primero a los mejores)'
 w12['B1'].font = font(15, True, NAVY)
 link(w12, 'B2', '1_RESUMEN', '◄ Volver al RESUMEN')
-w12['B3'] = ('Pesos tomados de la columna "Peso" de la hoja 2 (los que indicó usted). El puntaje ordena a los asociados: '
-             'no reemplaza las reglas del memorando ni las revisiones externas.')
+w12['B3'] = ('Primero se decide SÍ o NO (hoja 7). El puntaje se da SOLO a los SÍ, para ordenarlos del mejor al peor. '
+             'Los NO no llevan puntaje. Pesos: columna "Peso" de la hoja 2.')
 w12['B3'].font = font(9, italic=True, color=RED)
 r = 5
 w12.merge_cells(f'B{r}:K{r}')
@@ -1243,7 +1250,7 @@ c = w12.cell(r, 2, 'PASO 2 – Puntaje = suma de (puntos × peso). Va de 1 (peor
 c.font = font(12, True, 'FFFFFF')
 c.fill = PatternFill('solid', fgColor=NAVY)
 r += 1
-for j, h in enumerate(['Calificación', '', 'Puntaje', 'Cumplen memorando', 'Recomendados (SÍ)'], 2):
+for j, h in enumerate(['Calificación', '', 'Puntaje', 'Recomendados'], 2):
     if j != 3:
         cellw(w12, r, j, h, bold=True, fill='D9E1F2', align='center')
 w12.merge_cells(f'B{r}:C{r}')
@@ -1253,38 +1260,34 @@ for lo, hi, lab, colr in BANDAS:
     cellw(w12, r, 2, lab, bold=True, color=colr)
     w12.merge_cells(f'B{r}:C{r}')
     cellw(w12, r, 4, f'{lo:.1f} a {hi - 0.01:.2f}' if hi < 3 else f'{lo:.1f} a 3.0', align='center')
-    cellw(w12, r, 5, cnt(m & n1), '#,##0', align='center')
-    cellw(w12, r, 6, cnt(m & n4), '#,##0', align='center')
+    cellw(w12, r, 5, cnt(m & n4), '#,##0', align='center')
     r += 1
 r += 1
 w12.merge_cells(f'B{r}:K{r}')
-c = w12.cell(r, 2, f'LOS {cnt(n1)} QUE CUMPLEN EL MEMORANDO, DEL MEJOR AL PEOR PUNTAJE (clic en el N° para ver su fila en la hoja 7)')
+c = w12.cell(r, 2, f'LOS {cnt(n4)} RECOMENDADOS, DEL MEJOR AL PEOR PUNTAJE (clic en el N° para ver su fila en la hoja 7)')
 c.font = font(12, True, 'FFFFFF')
 c.fill = PatternFill('solid', fgColor=NAVY)
 r += 1
-heads12 = ['N° ASOCIADO', 'NOMBRE', '¿RECOMENDADO?'] + [f'{lab}\n({w:.0%})' for lab, _, w, _ in PESOS] + ['PUNTAJE', 'CALIFICACIÓN']
+heads12 = ['N° ASOCIADO', 'NOMBRE', 'AGENCIA'] + [f'{lab}\n({w:.0%})' for lab, _, w, _ in PESOS] + ['PUNTAJE', 'CALIFICACIÓN']
 for j, h in enumerate(heads12, 2):
     cellw(w12, r, j, h, bold=True, fill='D9E1F2', align='center', size=9)
 w12.row_dimensions[r].height = 46
 H12 = r
 r += 1
-d12 = x[n1].sort_values(['PUNTAJE', 'NOMBRE'], ascending=[False, True])
+d12 = x[n4].sort_values(['PUNTAJE', 'NOMBRE'], ascending=[False, True])
 for _, e in d12.iterrows():
     a = str(e.ASOCIADO)
     c = cellw(w12, r, 2, a, size=9)
     c.hyperlink = f"#'7_Los_528'!A{ROW7[a]}"
     c.font = Font(name=F, size=9, bold=True, color='0563C1', underline='single')
     cellw(w12, r, 3, e.NOMBRE, size=9)
-    cellw(w12, r, 4, 'SÍ' if n4[_] else 'NO', size=9, align='center', bold=True)
+    cellw(w12, r, 4, e.AGENCIA, size=9)
     for j, (lab, col, w, inv) in enumerate(PESOS, 5):
         cellw(w12, r, j, f'{int(e["PTS_" + col])}  ({e[col]})', size=9, align='center')
     cellw(w12, r, 10, float(e.PUNTAJE), '0.00', size=10, bold=True, align='center')
     cellw(w12, r, 11, e.CALIFICACION, size=9, bold=True, align='center')
     r += 1
 last12 = r - 1
-for txt, fc, fcol in (('SÍ', 'C6E0B4', '006100'), ('NO', 'F8CBAD', '9C0006')):
-    w12.conditional_formatting.add(f'D{H12 + 1}:D{last12}', CellIsRule(
-        operator='equal', formula=[f'"{txt}"'], fill=PatternFill('solid', fgColor=fc, bgColor=fc), font=Font(name=F, bold=True, color=fcol)))
 for lo, hi, lab, colr in BANDAS:
     w12.conditional_formatting.add(f'K{H12 + 1}:K{last12}', CellIsRule(
         operator='equal', formula=[f'"{lab}"'], font=Font(name=F, bold=True, color=colr)))
