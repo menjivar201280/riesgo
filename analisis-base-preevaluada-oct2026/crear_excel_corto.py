@@ -23,10 +23,9 @@ RISK = ['NIVEL_ANTIGUEDAD', 'NIVEL_INGRESO', 'NIVEL_DEUDA', 'NIVEL_DEUDA_INGRESO
 # Ganar mucho no es un dato malo: el ingreso muy alto solo se confirma antes de otorgar.
 DATO_MAL = ((x.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar') | (x.ALERTA_ANT_EDAD == 1) | (x.CHK_EDAD != 'Coincide')
             | x.ESTADO_DEUDA_SSF.astype(str).str.startswith('Saldo negativo') | (x.DUI.astype(str).str.len() != 9))
-VBAD = x.CONSIST_VEHICULO == 'No coincide con tabla'
-TBAD = x.CONSIST_TC == 'No coincide con tabla'
 SI = (n1 & (x.TOTAL_ALERTAS_RIESGO == 0) & ~(x[RISK] == 'Alto').any(axis=1) & ~DATO_MAL & (x.DQ_PRECA_SIN_INGRESO == 0)
-      & (x.NIVEL_CAT_INTERNA == 'Bajo') & (x.NIVEL_CAT_EXTERNA == 'Bajo') & ~VBAD & ~TBAD)
+      & (x.NIVEL_CAT_INTERNA == 'Bajo') & (x.NIVEL_CAT_EXTERNA == 'Bajo'))
+# Los montos PRECA son lo que la Cooperativa quiere ofrecer: las tablas de vehículo y tarjeta solo se muestran, no deciden.
 NO = n1 & ~SI
 money = lambda v: f'${v:,.0f}'
 
@@ -45,10 +44,6 @@ REVISIONES = [
      lambda e: f'Asociado nuevo: {int(e.ANTIGUEDAD_ANIOS)} año(s) (se pide más de 1)'),
     (lambda e: e.AL_CATEGORIA_A2 == 1 or e.NIVEL_CAT_INTERNA != 'Bajo' or e.NIVEL_CAT_EXTERNA != 'Bajo',
      lambda e: 'No es categoría A1'),
-    (lambda e: e.CONSIST_VEHICULO == 'No coincide con tabla',
-     lambda e: f'El vehículo no le toca: le dieron {money(e["PRECA VEHICULO"])}, su tabla dice '
-               + (e.ESPERADO_VEHICULO if isinstance(e.ESPERADO_VEHICULO, str) else money(e.ESPERADO_VEHICULO))),
-    (lambda e: e.CONSIST_TC == 'No coincide con tabla', lambda e: 'El límite de tarjeta no coincide con su tabla'),
     (lambda e: e.CHK_EDAD != 'Coincide', lambda e: 'La edad no coincide con su fecha de nacimiento'),
     (lambda e: len(str(e.DUI)) != 9, lambda e: 'El DUI está mal escrito'),
     (lambda e: e.ALERTA_ANT_EDAD == 1 or e.NIVEL_ANTIGUEDAD == 'Inconsistente - revisar',
@@ -56,7 +51,7 @@ REVISIONES = [
     (lambda e: str(e.ESTADO_DEUDA_SSF).startswith('Saldo negativo'), lambda e: 'Su deuda aparece en negativo'),
     (lambda e: e.DQ_PRECA_SIN_INGRESO == 1, lambda e: 'Tiene monto pre evaluado sin ingreso válido'),
 ]
-MOTIVO_CORTO = ['Gana menos de $1,500 al mes', 'Debe $10,000 o más en otros bancos', 'Debe más de lo que gana en todo un año', 'Poco fondo compensatorio para lo que debe', 'Gana poco para lo que debe', 'Atrasado en aportaciones', 'Asociado nuevo (0 a 1 año)', 'No es categoría A1', 'El vehículo no le toca según su tabla', 'El límite de tarjeta no coincide con su tabla', 'La edad no coincide con su fecha de nacimiento', 'El DUI está mal escrito', 'Los años de asociado no cuadran con su edad', 'Su deuda aparece en negativo', 'Monto pre evaluado sin ingreso válido']
+MOTIVO_CORTO = ['Gana menos de $1,500 al mes', 'Debe $10,000 o más en otros bancos', 'Debe más de lo que gana en todo un año', 'Poco fondo compensatorio para lo que debe', 'Gana poco para lo que debe', 'Atrasado en aportaciones', 'Asociado nuevo (0 a 1 año)', 'No es categoría A1', 'La edad no coincide con su fecha de nacimiento', 'El DUI está mal escrito', 'Los años de asociado no cuadran con su edad', 'Su deuda aparece en negativo', 'Monto pre evaluado sin ingreso válido']
 assert len(MOTIVO_CORTO) == len(REVISIONES)
 x['POR_QUE_NO'] = ''
 for i in x.index[NO]:
@@ -169,7 +164,7 @@ pasos = [('1', 'Cumple el memorando', 'Tiene ingreso y fondo, edad de 30 a 55 a�
           f'De {TOTAL:,} asociados, {cnt(n1):,} cumplen.'),
          ('2', 'Pasa TODAS las revisiones', 'Gana $1,500 o más · debe menos de $10,000 · no debe más de lo que gana en un año · '
           'tiene fondo para lo que debe · al día en aportaciones · más de 1 año de asociado · categoría A1 · '
-          'el vehículo y la tarjeta le tocan según su tabla · sus datos están bien escritos.'),
+          'sus datos están bien escritos.'),
          ('3', 'Resultado', f'Si pasa todo = RECOMENDADO ({cnt(SI)}).  Si falla aunque sea una = no aplica por ahora ({cnt(NO)}). '
           'La hoja NO APLICAN POR AHORA dice cuál falló, con el dato exacto. La hoja TABLAS Y RANGOS muestra los límites usados.')]
 r += 1
@@ -410,20 +405,20 @@ merge_put(wt, f'B{r}:F{r}', 'Antigüedad: rango de su hoja "Variables". Los dem�
 wt.row_dimensions[r].height = 26
 
 r += 2
-merge_put(wt, f'B{r}:F{r}', '2. TABLA DE VEHÍCULO (su hoja "RANGOS VEHICULO", copiada tal cual)', size=12, bold=True, color='FFFFFF', bg=NAVY)
+merge_put(wt, f'B{r}:F{r}', '2. TABLA DE VEHÍCULO (su hoja "RANGOS VEHICULO", solo de referencia)', size=12, bold=True, color='FFFFFF', bg=NAVY)
 r += 1
 for j, h in zip('BCD', ['Si gana al mes…', 'Le toca de vehículo', 'Asociados con vehículo']):
     put(wt, f'{j}{r}', h, 10, True, bg='D9E1F2', h='center')
 r += 1
 for ing, mto in VT:
     put(wt, f'B{r}', ing)
-    put(wt, f'C{r}', money(mto) if mto != 'NO APLICA' else 'NO APLICA', h='center', bg='F8CBAD' if mto == 'NO APLICA' else None)
+    put(wt, f'C{r}', money(mto) if mto != 'NO APLICA' else 'NO APLICA', h='center')
     nlink(f'D{r}', f'VEH|{mto}')
     r += 1
-merge_put(wt, f'B{r}:F{r}', 'Los que ganan menos de $3,000 y aun así traen vehículo en la base: el vehículo no les toca.', size=9, italic=True, color=GRAY)
+merge_put(wt, f'B{r}:F{r}', 'Solo de referencia: se ofrece el monto de PRECA VEHICULO de la base, que es lo que la Cooperativa quiere ofrecer.', size=9, italic=True, color=GRAY)
 
 r += 2
-merge_put(wt, f'B{r}:F{r}', '3. TABLA DE TARJETA (su hoja "RANGOS TC", copiada tal cual)', size=12, bold=True, color='FFFFFF', bg=NAVY)
+merge_put(wt, f'B{r}:F{r}', '3. TABLA DE TARJETA (su hoja "RANGOS TC", solo de referencia)', size=12, bold=True, color='FFFFFF', bg=NAVY)
 r += 1
 for j, h in zip('BCDE', ['Si gana al mes…', 'Límite', 'Segmento', 'Asociados con tarjeta']):
     put(wt, f'{j}{r}', h, 10, True, bg='D9E1F2', h='center')
