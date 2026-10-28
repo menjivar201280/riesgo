@@ -652,10 +652,10 @@ M_P = ('PRODUCTOS RECOMENDADOS', 'PRODUCTOS_REC', None, 26)
 EXT = 'Falta: lista negra, créditos castigados, relacionados/empleados y solvencia en Hacienda. No es aprobación de crédito.'
 list_sheet('3_Recomendados', GREEN, 'RECOMENDADOS (se pueden ofrecer)',
            'Cumplen el memorando, no deben mucho, no ganan poco, están al día y son categoría A1. Se decide por producto: '
-           'el hipotecario se toma como viene en el Excel; vehículo y tarjeta deben coincidir con su tabla (si el vehículo no '
+           'el hipotecario se toma como viene en el Excel (si dice N/A, no aplica); vehículo y tarjeta deben coincidir con su tabla (si el vehículo no '
            'coincide, se le ofrece solo lo demás). Los montos vacíos = ese producto no se recomienda. ' + EXT,
            x[n4], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_P, M_H, M_V, M_T] + LVL_COLS + PEND, by_score=True)
-list_sheet('4_Hipotecario', GREEN, 'HIPOTECARIO – RECOMENDADOS', 'Todos requieren solvencia en Hacienda. ' + EXT,
+list_sheet('4_Hipotecario', GREEN, 'HIPOTECARIO – RECOMENDADOS', 'Solo los que traen monto de hipotecario en la base (si dice N/A, no aplica y no se le ofrece). Todos requieren solvencia en Hacienda. ' + EXT,
            x[REC_H], BASE_COLS[:2] + SCORE_COLS + BASE_COLS[2:] + [M_H] + LVL_COLS + PEND_H, by_score=True)
 list_sheet('5_Vehiculo', GREEN, 'VEHÍCULO – RECOMENDADOS',
            'Vehículo mayor de $25,000 ($30,000 y $40,000): pedir solvencia en Hacienda (regla propuesta, el memorando no la pide). '
