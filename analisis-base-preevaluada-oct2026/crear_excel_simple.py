@@ -36,13 +36,49 @@ for viejo, nuevo in SUSTITUCIONES:
     motor = motor.replace(viejo, nuevo)
 # columnas extra del motor para la versión sencilla (antes de numerar las columnas)
 EXTRA = '''
-add('ALERTA', 'INFORMACIÓN QUE FALTA O ALERTA', '=IF({ESTADO}="' + E3 + '",TRIM(IF({NIVEL}="ALTO","Riesgo ALTO por: "&{ROJTXT}&". ","")'
-    '&IF({CAPAC}<>"Adecuada","Deuda bancaria alta para su ingreso"&IF({HIPO}="",", sin hipotecario para pagarla",IF({CABE}=0,", mayor que el '
-    'hipotecario ofrecido",""))&".","")),IF({ESTADO}="' + E4 + '",IF({M_ELEG}<>"",{M_ELEG},"Algún dato de riesgo sin información"),""))', None, 40)
-add('MOTC', 'MOTIVO CORTO', '=IF({ESTADO}="' + E3 + '",IF({NIVEL}="ALTO","Riesgo alto","")&IF(AND({NIVEL}="ALTO",{CAPAC}<>"Adecuada")," y ","")'
-    '&IF({CAPAC}<>"Adecuada",IF({NIVEL}="ALTO","deuda alta para su ingreso","Deuda alta para su ingreso"),""),IF({ESTADO}="' + E4 + '","Falta información para evaluar",""))', None, 24)
-add('FALTA', 'QUÉ FALTA REVISAR', '=IF({ESTADO}="' + E2 + '",{PEND},IF({ESTADO}="' + E3 + '",{VALID},IF({ESTADO}="' + E4 + '",{VALID},"")))', None, 46)
-add('ACC2', 'ACCIÓN RECOMENDADA', '=IF(OR({ESTADO}="' + E3 + '",{ESTADO}="' + E4 + '"),IF({ACCION}="","Pendiente de validación",{ACCION}),"")', None, 34)
+# ---- productos que corresponden según el ingreso (versión sencilla)
+add('H_OK', 'HIPOTECARIO CORRESPONDE', '=IF(AND({HIPO}<>"",{ING}<>""),IF({ING}>=P_ING_L1,1,0),0)', '0', 8)
+add('V_OK', 'VEHÍCULO CORRESPONDE', '=IF(AND({VEH}<>"",{VEH_OK}="Sí"),1,0)', '0', 8)
+add('T_OK', 'TARJETA CORRESPONDE', '=IF(AND({TC}<>"",{TTC}="NO",{TC_OK}="Sí"),1,0)', '0', 8)
+add('NOCORR', 'PRODUCTOS DE LA BASE QUE NO CORRESPONDEN', '=IF({ELEG}<>"' + E1 + '","",IF(AND({HIPO}<>"",{H_OK}=0),"Hipotecario de $"&TEXT({HIPO},"#,##0")'
+    '&": no se propone, gana $"&TEXT({ING},"#,##0")&" al mes (menos de $"&TEXT(P_ING_L1,"#,##0")&"). ","")'
+    '&IF(AND({VEH}<>"",{V_OK}=0),"Vehículo de $"&TEXT({VEH},"#,##0")&": no se propone, según la tabla de vehículos con su ingreso "'
+    '&IF({VEH_T}="NO APLICA","no le corresponde vehículo (gana menos de $3,000)","le corresponden $"&TEXT({VEH_T},"#,##0"))&". ",""))', None, 40)
+
+
+def setf(k, f):
+    i_ = [c_[0] for c_ in COLS].index(k)
+    COLS[i_] = (k, COLS[i_][1], f, COLS[i_][3], COLS[i_][4])
+
+
+setf('ESTADO', '=IF({ID}="","",IF({ELEG}="No elegible","' + E5 + '",IF({ELEG}="Información insuficiente","' + E4 + '",'
+     'IF(OR({NIVEL}="Sin información suficiente",{CAPAC}="Sin información"),"' + E4 + '",'
+     'IF(AND({NIVEL}<>"ALTO",{CAPAC}="Adecuada",{H_OK}+{V_OK}+{T_OK}>0),"' + E2 + '",'
+     'IF(AND({NIVEL}<>"ALTO",{CABE}=1,{H_OK}=1),"' + E2 + '","' + E3 + '"))))))')
+setf('P_HIPO', '=IF(AND({ESTADO}="' + E2 + '",{H_OK}=1),{HIPO},"")')
+setf('P_VEH', '=IF(AND({ESTADO}="' + E2 + '",{CAPAC}="Adecuada",{V_OK}=1),{VEH},"")')
+setf('P_TC', '=IF(AND({ESTADO}="' + E2 + '",{T_OK}=1),{TC},"")')
+setf('E_TC', '=IF(AND({ESTADO}="' + E3 + '",{T_OK}=1),{TC},"")')
+setf('PROD', '=IF({ESTADO}="' + E2 + '",MID(IF({P_HIPO}<>"",", Hipotecario","")&IF({P_VEH}<>"",", Vehículo","")&IF({P_TC}<>"",", Tarjeta",""),3,60),'
+     'IF({ESTADO}="' + E3 + '",IF({E_TC}<>"","Tarjeta (a evaluar)","Ninguno por ahora"),""))')
+add('ALERTA', 'INFORMACIÓN QUE FALTA O ALERTA', '=IF({ESTADO}="' + E3 + '",IF(TRIM(IF({NIVEL}="ALTO","Riesgo ALTO por: "&{ROJTXT}&". ","")'
+    '&IF({CAPAC}<>"Adecuada","Deuda bancaria de $"&TEXT({SSF},"#,##0")&" alta para su ingreso de $"&TEXT({ING},"#,##0")&" al mes"&IF({HIPO}="","",'
+    'IF({CABE}=0,", mayor que el hipotecario ofrecido",""))&". ","")&{NOCORR})="","Ningún producto de la base le corresponde.",'
+    'TRIM(IF({NIVEL}="ALTO","Riesgo ALTO por: "&{ROJTXT}&". ","")&IF({CAPAC}<>"Adecuada","Deuda bancaria de $"&TEXT({SSF},"#,##0")'
+    '&" alta para su ingreso de $"&TEXT({ING},"#,##0")&" al mes"&IF({HIPO}="","",IF({CABE}=0,", mayor que el hipotecario ofrecido",""))&". ","")'
+    '&{NOCORR})),IF({ESTADO}="' + E4 + '",IF({M_ELEG}<>"",{M_ELEG},"Algún dato de riesgo sin información"),IF({ESTADO}="' + E5 + '",{M_ELEG},"")))', None, 40)
+add('MOTC', 'MOTIVO CORTO', '=IF({ESTADO}="' + E3 + '",IF({NIVEL}="ALTO","Riesgo alto"&IF({CAPAC}<>"Adecuada"," y deuda alta para su ingreso",""),'
+    'IF({CAPAC}<>"Adecuada","Deuda alta para su ingreso","Ningún producto le corresponde por su ingreso")),'
+    'IF({ESTADO}="' + E4 + '","Falta información para evaluar",IF({ESTADO}="' + E5 + '","No cumple el memorando","")))', None, 24)
+add('MOT2', 'MOTIVO DEL RESULTADO', '=IF({ESTADO}="' + E3 + '",{ALERTA},{MOTIVO})', None, 46)
+add('FALTA', 'QUÉ FALTA REVISAR', '=IF({ESTADO}="' + E2 + '",{PEND}&IF({NOCORR}<>"",". "&{NOCORR},""),IF({ESTADO}="' + E3 + '",'
+    'IF(AND({NIVEL}<>"ALTO",{CAPAC}="Adecuada"),"Créditos decide si se le ofrece otro producto acorde a su ingreso",{VALID}),'
+    'IF({ESTADO}="' + E4 + '",{VALID},"")))', None, 46)
+add('ACC2', 'ACCIÓN RECOMENDADA', '=IF({ESTADO}="' + E3 + '",IF({E_TC}<>"","Evaluar la tarjeta (límite según su tabla)"&IF(OR({H_OK}+{V_OK}>0),"; '
+    'lo demás después de verificar su deuda",""),"Evaluación crediticia formal antes de ofrecer cualquier producto"),IF({ESTADO}="' + E4 + '",'
+    '"Solicitar o actualizar los datos y volver a evaluar",IF({ESTADO}="' + E5 + '","No continúa con las reglas del memorando","")))', None, 34)
+add('K_528', 'ORDEN LISTA 528', '=IF({ELEG}="' + E1 + '",IF({ESTADO}="' + E2 + '",IF({NIVEL}="BAJO",1,2),3)*100000+ROW(),"")', '0', 9)
+add('K_OTROS', 'ORDEN LISTA CASOS', '=IF({ESTADO}="' + E3 + '",100000+ROW(),IF({ESTADO}="' + E4 + '",200000+ROW(),IF({ESTADO}="' + E5 + '",300000+ROW(),"")))', '0', 9)
 '''
 i = motor.index('COL = {k: L(i + 1)')
 motor = motor[:i] + EXTRA + motor[i:]
@@ -54,6 +90,7 @@ from openpyxl.chart.label import DataLabelList  # noqa: E402
 from openpyxl.formatting.rule import CellIsRule  # noqa: E402,F811
 from openpyxl.styles import Alignment, PatternFill  # noqa: E402,F811
 from openpyxl.worksheet.properties import PageSetupProperties  # noqa: E402
+from openpyxl.worksheet.hyperlink import Hyperlink  # noqa: E402
 
 LIGHT = 'F2F6FC'
 RISK = {'BAJO': GREEN_F, 'MEDIO': YEL_F, 'ALTO': RED_F}  # noqa: F821 (definidos en el motor)
@@ -78,7 +115,9 @@ VER = [
     ('Pesos del puntaje suman 100%', 'ROUND(P_W_ANT+P_W_ING+P_W_DEU+P_W_MORA+P_W_CATE,6)=1'),
     ('Rangos sin solapamiento', 'AND(P_ING_L1<P_ING_L2,P_DEU_L1<P_DEU_L2,P_DTI_L1<P_DTI_L2,P_MORA_L1<P_MORA_L2,P_ANT_ALTO_MAX<P_ANT_BAJO_MIN)'),
     ('Sin errores en el cálculo', f"SUMPRODUCT(--ISERROR('Respaldo_Calculo'!$A$2:${L(len(COLS))}$2601))=0"),  # noqa: F821
-    ('Casos por revisar = Requiere revisión + Información incompleta', f'COUNT(C_K_CAS)=COUNTIF(C_ESTADO,"{E3}")+COUNTIF(C_ESTADO,"{E4}")'),
+    ('Hoja 2 = todos los que cumplen criterios iniciales', f'COUNT(C_K_528)=COUNTIF(C_ELEG,"{E1}")'),  # noqa: F821
+    ('Hoja 4 = revisión + información incompleta + no cumplen', f'COUNT(C_K_OTROS)=COUNTIF(C_ESTADO,"{E3}")+COUNTIF(C_ESTADO,"{E4}")+COUNTIF(C_ESTADO,"{E5}")'),
+    ('Ningún producto propuesto fuera de lo que le corresponde', 'COUNTIFS(C_P_VEH,">0",C_V_OK,0)+COUNTIFS(C_P_HIPO,">0",C_H_OK,0)+COUNTIFS(C_P_TC,">0",C_T_OK,0)=0'),
 ]
 v0 = rv + 1
 for k, (lab, cond) in enumerate(VER):
@@ -98,12 +137,12 @@ ws.column_dimensions['O'].width = 15
 put(ws, 'B2', 'COMÉDICA · PREEVALUACIÓN CREDITICIA', size=20, bold=True, color=NAVY)  # noqa: F821
 ws['B3'] = '="Base al "&TEXT(P_FECHA_CORTE,"dd/mm/yyyy")&" · Hipotecario, vehículo y tarjeta de crédito · Resultado PRELIMINAR: no es aprobación de crédito"'
 ws['B3'].font = font(11, True, 'C00000')  # noqa: F821
-CARDS = [('B', 'C', '=COUNTIF(C_ID,"?*")', 'Asociados evaluados', 'Todos los de la base', NAVY),
-         ('E', 'F', f'=COUNTIF(C_ELEG,"{E1}")', 'Cumplen criterios iniciales', 'Requisitos del memorando', BLUE),  # noqa: F821
-         ('H', 'I', f'=COUNTIF(C_ESTADO,"{E2}")', 'Pueden continuar', 'Pasan a la siguiente etapa', '548235'),
-         ('K', 'L', f'=COUNTIF(C_ESTADO,"{E3}")', 'Requieren revisión', 'Riesgo alto o deuda alta', 'BF8F00'),
-         ('N', 'O', f'=COUNTIF(C_ESTADO,"{E4}")', 'Información incompleta', 'Faltan datos para evaluar', '7F7F7F')]
-for a, b2, f, lab, desc, col in CARDS:
+CARDS = [('B', 'C', '=COUNTIF(C_ID,"?*")', 'Asociados evaluados', 'Todos los de la base', NAVY, 'Respaldo_Base_Original'),
+         ('E', 'F', f'=COUNTIF(C_ELEG,"{E1}")', 'Cumplen criterios iniciales', 'Clic: ver los 528 (hoja 2)', BLUE, '2_Los_528_que_Cumplen'),  # noqa: F821
+         ('H', 'I', f'=COUNTIF(C_ESTADO,"{E2}")', 'Pueden continuar', 'Clic: son los primeros de la hoja 2', '548235', '2_Los_528_que_Cumplen'),
+         ('K', 'L', f'=COUNTIF(C_ESTADO,"{E3}")', 'Requieren revisión', 'Clic: hoja 4 (riesgo o deuda alta)', 'BF8F00', '4_Casos_por_Revisar'),
+         ('N', 'O', f'=COUNTIF(C_ESTADO,"{E4}")', 'Información incompleta', 'Clic: hoja 4 (faltan datos)', '7F7F7F', '4_Casos_por_Revisar')]
+for a, b2, f, lab, desc, col, dest in CARDS:
     for rr, (v, sz, bold) in zip((5, 6, 7), ((f, 30, True), (lab, 12, True), (desc, 9, False))):
         ws.merge_cells(f'{a}{rr}:{b2}{rr}')
         c = ws[f'{a}{rr}']
@@ -113,6 +152,8 @@ for a, b2, f, lab, desc, col in CARDS:
         c.number_format = '#,##0'
         for cc in (a, b2):
             ws[f'{cc}{rr}'].fill = fill(col)  # noqa: F821
+    ws[f'{a}5'].hyperlink = Hyperlink(ref=f'{a}5', location=f"'{dest}'!A1", display=None)
+    ws[f'{a}5'].font = font(30, True, WHITE)  # noqa: F821
 ws.row_dimensions[5].height = 46
 ws.row_dimensions[6].height = 20
 ws.row_dimensions[7].height = 18
@@ -175,8 +216,9 @@ CONC = [
     f'&TEXT(COUNTIF(C_ESTADO,"{E3}"),"#,##0")&" requieren revisión antes de ofrecerles un producto (hoja 4)."',
     f'="3. "&TEXT(COUNTIFS(C_ELEG,"{E1}",C_NIVEL,"BAJO")/{C1},"0%")&" de los que cumplen tienen riesgo BAJO. Los "&TEXT(COUNTIFS(C_ELEG,"{E1}",C_NIVEL,"ALTO"),"#,##0")'
     '&" con riesgo ALTO NO están entre los que pueden continuar: están en revisión."',
-    f'="4. Antes de otorgar falta verificar lista negra, créditos castigados y solvencia en Hacienda. Además, "&TEXT(COUNTIFS(C_ESTADO,"{E2}",C_VEH_OK,"No",C_P_VEH,">0"),"#,##0")'
-    '&" montos de vehículo no coinciden con la tabla de vehículos de la Cooperativa: Créditos debe validarlos."',
+    f'="4. Solo se propone lo que le corresponde por su ingreso: de los que cumplen, a "&TEXT(COUNTIFS(C_ELEG,"{E1}",C_VEH,">0",C_V_OK,0),"#,##0")'
+    f'&" no se les propone el vehículo de la base (su tabla de vehículos no lo permite) y a "&TEXT(COUNTIFS(C_ELEG,"{E1}",C_HIPO,">0",C_H_OK,0),"#,##0")'
+    '&" no se les propone el hipotecario (ganan menos de $1,500). Antes de otorgar falta verificar lista negra, castigados y solvencia en Hacienda."',
 ]
 for k, f in enumerate(CONC):
     rr = 24 + k
@@ -189,46 +231,49 @@ for k, f in enumerate(CONC):
 ws['B29'] = f'=IF(COUNTIF({VERIF},"OK")={len(VER)},"✔ Verificación automática del archivo: todo cuadra (totales, listas y niveles).",' \
             '"✖ Verificación automática: hay algo que revisar (ver hoja Respaldo_Parametros).")'
 ws['B29'].font = font(10, True, '548235')  # noqa: F821
-ws['B30'] = 'Cómo leer: hoja 2 = todos los asociados con su resultado (use los filtros) · hoja 3 = criterios usados · hoja 4 = quiénes requieren revisión y qué hacer.'
+ws['B30'] = 'Cómo leer: haga clic en un cuadro azul o verde. Hoja 2 = los que cumplen (primero los que pueden continuar) · hoja 3 = criterios · hoja 4 = los demás y qué hacer.'
 ws['B30'].font = font(9, italic=True, color=GRAY)  # noqa: F821
 
-# ============================================================== 2_Listado_Asociados (una fila por asociado, misma fila que el cálculo)
-wl = wb.create_sheet('2_Listado_Asociados', 1)  # noqa: F821
-wl.sheet_view.showGridLines = False
-put(wl, 'A1', 'LISTADO DE ASOCIADOS Y RESULTADO DE LA PREEVALUACIÓN', size=15, bold=True, color=NAVY)  # noqa: F821
-put(wl, 'A2', 'Use las flechas de los encabezados para filtrar por nivel de riesgo, producto o resultado. Resultado preliminar: no es aprobación.',
-    size=9, italic=True, color=GRAY)  # noqa: F821
-c_ = lambda k, r: f"'Respaldo_Calculo'!{COL[k]}{r}"  # noqa: F821
-LCOLS = [
-    ('Número de asociado', lambda r: f'={c_("ID", r)}', '@', 12),
-    ('Nombre', lambda r: f'={c_("NOM", r)}', None, 32),
-    ('Agencia', lambda r: f'={c_("AGE", r)}', None, 15),
-    ('Ingreso registrado (al mes)', lambda r: f'=IF({c_("ID", r)}="","",IF({c_("ING", r)}="","No registrado",{c_("ING", r)}))', '$#,##0', 13),
-    ('Deuda bancaria', lambda r: f'=IF({c_("ID", r)}="","",IF({c_("SSF", r)}="","No registrada",{c_("SSF", r)}))', '$#,##0', 13),
-    ('Antigüedad como asociado (años)', lambda r: f'=IF({c_("ID", r)}="","",IF({c_("C_ANT", r)}="Sin información","No válida",{c_("ANT", r)}))', '0', 12),
-    ('Nivel de riesgo', lambda r: f'=IF({c_("ID", r)}="","",IF({c_("NIVEL", r)}="No aplica","No se calcula",{c_("NIVEL", r)}))', None, 12),
-    ('Producto que se propone evaluar', lambda r: f'={c_("PROD", r)}', None, 24),
-    ('Monto hipotecario', lambda r: f'={c_("P_HIPO", r)}', '$#,##0', 12),
-    ('Monto vehículo', lambda r: f'={c_("P_VEH", r)}', '$#,##0', 11),
-    ('Monto tarjeta', lambda r: f'=IF({c_("P_TC", r)}<>"",{c_("P_TC", r)},{c_("E_TC", r)})', '$#,##0', 11),
-    ('Resultado de la preevaluación', lambda r: f'={c_("ESTADO", r)}', None, 20),
-    ('Motivo del resultado', lambda r: f'={c_("MOTIVO", r)}', None, 46),
-    ('Qué falta revisar', lambda r: f'={c_("FALTA", r)}', None, 52),
-]
-HR = 4
-head(wl, HR, [h for h, *_ in LCOLS], [w for *_, w in LCOLS], NAVY, 54)  # noqa: F821
-for rr in range(HR + 1, HR + 1 + CAP):  # noqa: F821
-    for j, (h, f, fmt, w) in enumerate(LCOLS, 1):
-        c = wl.cell(rr, j, f(rr - HR + 1))
-        c.font = font(9)  # noqa: F821
-        if fmt:
-            c.number_format = fmt
-        c.alignment = Alignment(wrap_text=w >= 40, vertical='top')
-ENDL = HR + CAP  # noqa: F821
-wl.freeze_panes = 'C5'
-wl.auto_filter.ref = f'A{HR}:{L(len(LCOLS))}{ENDL}'  # noqa: F821
-cf_text(wl, f'G{HR + 1}:G{ENDL}', RISK)
-cf_text(wl, f'L{HR + 1}:L{ENDL}', RES)
+# ============================================================== 2: los que cumplen criterios iniciales (lista dinámica)
+
+
+def lista_simple(nombre, pos, titulo, sub, cuenta, key, cols, cf):
+    w = wb.create_sheet(nombre, pos)  # noqa: F821
+    w.sheet_view.showGridLines = False
+    put(w, 'A1', titulo, size=15, bold=True, color=NAVY)  # noqa: F821
+    put(w, 'A2', sub, size=9, italic=True, color=GRAY)  # noqa: F821
+    w['A3'] = cuenta
+    w['A3'].font = font(12, True, NAVY)  # noqa: F821
+    head(w, 5, [h for h, *_ in cols] + ['fila'], [wd for *_, wd in cols] + [6], NAVY, 46)  # noqa: F821
+    last = len(cols) + 1
+    for i in range(LCAP):  # noqa: F821
+        rr = 6 + i
+        c = w.cell(rr, last, f'=IFERROR(MATCH(SMALL(C_{key},{i + 1}),C_{key},0),"")')
+        c.font = font(8, color='BFBFBF')  # noqa: F821
+        for j, (h, k, fmt, wd) in enumerate(cols, 1):
+            c = w.cell(rr, j, f'=IF(${L(last)}{rr}="","",IF(INDEX(C_{k},${L(last)}{rr})="","",INDEX(C_{k},${L(last)}{rr})))')  # noqa: F821
+            c.font = font(9)  # noqa: F821
+            if fmt:
+                c.number_format = fmt
+            c.alignment = Alignment(wrap_text=wd >= 24, vertical='top')
+    w.column_dimensions[L(last)].hidden = True  # noqa: F821
+    end = 5 + LCAP  # noqa: F821
+    w.freeze_panes = 'C6'
+    w.auto_filter.ref = f'A5:{L(len(cols))}{end}'  # noqa: F821
+    for colr, colors in cf:
+        cf_text(w, f'{colr}6:{colr}{end}', colors)
+    return w
+
+
+C528 = [('Número de asociado', 'ID', '@', 11), ('Nombre', 'NOM', None, 30), ('Agencia', 'AGE', None, 14),
+        ('Ingreso al mes', 'ING', '$#,##0', 11), ('Deuda bancaria', 'SSF', '$#,##0', 11), ('Antigüedad (años)', 'ANT', '0', 9),
+        ('Nivel de riesgo', 'NIVEL', None, 10), ('Resultado', 'ESTADO', None, 17), ('Producto que se propone evaluar', 'PROD', None, 22),
+        ('Monto hipotecario', 'P_HIPO', '$#,##0', 11), ('Monto vehículo', 'P_VEH', '$#,##0', 10), ('Monto tarjeta', 'P_TC', '$#,##0', 10),
+        ('Motivo del resultado', 'MOT2', None, 44), ('Qué falta revisar', 'FALTA', None, 50)]
+lista_simple('2_Los_528_que_Cumplen', 1, 'LOS QUE CUMPLEN LOS CRITERIOS INICIALES DEL MEMORANDO',
+             'Primero los que PUEDEN CONTINUAR (riesgo bajo y luego medio); al final los que REQUIEREN REVISIÓN. Resultado preliminar: no es aprobación.',
+             f'=TEXT(COUNT(C_K_528),"#,##0")&" cumplen los criterios iniciales:  "&TEXT(COUNTIF(C_ESTADO,"{E2}"),"#,##0")&" pueden continuar  ·  "'
+             f'&TEXT(COUNTIF(C_ESTADO,"{E3}"),"#,##0")&" requieren revisión"', 'K_528', C528, [('G', RISK), ('H', RES)])  # noqa: F821
 
 # ============================================================== 3_Criterios
 wcri = wb.create_sheet('3_Criterios', 2)  # noqa: F821
@@ -250,6 +295,8 @@ CRI = [
      '"Requiere revisión" (salvo que su deuda sea menor que el hipotecario ofrecido, que podría pagarla).'),
     ('Aportaciones', 'Cuotas de aportación vencidas', '="0 = bajo · "&P_MORA_L1&" a "&(P_MORA_L2-1)&" = medio · "&P_MORA_L2&" o más = alto. No impide continuar: debe ponerse al día."'),
     ('Historial crediticio', 'Categoría en la central de riesgo (SSF)', 'A1 = bajo · A2 = medio. Es el único dato de historial que trae la base.'),
+    ('Producto que corresponde', 'Se propone solo lo que le corresponde por su ingreso', 'Vehículo y tarjeta: según las tablas de la Cooperativa '
+     '(vehículo solo si gana $3,000 o más). Hipotecario: solo si gana $1,500 o más (propuesta de Riesgo; no hay tabla oficial).'),
 ]
 for k, row in enumerate(CRI):
     rr = 5 + k
@@ -265,7 +312,7 @@ r = 5 + len(CRI) + 1
 put(wcri, f'A{r}', 'NIVEL DE RIESGO', size=12, bold=True, color=NAVY)  # noqa: F821
 r += 1
 for lv, txt in (('BAJO', 'Ningún dato en riesgo alto (antigüedad, ingreso, deuda, aportaciones, categoría en la central de riesgo).'),
-                ('MEDIO', '1 dato en riesgo alto.'), ('ALTO', '2 o más datos en riesgo alto. Siempre va a "Requiere revisión".')):
+                ('MEDIO', '1 dato en riesgo alto.'), ('ALTO', '2 o más datos en riesgo alto. Siempre va a "Requiere revisión" (hoja 4).')):
     put(wcri, f'A{r}', f'Riesgo {lv}', bold=True, bg=RISK[lv], border=True)  # noqa: F821
     put(wcri, f'B{r}', txt, border=True, wrap=True)  # noqa: F821
     wcri.merge_cells(f'B{r}:C{r}')
@@ -275,8 +322,8 @@ put(wcri, f'A{r}', 'Ejemplo: gana $1,101 al mes (alto) y debe $11,640 (alto); lo
 r += 2
 put(wcri, f'A{r}', 'RESULTADO DE LA PREEVALUACIÓN (distinto del nivel de riesgo)', size=12, bold=True, color=NAVY)  # noqa: F821
 r += 1
-for lab, txt in ((E2, 'Cumple los criterios iniciales, su deuda es adecuada para su ingreso y su riesgo no es alto. Pasa a la siguiente etapa.'),  # noqa: F821
-                 (E3, 'Cumple los criterios iniciales, pero tiene riesgo alto o deuda alta para su ingreso. Hay que verificar antes de ofrecer.'),  # noqa: F821
+for lab, txt in ((E2, 'Cumple los criterios iniciales, su deuda es adecuada para su ingreso, su riesgo no es alto y al menos un producto le corresponde.'),  # noqa: F821
+                 (E3, 'Cumple los criterios iniciales, pero tiene riesgo alto, deuda alta para su ingreso o ningún producto le corresponde. Verificar antes de ofrecer.'),  # noqa: F821
                  (E4, 'Faltan datos para dar una conclusión.'), (E5, 'Tiene una condición del memorando que impide continuar.')):  # noqa: F821
     put(wcri, f'A{r}', lab, bold=True, bg=RES[lab], border=True)  # noqa: F821
     put(wcri, f'B{r}', txt, border=True, wrap=True)  # noqa: F821
@@ -286,47 +333,26 @@ for lab, txt in ((E2, 'Cumple los criterios iniciales, su deuda es adecuada para
 r += 1
 put(wcri, f'A{r}', 'MONTOS Y PENDIENTES', size=12, bold=True, color=NAVY)  # noqa: F821
 for t in ['Los montos son los que trae la base (PRECA HIPO, PRECA VEHICULO, PRECA TC). Riesgo no los cambia.',
-          'Tarjeta: su límite se compara con la tabla de tarjeta de la base. Vehículo: si no coincide con su tabla, se avisa en "Qué falta revisar".',
-          'Pendiente de aprobación institucional: los rangos de ingreso, deuda y aportaciones, y la regla del nivel de riesgo (propuestas de Riesgo).',
+          'Si un producto de la base no le corresponde por su ingreso, no se propone y se explica en "Motivo" o "Qué falta revisar".',
+          'Pendiente de aprobación institucional: rangos de ingreso, deuda y aportaciones, regla del nivel de riesgo e ingreso mínimo de $1,500 para hipotecario.',
           'La base no trae la cuota mensual de las deudas: la capacidad de pago real se revisa en la evaluación formal.']:
     r += 1
     put(wcri, f'A{r}', '• ' + t, size=10)  # noqa: F821
 for rr in range(1, r + 1):
     pass
 
-# ============================================================== 4_Casos_por_Revisar (lista dinámica)
-wcs = wb.create_sheet('4_Casos_por_Revisar', 3)  # noqa: F821
-wcs.sheet_view.showGridLines = False
-put(wcs, 'A1', 'CASOS POR REVISAR', size=15, bold=True, color=NAVY)  # noqa: F821
-put(wcs, 'A2', 'Primero los que "Requieren revisión" (riesgo alto o deuda alta); después los de "Información incompleta". Cada fila dice qué revisar y qué hacer.',
-    size=9, italic=True, color=GRAY)  # noqa: F821
-wcs['A3'] = '=COUNT(C_K_CAS)&" asociados en esta lista"'
-wcs['A3'].font = font(11, True, NAVY)  # noqa: F821
-CCOLS = [('Número de asociado', 'ID', '@', 12), ('Nombre', 'NOM', None, 30), ('Resultado', 'ESTADO', None, 18),
-         ('Nivel de riesgo', 'NIVEL', None, 11), ('Motivo por el que requiere revisión', 'MOTC', None, 24),
-         ('Información que falta o alerta', 'ALERTA', None, 42), ('Acción que se recomienda', 'ACC2', None, 38),
-         ('Tarjeta a evaluar', 'E_TC', '$#,##0', 11)]
-head(wcs, 5, [h for h, *_ in CCOLS] + ['fila'], [w for *_, w in CCOLS] + [6], NAVY, 40)  # noqa: F821
-last = len(CCOLS) + 1
-for i in range(LCAP):  # noqa: F821
-    rr = 6 + i
-    c = wcs.cell(rr, last, f'=IFERROR(MATCH(SMALL(C_K_CAS,{i + 1}),C_K_CAS,0),"")')
-    c.font = font(8, color='BFBFBF')  # noqa: F821
-    for j, (h, k, fmt, w) in enumerate(CCOLS, 1):
-        c = wcs.cell(rr, j, f'=IF(${L(last)}{rr}="","",IF(INDEX(C_{k},${L(last)}{rr})="","",INDEX(C_{k},${L(last)}{rr})))')  # noqa: F821
-        c.font = font(9)  # noqa: F821
-        if fmt:
-            c.number_format = fmt
-        c.alignment = Alignment(wrap_text=w >= 24, vertical='top')
-wcs.column_dimensions[L(last)].hidden = True  # noqa: F821
-ENDC = 5 + LCAP  # noqa: F821
-wcs.freeze_panes = 'C6'
-wcs.auto_filter.ref = f'A5:{L(len(CCOLS))}{ENDC}'  # noqa: F821
-cf_text(wcs, f'D6:D{ENDC}', RISK)
-cf_text(wcs, f'C6:C{ENDC}', RES)
+# ============================================================== 4: casos por revisar y los que no continúan
+CCOLS = [('Número de asociado', 'ID', '@', 11), ('Nombre', 'NOM', None, 30), ('Resultado', 'ESTADO', None, 18),
+         ('Nivel de riesgo', 'NIVEL', None, 10), ('Motivo', 'MOTC', None, 24), ('Información que falta o alerta', 'ALERTA', None, 46),
+         ('Acción que se recomienda', 'ACC2', None, 36), ('Tarjeta a evaluar', 'E_TC', '$#,##0', 10)]
+lista_simple('4_Casos_por_Revisar', 3, 'CASOS POR REVISAR Y LOS QUE NO CONTINÚAN',
+             'Orden: 1) Requieren revisión (cumplen el memorando pero tienen riesgo alto, deuda alta o ningún producto les corresponde); '
+             '2) Información incompleta; 3) No cumplen los criterios iniciales. Cada fila dice qué falta y qué hacer.',
+             f'=TEXT(COUNTIF(C_ESTADO,"{E3}"),"#,##0")&" requieren revisión  ·  "&TEXT(COUNTIF(C_ESTADO,"{E4}"),"#,##0")&" con información incompleta  ·  "'
+             f'&TEXT(COUNTIF(C_ESTADO,"{E5}"),"#,##0")&" no cumplen los criterios iniciales"', 'K_OTROS', CCOLS, [('D', RISK), ('C', RES)])  # noqa: F821
 
 # ============================================================== orden, colores de pestaña, impresión
-order = ['1_Resumen_General', '2_Listado_Asociados', '3_Criterios', '4_Casos_por_Revisar', 'Respaldo_Parametros', 'Respaldo_Calculo',
+order = ['1_Resumen_General', '2_Los_528_que_Cumplen', '3_Criterios', '4_Casos_por_Revisar', 'Respaldo_Parametros', 'Respaldo_Calculo',
          'Respaldo_Base_Original']
 wb._sheets = [wb[n] for n in order]  # noqa: F821
 for n, colr in zip(order, [NAVY, BLUE, BLUE, BLUE, 'A6A6A6', 'A6A6A6', 'A6A6A6']):  # noqa: F821
